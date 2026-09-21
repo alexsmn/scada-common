@@ -20,6 +20,12 @@ inline bool WantsReference(const TypeSystem& type_system,
   if (!WantsBrowseDirection(description.direction, forward))
     return false;
 
+  // OPC UA Part 4 §5.9.2.2 Parameters: "If not specified then all References
+  // are returned and includeSubtypes is ignored."
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2
+  if (description.reference_type_id.is_null())
+    return true;
+
   if (description.include_subtypes) {
     return type_system.IsSubtypeOf(reference_type_id,
                                    description.reference_type_id);
@@ -35,6 +41,12 @@ inline bool WantsReferenceOfSupertype(
     bool forward) {
   if (!WantsBrowseDirection(description.direction, forward))
     return false;
+
+  // OPC UA Part 4 §5.9.2.2 Parameters: "If not specified then all References
+  // are returned and includeSubtypes is ignored."
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2
+  if (description.reference_type_id.is_null())
+    return true;
 
   return type_system.IsSubtypeOf(description.reference_type_id,
                                  supertype_reference_type_id);
@@ -68,6 +80,12 @@ inline bool MightWantReferenceSubtype(
     if (forward != wants_forward)
       return false;
   }
+
+  // OPC UA Part 4 §5.9.2.2 Parameters: "If not specified then all References
+  // are returned and includeSubtypes is ignored."
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2
+  if (description.reference_type_id.is_null())
+    return true;
 
   if (description.include_subtypes) {
     return type_system.IsSubtypeOf(description.reference_type_id,

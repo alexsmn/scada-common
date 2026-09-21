@@ -256,6 +256,24 @@ bool IsRefSubtypeOf::operator()(const Reference& ref) const {
   // address space rather than crashing.
   if (!ref.type)
     return false;
+  // An unspecified reference type means every reference, and includeSubtypes
+  // is ignored. This filter serves both services that say so:
+  // OPC UA Part 4 §5.9.2.2 Parameters (Browse),
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2 -- "If not
+  // specified then all References are returned and includeSubtypes is ignored";
+  // and OPC UA Part 4 §7.30 RelativePath,
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.30 -- "If the
+  // referenceTypeId is null then all References are included and the parameter
+  // includeSubtypes is ignored."
+  //
+  // Without this branch a null filter matches nothing: the subtype walk looks
+  // for a null id in the supertype chain and the exact-id compare fails, so
+  // Browse answers Good with an empty reference list and the caller cannot
+  // tell "no references" from "your filter matched nothing". Internal callers
+  // always name a reference type, so this branch is reached only from a
+  // service request.
+  if (reference_type_id_.is_null())
+    return true;
   if (include_subtypes_)
     return IsSubtypeOf(*ref.type, reference_type_id_);
   else

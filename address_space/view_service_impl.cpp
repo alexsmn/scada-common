@@ -173,7 +173,16 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
     const scada::BrowseDescription& description) {
   scada::BrowseResult result;
 
-  if (!description.include_subtypes) {
+  // OPC UA Part 4 §5.9.2.2 Parameters: "If not specified then all References
+  // are returned and includeSubtypes is ignored."
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2
+  const bool wants_every_reference_type =
+      description.reference_type_id.is_null();
+
+  // An exact-id property browse is not supported, but a null filter reaches
+  // here with includeSubtypes still at whatever the request carried, and the
+  // rule above says to ignore it rather than reject the request.
+  if (!description.include_subtypes && !wants_every_reference_type) {
     // Browse descriptions arrive in service requests (external input).
     result.status_code = scada::StatusCode::Bad;
     return result;
@@ -191,7 +200,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
 
   if (description.direction == scada::BrowseDirection::Forward ||
       description.direction == scada::BrowseDirection::Both) {
-    if (scada::IsSubtypeOf(address_space_, scada::id::HasTypeDefinition,
+    if (wants_every_reference_type ||
+        scada::IsSubtypeOf(address_space_, scada::id::HasTypeDefinition,
                            description.reference_type_id))
       result.references.emplace_back(scada::id::HasTypeDefinition,
                                      /*forward=*/true, scada::id::PropertyType,
@@ -200,7 +210,8 @@ scada::BrowseResult SyncViewServiceImpl::BrowseProperty(
 
   if (description.direction == scada::BrowseDirection::Inverse ||
       description.direction == scada::BrowseDirection::Both) {
-    if (scada::IsSubtypeOf(address_space_, scada::id::HasProperty,
+    if (wants_every_reference_type ||
+        scada::IsSubtypeOf(address_space_, scada::id::HasProperty,
                            description.reference_type_id))
       result.references.emplace_back(scada::id::HasProperty, /*forward=*/false,
                                      node.id(), node.GetNodeClass());

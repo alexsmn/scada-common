@@ -236,6 +236,12 @@ bool WantsReference(const AddressSpace& address_space,
       return false;
   }
 
+  // OPC UA Part 4 §5.9.2.2 Parameters: "If not specified then all References
+  // are returned and includeSubtypes is ignored."
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2
+  if (description.reference_type_id.is_null())
+    return true;
+
   if (description.include_subtypes) {
     return IsSubtypeOf(address_space, reference_type_id,
                        description.reference_type_id);

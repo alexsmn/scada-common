@@ -1,10 +1,12 @@
 # Common Architecture
 
 Status: Living reference
-Last verified against code: 2026-08-31 (the "OPC UA Module" section only,
-rewritten after that module left `common/` for three separate homes. The rest
-of this index is unverified — this document has never carried a date, so treat
-the other sections as unchecked rather than as recently confirmed.)
+Last verified against code: 2026-09-21 (the "Browse reference-type filtering"
+section only, written against the five predicates it names. The "OPC UA Module"
+section was last verified 2026-08-31, rewritten after that module left
+`common/` for three separate homes. The rest of this index is unverified — this
+document carried no date before 2026-08-31, so treat the other sections as
+unchecked rather than as recently confirmed.)
 
 This document indexes the shared `common/` libraries used by both the SCADA
 server and client.
@@ -29,6 +31,56 @@ Related documents:
 | `timed_data/` | Time-series data with aliases and computed expressions |
 | `opc/` | Classic COM-based OPC conversions (Windows only) |
 | `vidicon/` | Vidicon telemetry integration (Windows only) |
+
+## Browse reference-type filtering
+
+**An unspecified `referenceTypeId` means every reference, and `includeSubtypes`
+is ignored.** Both services that take one say so:
+
+- OPC UA Part 4 §5.9.2.2 Parameters (Browse) —
+  <https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2> — "If not
+  specified then all References are returned and includeSubtypes is ignored."
+- OPC UA Part 4 §7.30 RelativePath —
+  <https://reference.opcfoundation.org/Core/Part4/v105/docs/7.30> — "If the
+  referenceTypeId is null then all References are included and the parameter
+  includeSubtypes is ignored."
+
+The rule is not free: without an explicit branch a null filter matches
+**nothing**, because the subtype walk looks for a null id in a supertype chain
+and never finds one while the exact-id compare fails too. The service then
+answers `Good` with an empty reference list, and a caller cannot distinguish
+"this node has no references" from "your filter matched nothing" — which is
+what made the defect survive from the first Browse implementation until
+2026-09-21 (backlog 675, measured against the deployed demo on 2026-08-30:
+browsing `i=85` with no filter returned zero references where the same browse
+naming `HierarchicalReferences` returned 15).
+
+**`BrowseDescription::reference_type_id` default-constructs to a null NodeId**,
+so the spec-correct "all references" request is also the default-constructed
+one. That is why nothing internal ever tripped over it: in-tree callers name a
+reference type, and only a service request arrives unfiltered.
+
+Five predicates decide it, and each carries the branch and the citation:
+
+| Predicate | Where | Reached from |
+|---|---|---|
+| `IsRefSubtypeOf` | `address_space/node_utils.cpp` | `FilterReferences`, so Browse **and** TranslateBrowsePaths |
+| `SyncViewServiceImpl::BrowseProperty` | `address_space/view_service_impl.cpp` | a browse of a nested property |
+| `WantsReference` (AddressSpace) | `address_space/address_space_util.cpp` | the framework's `browse_util.h` |
+| `WantsReference`, `WantsReferenceOfSupertype`, `MightWantReferenceSubtype` (TypeSystem) | `common/type_system_util.h` | the framework's node managers, and the iec61850 / opc / filesystem tiers |
+
+The last row is the one to be careful with: those predicates live in `common`
+and have **no consumer in `common` at all**. `type_system_util_unittest.cpp`
+is therefore the only thing that checks them, and it checks the predicate
+rather than any node manager's end-to-end answer — a tier or framework
+regression in this area would not be visible from this product's suite.
+
+Two things the rule deliberately does **not** relax. `browseDirection` is a
+separate parameter and still applies, so an unfiltered inverse browse returns
+inverse references only. And a reference whose type node is not resident in
+the address space is still skipped, because `ReferenceDescription` has to
+report `ref.type->id()`; the null-filter branch sits after that guard.
+
 
 ## OPC UA Module
 

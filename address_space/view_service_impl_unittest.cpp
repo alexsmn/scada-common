@@ -187,6 +187,81 @@ TEST(ViewServiceImpl, BrowseParentChildren) {
             scada::NodeId{scada::id::HasComponent});
 }
 
+// OPC UA Part 4 §5.9.2.2 Parameters: "If not specified then all References are
+// returned and includeSubtypes is ignored."
+// https://reference.opcfoundation.org/Core/Part4/v105/docs/5.9.2.2
+//
+// kObjectId carries one hierarchical reference (HasComponent to kChildId) and
+// one non-hierarchical one (HasTypeDefinition to BaseObjectType), so a filter
+// that is genuinely ignored returns both where HierarchicalReferences returns
+// only the first. Before the null branch existed this answered Good with an
+// empty list, which a caller cannot tell from "this node has no references".
+TEST(ViewServiceImpl, BrowseWithoutAReferenceTypeReturnsEveryReference) {
+  TestContext context;
+  TestExecutor executor;
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(executor,
+                    context.view_service.Browse(
+                        scada::ServiceContext{},
+                        {{.node_id = context.kObjectId,
+                          .direction = scada::BrowseDirection::Forward}})));
+  ASSERT_EQ(results.size(), 1u);
+  auto& result = results.front();
+  ASSERT_TRUE(scada::Status{result.status_code});
+
+  std::vector<scada::NodeId> reference_types;
+  for (const auto& reference : result.references)
+    reference_types.push_back(reference.reference_type_id);
+  EXPECT_THAT(reference_types,
+              ::testing::UnorderedElementsAre(
+                  scada::NodeId{scada::id::HasComponent},
+                  scada::NodeId{scada::id::HasTypeDefinition}));
+}
+
+// The same sentence says includeSubtypes is *ignored* when no reference type
+// is given, so the false case must answer identically rather than falling into
+// the exact-id compare that matches nothing.
+TEST(ViewServiceImpl,
+     BrowseWithoutAReferenceTypeIgnoresIncludeSubtypesBeingFalse) {
+  TestContext context;
+  TestExecutor executor;
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(executor,
+                    context.view_service.Browse(
+                        scada::ServiceContext{},
+                        {{.node_id = context.kObjectId,
+                          .direction = scada::BrowseDirection::Forward,
+                          .include_subtypes = false}})));
+  ASSERT_EQ(results.size(), 1u);
+  auto& result = results.front();
+  ASSERT_TRUE(scada::Status{result.status_code});
+  EXPECT_EQ(result.references.size(), 2u);
+}
+
+// A named filter must keep filtering: the null branch is a special case, not a
+// relaxation of every browse.
+TEST(ViewServiceImpl, BrowseWithAReferenceTypeStillFilters) {
+  TestContext context;
+  TestExecutor executor;
+  ASSERT_OK_AND_ASSIGN(
+      auto results,
+      WaitAwaitable(
+          executor,
+          context.view_service.Browse(
+              scada::ServiceContext{},
+              {{.node_id = context.kObjectId,
+                .direction = scada::BrowseDirection::Forward,
+                .reference_type_id = scada::id::HasTypeDefinition}})));
+  ASSERT_EQ(results.size(), 1u);
+  auto& result = results.front();
+  ASSERT_TRUE(scada::Status{result.status_code});
+  ASSERT_EQ(result.references.size(), 1u);
+  EXPECT_EQ(result.references[0].reference_type_id,
+            scada::NodeId{scada::id::HasTypeDefinition});
+}
+
 TEST(ViewServiceImpl, BrowsePopulatesNamesAndHonorsResultMask) {
   TestAddressSpace address_space;
   TestExecutor executor;
