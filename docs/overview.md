@@ -72,8 +72,25 @@ Five predicates decide it, and each carries the branch and the citation:
 The last row is the one to be careful with: those predicates live in `common`
 and have **no consumer in `common` at all**. `type_system_util_unittest.cpp`
 is therefore the only thing that checks them, and it checks the predicate
-rather than any node manager's end-to-end answer — a tier or framework
-regression in this area would not be visible from this product's suite.
+rather than any node manager's end-to-end answer.
+
+**That half is uncovered in both directions, which is a stronger statement
+than "this product cannot see it" and is the one to act on.** Measured
+2026-09-21 across the seven consumers — `node_manager/static/browse_util.h`,
+`node_manager/static/node_state_models.h`,
+`node_manager/static/static_node_manager.h`,
+`node_manager/aggregate/aggregate_node_manager.cpp`,
+`node_manager/configuration/database_call.cpp`, and the `opc` and
+`filesystem` tiers' `*_node_models.h` — **every** `BrowseDescription` any of
+their tests builds names a reference type. So the framework suite passing
+says only that nothing there asserted the old behaviour; nothing asserts the
+new one either, and a regression would be silent. Nothing prevents such a
+test: `root_node_manager_unittest.cpp` already drives a real `RootNodeManager`
+rather than a mock view service, so the fixture exists and nobody has written
+the case. The `address_space` rows above are not in this position —
+`ViewServiceImpl.BrowseWithoutAReferenceTypeReturnsEveryReference` browses a
+real `SyncViewServiceImpl` over a real address space and asserts the reference
+set that comes back.
 
 Two things the rule deliberately does **not** relax. `browseDirection` is a
 separate parameter and still applies, so an unfiltered inverse browse returns
