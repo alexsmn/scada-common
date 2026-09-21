@@ -5,6 +5,7 @@
 #include "scada/data_services.h"
 
 #include <set>
+#include <unordered_map>
 
 class StaticNodeModel;
 

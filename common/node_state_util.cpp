@@ -4,6 +4,8 @@
 // constants have internal linkage and are never exported by the facades.
 #include "scada/standard_node_ids.h"
 
+#include <unordered_map>
+
 #if defined(SCADA_USE_CORE_MODULE)
 // Modules-pilot consumer (SCADA_CXX_MODULES=ON): base/scada names come from
 // the scada.core facade. The import sits after the textual includes because

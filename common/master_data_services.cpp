@@ -7,6 +7,8 @@
 #include "scada/monitoring_parameters.h"
 #include "scada/standard_node_ids.h"
 
+#include <algorithm>
+
 // MasterDataServices::MasterMonitoredItem
 
 class MasterDataServices::MasterMonitoredItem : public scada::MonitoredItem {
