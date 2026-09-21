@@ -395,18 +395,23 @@ opcua::Event ToOpcua(const scada::Event& v) {
   out.change_mask = v.change_mask;
   out.severity = v.severity;
   out.source_node_id = ToOpcua(v.source_node_id);
-  // Part 5 §6.4.2 types SourceName as a `String`, so unlike `message` it
-  // cannot carry several languages across this projection. The client-facing
-  // boundary has normally resolved it already; passing a still-packed value
-  // straight through would put raw `{"t":[[...]]}` in a journal's object
-  // column, so resolve against no preference — Part 4 §5.4's "any locale the
-  // server has" — which yields the leading translation and never JSON.
+  // Passed through exactly as `message` is, and deliberately NOT resolved
+  // here. This conversion has no ServiceContext, so resolving would have to
+  // guess, and guessing "no preference" collapses the value to the leading
+  // translation for EVERY consumer — including a peer that asked for "mul"
+  // and is entitled to all of them (Part 4 §5.4: a client requesting "mul"
+  // shall be prepared to receive one). That is precisely what this line did
+  // until it was measured on the demo: one `mul` session got `message` packed
+  // and `source_name` as a single language, off the same event.
   //
-  // The cost is real and worth knowing: across an OPC UA tier hop SourceName
-  // collapses to one language here, where `message` survives packed. See
-  // `docs/server/locale-negotiation.md` §6.
-  out.source_name =
-      UtfConvert<char>(scada::ResolveLocalizedText(v.source_name, {}).text);
+  // Raw `{"t":[[...]]}` cannot reach a journal this way, because every
+  // client-facing path resolves against the session's LocaleIds before
+  // reaching here — `LocalizingMonitoredItemService` for live events,
+  // `HistoryServiceAdapter::HistoryReadEvents` for the archive — so a session
+  // that did not ask for "mul" never receives a packed value from either.
+  // Part 5 §6.4.2 still types the wire field as a `String`; what travels in
+  // it is whatever that resolution chose.
+  out.source_name = UtfConvert<char>(v.source_name.text);
   out.user_id = ToOpcua(v.user_id);
   out.value = ToOpcua(v.value);
   out.qualifier = ToOpcua(v.qualifier);

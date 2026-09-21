@@ -646,5 +646,27 @@ TEST(ServerAdapterTest, HistoryEventSourceNameIsNeverThePackedForm) {
   EXPECT_EQ(received.source_name.find("{\"t\":"), std::string::npos);
 }
 
+// A session that asks for "mul" gets EVERY language in both fields, not one
+// of each. Part 4 §5.4 says a client requesting "mul" shall be prepared to
+// receive one, and a tier hop is exactly that client: the proxy asks the
+// historian for "mul" so it can resolve per client session itself.
+//
+// Regression test for a defect measured on the demo 2026-09-21. `ToOpcua`
+// resolved SourceName against an empty request to guarantee no JSON reached a
+// journal, which also collapsed it for a peer entitled to all of it — so one
+// `mul` session read `message` packed and `source_name` as a single language
+// off the same event, and a multi-tier deployment served the wrong language
+// for the object column while the message beside it was right.
+TEST(ServerAdapterTest, AMulSessionGetsEveryLanguageInBothFields) {
+  const opcua::Event event =
+      ReadOneEvent({std::string{scada::kMultiLanguageLocale}});
+
+  // Both fields are packed, and the packed form is the JSON object the codec
+  // emits — asserted on the message too, so this fails if the two fields ever
+  // stop agreeing again.
+  EXPECT_NE(event.message.text.find(u"{\"t\":"), std::u16string::npos);
+  EXPECT_NE(event.source_name.find("{\"t\":"), std::string::npos);
+}
+
 }  // namespace
 }  // namespace scada::opcua_bridge
