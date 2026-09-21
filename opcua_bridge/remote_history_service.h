@@ -36,6 +36,23 @@ struct RemoteHistoryServiceConfig {
   opcua::SessionSecuritySettings security;
 };
 
+// The session parameters for the link to the external historian.
+//
+// Named and exposed for the `locale_ids` in it, which must be "mul" — every
+// language the historian holds. This is a TIER HOP: one session serves every
+// client this server will ever answer, so asking for a single language makes
+// the historian resolve on our behalf and the answer reaches all of them in
+// that language. An archived event Message is packed (`MessageLocale` is
+// literally `mul`), and resolving it here throws the other languages away
+// before this server can choose per session.
+//
+// Tested rather than written inline because the failure is invisible: the
+// journal is always readable, just always in one language. See
+// `docs/server/locale-negotiation.md` §3.3.
+opcua::SessionConnectParams MakeHistorySessionParams(
+    const RemoteHistoryServiceConfig& config,
+    std::string endpoint);
+
 // Presents an external OPC UA historian as the core history read + update
 // services. Implements both interfaces so the server-side router can route
 // HistoryRead and HistoryUpdate to the remote historian (mirrors how

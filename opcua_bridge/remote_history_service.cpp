@@ -1,4 +1,5 @@
 #include "opcua_bridge/remote_history_service.h"
+#include "scada/locale_negotiation.h"
 
 #include <utility>
 
@@ -63,12 +64,32 @@ scada::CoStatus RemoteHistoryService::Connect() {
   return ConnectTo(config_.endpoint_url);
 }
 
+opcua::SessionConnectParams MakeHistorySessionParams(
+    const RemoteHistoryServiceConfig& config,
+    std::string endpoint) {
+  return opcua::SessionConnectParams{
+      .connection_string = std::move(endpoint),
+      .user_name = ToOpcua(config.user_name),
+      .password = ToOpcua(config.password),
+      // "mul" asks the historian for EVERY language it archived rather than
+      // making it choose one for us (OPC UA Part 3 §8.5.2.2 Multiple language
+      // locale, https://reference.opcfoundation.org/Core/Part3/v105/docs/8.5).
+      //
+      // Without it the historian resolves each event Message against an empty
+      // locale list, which Part 4 §5.4 reads as "any locale the server has",
+      // and returns the FIRST translation — the locale that server was
+      // configured with. Every client of ours then gets that language however
+      // it negotiated, because the other translations were discarded one hop
+      // upstream. Measured on the demo 2026-09-21: the archive held
+      // `mul|{"t":[["ru","Значение > 45"],["en","Value > 45"]]}` and an
+      // English session was served the Russian one.
+      .locale_ids = {std::string{scada::kMultiLanguageLocale}},
+      .security = config.security};
+}
+
 scada::CoStatus RemoteHistoryService::ConnectTo(std::string endpoint) {
   auto status = co_await session_->ConnectStatus(
-      opcua::SessionConnectParams{.connection_string = std::move(endpoint),
-                                  .user_name = ToOpcua(config_.user_name),
-                                  .password = ToOpcua(config_.password),
-                                  .security = config_.security});
+      MakeHistorySessionParams(config_, std::move(endpoint)));
   co_return ToScada(status);
 }
 
