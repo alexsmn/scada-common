@@ -1,11 +1,11 @@
 #include "opcua_bridge/service_conversion.h"
-#include "scada/locale_negotiation.h"
 
 #include <chrono>
 
 #include "opcua_bridge/vector_conversion.h"
 
 #include "scada/event_util.h"
+#include "scada/locale_negotiation.h"
 
 #include "opcua/events/event_filter.h"
 #include "opcua/events/event_util.h"

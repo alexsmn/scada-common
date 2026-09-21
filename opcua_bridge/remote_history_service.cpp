@@ -1,5 +1,4 @@
 #include "opcua_bridge/remote_history_service.h"
-#include "scada/locale_negotiation.h"
 
 #include <utility>
 
@@ -11,6 +10,7 @@ import scada.core;
 #else
 #include "scada/co_result.h"
 #include "scada/data_value.h"
+#include "scada/locale_negotiation.h"
 #include "scada/read_value_id.h"
 #include "scada/service_context.h"
 #include "scada/variant.h"
