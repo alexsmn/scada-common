@@ -721,6 +721,19 @@ Notes:
   ends the connection; nothing in our code sends the 1009 close code that
   Part 6 §7.5 WebSockets asks of a receiver (backlog 823). This section said
   both directions closed with 1009 until 2026-09-26; neither did.
+- `max_byte_string_length` is published as
+  Server.ServerCapabilities.MaxByteStringLength and enforced on Write values
+  and Method input arguments (`Bad_OutOfRange` for that node,
+  `Bad_InvalidArgument` naming the argument). It rides in
+  `opcua::OperationLimits` for the same reason the limits below do — one
+  struct feeds both the advertisement and the request path — though on the
+  wire it is a ServerCapabilities property, not an OperationLimits one. Unset,
+  it is the largest ByteString one `max_message_size` UA-JSON message carries
+  after base64 (3 096 576 bytes at 4 MiB); set higher, startup fails, because
+  OPC UA Part 5 §6.3.2 ServerCapabilitiesType forbids providing the property
+  for a limit the server does not impose. The WebSocket bound applies to
+  binary clients too: the property is one number per server, so it is the
+  smaller transport's.
 - `operation_limits` is per-field (every field defaults to 1000) and names the
   fields of `opcua::OperationLimits`: `max_nodes_per_read`,
   `max_nodes_per_write`, `max_nodes_per_method_call`, `max_nodes_per_browse`,

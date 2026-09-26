@@ -150,6 +150,15 @@
     <AttributeValue type="Empty" />
     <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
   </Node>
+  <!-- MaxByteStringLength (OPC UA Part 5 §6.3.2 ServerCapabilitiesType,
+       https://reference.opcfoundation.org/Core/Part5/v105/docs/6.3.2): the
+       largest ByteString a Write value or Method argument may carry. Served
+       by StandardIoManager from the same opcua::OperationLimits the request
+       path enforces; the default follows opcua.max_message_size. -->
+  <Node id="NS0.12911" class="Variable" typeDefinition="NS0.68" parent="NS0.2268" parentReference="NS0.46" browseName="MaxByteStringLength" displayName="MaxByteStringLength" dataType="NS0.7">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
   <Node id="NS0.11704" class="Object" typeDefinition="NS0.58" parent="NS0.2268" parentReference="NS0.47" browseName="OperationLimits" displayName="OperationLimits">
     <Reference type="NS0.40" forward="true" target="NS0.58" targetClass="ObjectType" />
   </Node>
