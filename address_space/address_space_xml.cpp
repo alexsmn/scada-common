@@ -5,6 +5,7 @@
 #include "address_space/mutable_address_space.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
+#include "address_space/uanodeset_xml.h"
 #include "base/time/time_wire_codec.h"
 #include "common/node_state.h"
 #include "common/node_state_util.h"
@@ -42,39 +43,6 @@ std::string ToUtf8(const LocalizedText& text) {
 
 LocalizedText FromUtf8(std::string_view text) {
   return ToLocalizedText(text);
-}
-
-// Reads every `<DisplayName>` / `<Description>` sibling of `node`, each
-// optionally carrying a `Locale` attribute, and packs them into one value.
-//
-// Both elements are `maxOccurs="unbounded"` in the OPC UA NodeSet schema and
-// their type extends `xs:string` with a `Locale` attribute defaulting to ""
-// (UANodeSet.xsd, `UANode` and `LocalizedText`,
-// https://raw.githubusercontent.com/OPCFoundation/UA-Nodeset/latest/Schema/UANodeSet.xsd,
-// read 2026-09-20), so a translated node is written as siblings:
-//
-//     <DisplayName Locale="ru">Все объекты</DisplayName>
-//     <DisplayName Locale="en">All objects</DisplayName>
-//
-// The result is the packed "mul" form when there is more than one, which the
-// client-facing service boundary resolves per session exactly as it resolves
-// a translated configuration node (OPC UA Part 4 §5.4,
-// https://reference.opcfoundation.org/Core/Part4/v105/docs/5.4). With one
-// element — every node in every nodeset that has not been translated — it is
-// that element unchanged, so an untranslated address space is byte-identical
-// to what this produced before locale-qualified names existed.
-//
-// An element with no Locale is carried with an empty locale rather than being
-// guessed at: it cannot then be asked for by name, but it stays the first
-// entry and so remains what §5.4's "return an available locale" falls back
-// to.
-LocalizedText ReadUaLocalizedText(pugi::xml_node node, const char* name) {
-  std::vector<LocalizedText> translations;
-  for (pugi::xml_node child : node.children(name)) {
-    translations.emplace_back(child.attribute("Locale").as_string(),
-                              FromUtf8(child.text().as_string()).text);
-  }
-  return EncodeMultiLanguage(translations);
 }
 
 std::string ToString(NodeClass node_class) {
@@ -804,133 +772,9 @@ std::optional<NodeClass> ParseUaElementClass(std::string_view tag) {
   return std::nullopt;
 }
 
-// Maps a UANodeSet file-local namespace index to the server-global index. Local
-// index 0 is always OPC UA namespace 0. Any listed vendor URI maps to the SCADA
-// namespace; a real URI->index table is a Phase 0 item (see the migration doc).
-using UaNamespaceMap = std::vector<NamespaceIndex>;
-
-UaNamespaceMap ReadNamespaceMap(pugi::xml_node root) {
-  UaNamespaceMap map;
-  map.push_back(0);  // local index 0 == OPC UA (http://opcfoundation.org/UA/)
-  for (auto uri : root.child("NamespaceUris").children("Uri")) {
-    std::string_view text = uri.text().as_string();
-    map.push_back(text == "http://opcfoundation.org/UA/"
-                      ? NamespaceIndex{0}
-                      : NamespaceIndexes::SCADA);
-  }
-  return map;
-}
-
-using UaAliasMap = std::unordered_map<std::string, std::string>;
-
-UaAliasMap ReadAliasMap(pugi::xml_node root) {
-  UaAliasMap map;
-  for (auto alias : root.child("Aliases").children("Alias")) {
-    map.emplace(alias.attribute("Alias").as_string(), alias.text().as_string());
-  }
-  return map;
-}
-
-// Parses a UANodeSet NodeId ("ns=N;i=M", "i=M", or an alias name) into an
-// internal NodeId with the global namespace index. Only numeric identifiers are
-// used by the model.
-NodeId ParseUaNodeId(std::string_view text,
-                     const UaNamespaceMap& ns_map,
-                     const UaAliasMap& aliases) {
-  if (text.empty()) {
-    return {};
-  }
-  if (auto it = aliases.find(std::string{text}); it != aliases.end()) {
-    text = it->second;
-  }
-
-  NamespaceIndex local_ns = 0;
-  if (text.starts_with("ns=")) {
-    text.remove_prefix(3);
-    unsigned value = 0;
-    auto [ptr, ec] =
-        std::from_chars(text.data(), text.data() + text.size(), value);
-    if (ec != std::errc{} || ptr == text.data() || *ptr != ';') {
-      return {};
-    }
-    local_ns = static_cast<NamespaceIndex>(value);
-    text = text.substr(static_cast<size_t>(ptr - text.data()) + 1);
-  }
-  if (!text.starts_with("i=")) {
-    return {};  // string/guid/opaque identifiers are unused by the model
-  }
-  text.remove_prefix(2);
-  auto numeric = ParseInteger<NumericId>(text);
-  if (!numeric) {
-    return {};
-  }
-  const NamespaceIndex global_ns =
-      local_ns < ns_map.size() ? ns_map[local_ns] : local_ns;
-  return NodeId{*numeric, global_ns};
-}
-
-QualifiedName ParseUaBrowseName(std::string_view text,
-                                const UaNamespaceMap& ns_map) {
-  NamespaceIndex ns = 0;
-  if (auto pos = text.find(':'); pos != std::string_view::npos) {
-    if (auto local = ParseInteger<unsigned>(text.substr(0, pos))) {
-      ns = *local < ns_map.size() ? ns_map[*local]
-                                  : static_cast<NamespaceIndex>(*local);
-    }
-    text = text.substr(pos + 1);
-  }
-  return {std::string{text}, ns};
-}
-
-std::optional<Variant::Type> ParseUaxType(std::string_view name) {
-  static constexpr std::pair<std::string_view, Variant::Type> kValues[] = {
-      {"Boolean", Variant::BOOL},    {"SByte", Variant::INT8},
-      {"Byte", Variant::UINT8},      {"Int16", Variant::INT16},
-      {"UInt16", Variant::UINT16},   {"Int32", Variant::INT32},
-      {"UInt32", Variant::UINT32},   {"Int64", Variant::INT64},
-      {"UInt64", Variant::UINT64},   {"Double", Variant::DOUBLE},
-      {"String", Variant::STRING},   {"DateTime", Variant::DATE_TIME},
-      {"ByteString", Variant::BYTE_STRING},
-      {"NodeId", Variant::NODE_ID},
-      {"LocalizedText", Variant::LOCALIZED_TEXT},
-  };
-  for (auto [n, v] : kValues) {
-    if (name == n) {
-      return v;
-    }
-  }
-  return std::nullopt;
-}
-
-// Decodes a UANodeSet <Value> holding a scalar uax: element, e.g.
-// <Value><uax:Int32>0</uax:Int32></Value>.
-bool ReadUaValue(pugi::xml_node value_node, Variant& out) {
-  auto element = value_node.first_child();
-  while (element && element.type() != pugi::node_element) {
-    element = element.next_sibling();
-  }
-  if (!element) {
-    return false;
-  }
-  std::string_view local = element.name();
-  if (auto pos = local.find(':'); pos != std::string_view::npos) {
-    local = local.substr(pos + 1);
-  }
-  auto type = ParseUaxType(local);
-  if (!type) {
-    return false;
-  }
-  auto parsed = ReadScalarVariant(*type, element.text().as_string());
-  if (!parsed) {
-    return false;
-  }
-  out = std::move(*parsed);
-  return true;
-}
-
 Status ReadUaNodeState(pugi::xml_node node,
-                       const UaNamespaceMap& ns_map,
-                       const UaAliasMap& aliases,
+                       const uanodeset::NamespaceTable& namespaces,
+                       const uanodeset::AliasMap& aliases,
                        NodeState& node_state) {
   auto node_class = ParseUaElementClass(node.name());
   if (!node_class) {
@@ -938,56 +782,69 @@ Status ReadUaNodeState(pugi::xml_node node,
   }
   node_state.node_class = *node_class;
 
-  node_state.node_id =
-      ParseUaNodeId(node.attribute("NodeId").as_string(), ns_map, aliases);
-  if (node_state.node_id.is_null()) {
+  const auto node_id = uanodeset::ParseNodeIdText(
+      node.attribute("NodeId").as_string(), namespaces, aliases);
+  const auto browse_name = uanodeset::ParseQualifiedNameText(
+      node.attribute("BrowseName").as_string(), namespaces);
+  if (!node_id || !browse_name) {
     return StatusCode::Bad_WrongNodeId;
   }
-
-  node_state.attributes.browse_name =
-      ParseUaBrowseName(node.attribute("BrowseName").as_string(), ns_map);
+  node_state.node_id = *node_id;
+  node_state.attributes.browse_name = *browse_name;
   node_state.attributes.display_name =
-      ReadUaLocalizedText(node, "DisplayName");
+      uanodeset::ReadLocalizedTexts(node, "DisplayName");
   // OPC UA Part 3 §5.3.2: the InverseName attribute of a non-symmetric
   // ReferenceType,
   // https://reference.opcfoundation.org/Core/Part3/v105/docs/5.3.2
   if (node_state.node_class == NodeClass::ReferenceType) {
     node_state.attributes.inverse_name =
-        ReadUaLocalizedText(node, "InverseName");
+        uanodeset::ReadLocalizedTexts(node, "InverseName");
   }
   if (auto data_type = node.attribute("DataType")) {
-    node_state.attributes.data_type =
-        ParseUaNodeId(data_type.as_string(), ns_map, aliases);
-  }
-  if (auto value_node = node.child("Value")) {
-    Variant value;
-    if (ReadUaValue(value_node, value)) {
-      node_state.attributes.value = std::move(value);
+    const auto data_type_id =
+        uanodeset::ParseNodeIdText(data_type.as_string(), namespaces, aliases);
+    if (!data_type_id) {
+      return StatusCode::Bad_WrongNodeId;
     }
+    node_state.attributes.data_type = *data_type_id;
+  }
+  // A value that does not decode is a defect in the model file, and is
+  // refused rather than dropped: the node would otherwise load with no value
+  // and nothing would say why.
+  if (auto value_node = node.child("Value")) {
+    auto value = uanodeset::ReadValue(value_node, namespaces, aliases);
+    if (!value) {
+      return StatusCode::Bad_CantParseString;
+    }
+    node_state.attributes.value = std::move(*value);
   }
 
   // Reverse the reference set into the NodeState hierarchy fields (matching the
   // custom parser's shape), leaving everything else in `references`.
   for (auto reference : node.child("References").children("Reference")) {
-    NodeId reference_type_id = ParseUaNodeId(
-        reference.attribute("ReferenceType").as_string(), ns_map, aliases);
-    NodeId target =
-        ParseUaNodeId(reference.child_value(), ns_map, aliases);
+    const auto parsed_reference_type = uanodeset::ParseNodeIdText(
+        reference.attribute("ReferenceType").as_string(), namespaces, aliases);
+    const auto parsed_target = uanodeset::ParseNodeIdText(
+        reference.child_value(), namespaces, aliases);
+    if (!parsed_reference_type || !parsed_target) {
+      return StatusCode::Bad_WrongNodeId;
+    }
+    NodeId reference_type_id = *parsed_reference_type;
+    NodeId target = *parsed_target;
     const bool forward = reference.attribute("IsForward").as_bool(true);
 
-    const NumericId ref_num =
-        (reference_type_id.namespace_index() == 0 &&
-         reference_type_id.type() == NodeIdType::Numeric)
-            ? reference_type_id.numeric_id()
-            : 0;
+    const NumericId ref_num = (reference_type_id.namespace_index() == 0 &&
+                               reference_type_id.type() == NodeIdType::Numeric)
+                                  ? reference_type_id.numeric_id()
+                                  : 0;
 
     if (!forward && ref_num == kUaHasSubtype) {
       node_state.supertype_id = target;
       node_state.parent_id = target;
       node_state.reference_type_id = std::move(reference_type_id);
-    } else if (!forward && (ref_num == kUaHasComponent ||
-                            ref_num == kUaHasProperty ||
-                            ref_num == kUaOrganizes)) {
+    } else if (!forward &&
+               (ref_num == kUaHasComponent || ref_num == kUaHasProperty ||
+                ref_num == kUaOrganizes)) {
       node_state.parent_id = target;
       node_state.reference_type_id = std::move(reference_type_id);
     } else if (forward && ref_num == kUaHasTypeDefinition) {
@@ -1009,15 +866,20 @@ Status ParseUaNodeStates(const pugi::xml_document& document,
   if (!root) {
     return StatusCode::Bad_CantParseString;
   }
-  const UaNamespaceMap ns_map = ReadNamespaceMap(root);
-  const UaAliasMap aliases = ReadAliasMap(root);
+  // Every URI but the OPC UA one maps to the SCADA namespace: the model's
+  // files carry that one vendor URI, and a URI -> index table for several is
+  // the migration doc's Phase 0 item. The configuration codec, which does
+  // span namespaces, passes the table instead.
+  uanodeset::NamespaceTable namespaces{{}, NamespaceIndexes::SCADA};
+  namespaces.AddLocals(root);
+  const uanodeset::AliasMap aliases = uanodeset::ReadAliases(root);
 
   for (auto node : root.children()) {
     if (!ParseUaElementClass(node.name())) {
       continue;  // NamespaceUris, Models, Aliases, etc.
     }
     auto& node_state = out.emplace_back();
-    if (auto status = ReadUaNodeState(node, ns_map, aliases, node_state);
+    if (auto status = ReadUaNodeState(node, namespaces, aliases, node_state);
         !status) {
       return status;
     }
@@ -1100,8 +962,9 @@ Status LoadStaticUANodeSet(std::span<const std::filesystem::path> paths,
 Status LoadStaticNodesets(std::span<const std::filesystem::path> paths,
                           MutableAddressSpace& address_space,
                           NodeFactory& node_factory) {
-  // LoadStaticAddressSpace already auto-detects each file's format; this name is
-  // kept as the intent-revealing entry point for mixed custom + UANodeSet2 sets.
+  // LoadStaticAddressSpace already auto-detects each file's format; this name
+  // is kept as the intent-revealing entry point for mixed custom + UANodeSet2
+  // sets.
   return LoadStaticAddressSpace(paths, address_space, node_factory);
 }
 

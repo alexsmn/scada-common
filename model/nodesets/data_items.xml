@@ -13,6 +13,7 @@
   <Aliases>
     <Alias Alias="Boolean">i=1</Alias>
     <Alias Alias="Int32">i=6</Alias>
+    <Alias Alias="UInt32">i=7</Alias>
     <Alias Alias="Int64">i=8</Alias>
     <Alias Alias="UInt64">i=9</Alias>
     <Alias Alias="Double">i=11</Alias>

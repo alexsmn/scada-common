@@ -1,7 +1,7 @@
 # Migrating the model nodesets to OPC UA UANodeSet2
 
 - **Status:** Implemented (design record) — all phases (0–6) done.
-- **Last verified against code:** 2026-07-23
+- **Last verified against code:** 2026-09-26
 - **Owns:** the model nodeset format, its invariants (frozen ids, SCADA at
   namespace index 7), the loader/generator contract, and the per-domain split.
 
@@ -204,9 +204,19 @@ the same `NamespaceUris`/`Models`/`Aliases` header.
 Why this is a pure reorganization with no behavior change:
 - `LoadStaticAddressSpace` parses **every** file into one `NodeState` set and
   materializes once, so cross-file references and instance materialization
-  resolve regardless of the partition or load order. `ReadNamespaceMap` /
-  `ReadAliasMap` run per file, so each file must (and does) carry the SCADA
-  `NamespaceUris` + `Aliases`.
+  resolve regardless of the partition or load order. The namespace table and
+  the aliases are read per file (`uanodeset::NamespaceTable::AddLocals` and
+  `uanodeset::ReadAliases`, `common/address_space/uanodeset_xml.h`), so each
+  file must carry the SCADA `NamespaceUris` + every `Aliases` entry it uses.
+  **"Every" was not true until 2026-09-26**: `scada_core.xml` and
+  `data_items.xml` wrote `DataType="UInt32"` with no `UInt32` alias, and the
+  loader of the time read an unresolvable name as a null NodeId and carried
+  on, so `ScadaEventType`'s Quality and ChangeMask properties (and their
+  `data_items` twins) loaded as BaseDataType. The shared reader refuses an
+  undeclared alias, which is what found them; the load fails now rather than
+  guessing. Values are held to the standard encoding the same way — the
+  one `uax:DateTime` written as the repo format's integer `0` is now Part 6
+  §5.3.1.6's null spelling, `0001-01-01T00:00:00Z`.
 - The generator globs `*.xml`, so the split does not change its output. Which
   C++ domain a symbolic name lands in — and which nodes get a constant at all
   (the folder modelling-rule placeholders deliberately do not, while the two
