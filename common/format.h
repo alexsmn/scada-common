@@ -14,14 +14,32 @@ class NodeId;
 class Variant;
 }  // namespace scada
 
-// Fallback state labels for a two-state (TS) item whose TsFormat carries no
-// CloseLabel/OpenLabel of its own. Translated through `TranslateUiText`, so
-// they follow the display locale rather than being frozen at one language.
+// The labels this library falls back to when a value carries none of its own.
+enum class FallbackLabel {
+  // The state labels of a two-state (TS) item whose TsFormat carries no
+  // CloseLabel/OpenLabel.
+  kDefaultClose,
+  kDefaultOpen,
+  // Placeholders for a value whose display name is empty or cannot be
+  // resolved.
+  kEmptyDisplayName,
+  kUnknownDisplayName,
+};
+
+// Produces the operator-facing text of a fallback label, in the display
+// locale.
+using FallbackLabelProvider = std::u16string (*)(FallbackLabel label);
+
+// Installs the provider the four functions below use. This library carries no
+// operator-facing wording for them; the Qt client installs its catalog-backed
+// words at startup. Without one — the server, and unit tests — they render
+// their invariant forms: `1`/`0` for the state labels, the spreadsheet
+// placeholder `#NAME?` for the display names. Pass nullptr to remove it.
+void SetFallbackLabelProvider(FallbackLabelProvider provider);
+
+// Looked up per call, so a provider installed after load takes effect.
 std::u16string DefaultCloseLabel();
 std::u16string DefaultOpenLabel();
-
-// Placeholders for a value whose display name is empty or cannot be resolved,
-// in the spreadsheet "#NAME?" idiom. Also locale-dependent.
 std::u16string EmptyDisplayName();
 std::u16string UnknownDisplayName();
 

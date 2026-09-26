@@ -2,7 +2,6 @@
 
 #include "base/format.h"
 #include "base/string_util.h"
-#include "base/ui_text.h"
 #include "base/utf_convert.h"
 #include "model/node_id_util.h"
 #include "model/scada_node_ids.h"
@@ -15,20 +14,55 @@
 #include <cstring>
 #include <optional>
 
+namespace {
+
+// Set once at startup by the UI layer and read thereafter; a function-local
+// static keeps it out of static-global-init ordering.
+FallbackLabelProvider& GetFallbackLabelProvider() {
+  static FallbackLabelProvider provider = nullptr;
+  return provider;
+}
+
+// The invariant form of each label: what renders with no UI layer.
+std::u16string_view InvariantFallbackLabel(FallbackLabel label) {
+  switch (label) {
+    case FallbackLabel::kDefaultClose:
+      return u"1";
+    case FallbackLabel::kDefaultOpen:
+      return u"0";
+    case FallbackLabel::kEmptyDisplayName:
+    case FallbackLabel::kUnknownDisplayName:
+      return u"#NAME?";
+  }
+  return {};
+}
+
+std::u16string GetFallbackLabel(FallbackLabel label) {
+  if (const FallbackLabelProvider provider = GetFallbackLabelProvider())
+    return provider(label);
+  return std::u16string{InvariantFallbackLabel(label)};
+}
+
+}  // namespace
+
+void SetFallbackLabelProvider(FallbackLabelProvider provider) {
+  GetFallbackLabelProvider() = provider;
+}
+
 std::u16string DefaultCloseLabel() {
-  return scada::TranslateUiText("On");
+  return GetFallbackLabel(FallbackLabel::kDefaultClose);
 }
 
 std::u16string DefaultOpenLabel() {
-  return scada::TranslateUiText("Off");
+  return GetFallbackLabel(FallbackLabel::kDefaultOpen);
 }
 
 std::u16string EmptyDisplayName() {
-  return scada::TranslateUiText("#NAME?");
+  return GetFallbackLabel(FallbackLabel::kEmptyDisplayName);
 }
 
 std::u16string UnknownDisplayName() {
-  return scada::TranslateUiText("#NAME?");
+  return GetFallbackLabel(FallbackLabel::kUnknownDisplayName);
 }
 
 void EscapeColoredString(std::u16string& str) {
@@ -171,14 +205,15 @@ namespace {
 // to. A configuration export writes the *localized* label (see
 // `FormatHelperT<LocalizedText, bool>`), so which words land in the file
 // depends on who wrote it: a client with the Russian catalog installed writes
-// "Да", a server — which installs no translator — writes "Yes", and every file
-// exported before the labels went through `TranslateUiText` carries the Russian
-// unconditionally. All three have to import anywhere. The alternatives here are
-// therefore wire data, not UI text, which is why the Russian stays as a
-// literal.
+// "Да", a server — which installs no `BooleanTextProvider` — writes the
+// invariant "true" (it wrote "Yes" before core stopped carrying the English
+// word), and every file exported before the labels were translatable carries
+// the Russian unconditionally. All of them have to import anywhere. The
+// alternatives here are therefore wire data, not UI text, which is why the
+// Russian stays as a literal.
 std::optional<bool> ParseBoolLabel(std::u16string_view str) {
-  static constexpr std::u16string_view kTrue[] = {u"Yes", u"Да"};
-  static constexpr std::u16string_view kFalse[] = {u"No", u"Нет"};
+  static constexpr std::u16string_view kTrue[] = {u"true", u"Yes", u"Да"};
+  static constexpr std::u16string_view kFalse[] = {u"false", u"No", u"Нет"};
 
   if (IEqualsAscii(str, scada::Variant::FalseLabel()))
     return false;
