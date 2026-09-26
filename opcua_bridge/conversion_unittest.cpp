@@ -196,6 +196,10 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x803B0000u);  // BadNotWritable
   EXPECT_EQ(wire(scada::StatusCode::Bad_ResponseTooLarge),
             0x80B90000u);  // BadResponseTooLarge
+  EXPECT_EQ(wire(scada::StatusCode::Bad_InvalidState),
+            0x80AF0000u);  // BadInvalidState
+  EXPECT_EQ(wire(scada::StatusCode::Bad_NotReadable),
+            0x803A0000u);  // BadNotReadable
   EXPECT_EQ(wire(scada::StatusCode::Bad_Disconnected),
             0x80310000u);  // BadNoCommunication
   EXPECT_EQ(wire(scada::StatusCode::Bad_SessionForcedLogoff),
