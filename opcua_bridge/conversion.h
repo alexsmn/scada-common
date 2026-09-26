@@ -42,7 +42,15 @@ namespace scada::opcua_bridge {
 // Bad code is listed explicitly (even the few whose values coincide) so a new
 // core code can never silently leak its internal value onto the wire through
 // the default cast. The Good_* and Uncertain_* quality codes intentionally
-// share names and values on both sides and fall through.
+// share names and values on both sides; they are listed in
+// SCADA_OPCUA_STATUS_CODE_SAME below.
+//
+// Every table here is checked for completeness at compile time: ToOpcua and
+// ToScada switch over their enum with no `default:` label, and
+// SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_BEGIN turns the compiler's
+// unhandled-enumerator diagnostic into an error for that span. So a code added
+// to either enum without an entry here fails the build instead of reaching the
+// wire as its raw internal value.
 //
 // A core code whose wire twin is already claimed by an entry here goes in
 // SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE below instead — see the note there.
@@ -118,20 +126,81 @@ namespace scada::opcua_bridge {
 #define SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE(MAP) \
   MAP(Bad_TooLongString, Bad_OutOfRange)
 
+// Codes that carry the same name and the same value on both sides — the
+// severity-only codes and the Good/Uncertain quality codes. They convert by
+// value; the static_asserts below keep the "same value" half of that honest.
+#define SCADA_OPCUA_STATUS_CODE_SAME(SAME) \
+  SAME(Good)                               \
+  SAME(Good_Pending)                       \
+  SAME(Good_Sporadic)                      \
+  SAME(Good_Backup)                        \
+  SAME(Good_Manual)                        \
+  SAME(Good_Simulated)                     \
+  SAME(Uncertain)                          \
+  SAME(Uncertain_DeviceFlag)               \
+  SAME(Uncertain_Misconfigured)            \
+  SAME(Uncertain_Disconnected)             \
+  SAME(Uncertain_NotUpdated)               \
+  SAME(Uncertain_StateWasNotChanged)       \
+  SAME(Bad)
+
+#define SAME(name)                                                  \
+  static_assert(static_cast<unsigned>(scada::StatusCode::name) ==   \
+                    static_cast<unsigned>(opcua::StatusCode::name), \
+                #name                                               \
+                " differs between scada:: and opcua::; move it "    \
+                "to SCADA_OPCUA_STATUS_CODE_MAP");
+SCADA_OPCUA_STATUS_CODE_SAME(SAME)
+#undef SAME
+
+// Makes an enumerator missing from a `default:`-less switch a compile error
+// between BEGIN and END, whatever the product's warning level. Clang and GCC
+// call it -Wswitch; MSVC calls it C4062, which is off by default.
+#if defined(__clang__)
+#define SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_BEGIN \
+  _Pragma("clang diagnostic push")                \
+      _Pragma("clang diagnostic error \"-Wswitch\"")
+#define SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_END _Pragma("clang diagnostic pop")
+#elif defined(__GNUC__)
+#define SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_BEGIN \
+  _Pragma("GCC diagnostic push") _Pragma("GCC diagnostic error \"-Wswitch\"")
+#define SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_END _Pragma("GCC diagnostic pop")
+#elif defined(_MSC_VER)
+#define SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_BEGIN \
+  __pragma(warning(push)) __pragma(warning(error : 4062))
+#define SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_END __pragma(warning(pop))
+#else
+#define SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_BEGIN
+#define SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_END
+#endif
+
+SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_BEGIN
+
 inline opcua::StatusCode ToOpcua(scada::StatusCode c) {
   switch (c) {
+#define SAME(name)              \
+  case scada::StatusCode::name: \
+    return opcua::StatusCode::name;
+    SCADA_OPCUA_STATUS_CODE_SAME(SAME)
+#undef SAME
 #define MAP(scada_name, opcua_name)   \
   case scada::StatusCode::scada_name: \
     return opcua::StatusCode::opcua_name;
     SCADA_OPCUA_STATUS_CODE_MAP(MAP)
     SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE(MAP)
 #undef MAP
-    default:
-      return static_cast<opcua::StatusCode>(c);
   }
+  // Not a named enumerator (the switch above names them all, or the build
+  // fails): a value that arrived from outside, passed through unchanged.
+  return static_cast<opcua::StatusCode>(c);
 }
 inline scada::StatusCode ToScada(opcua::StatusCode c) {
   switch (c) {
+#define SAME(name)              \
+  case opcua::StatusCode::name: \
+    return scada::StatusCode::name;
+    SCADA_OPCUA_STATUS_CODE_SAME(SAME)
+#undef SAME
 #define MAP(scada_name, opcua_name)   \
   case opcua::StatusCode::opcua_name: \
     return scada::StatusCode::scada_name;
@@ -142,10 +211,12 @@ inline scada::StatusCode ToScada(opcua::StatusCode c) {
     // unrelated core enumerator.
     case opcua::StatusCode::Bad_ServiceUnsupported:
       return scada::StatusCode::Bad_NotSupported;
-    default:
-      return static_cast<scada::StatusCode>(c);
   }
+  // A wire code opcuapp does not name, e.g. a standard code from a peer.
+  return static_cast<scada::StatusCode>(c);
 }
+
+SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_END
 
 // --- Status -------------------------------------------------------------
 // Preserve only the severity/subcode (mapped) and the limit info bits, which is
