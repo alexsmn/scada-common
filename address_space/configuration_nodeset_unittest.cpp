@@ -1,5 +1,6 @@
 #include "address_space/configuration_nodeset.h"
 
+#include "model/node_id_util.h"
 #include "scada/locale_negotiation.h"
 
 #include <gmock/gmock.h>
@@ -272,6 +273,130 @@ TEST(ConfigurationNodeSetTest, MalformedDocumentsAreRefused) {
       StatusCode::Bad_CantParseString);
   EXPECT_EQ(
       ReadConfigurationNodeSet("<Other/>", kUris, Names()).status().code(),
+      StatusCode::Bad_CantParseString);
+}
+
+// --- UANodeSetChanges -------------------------------------------------------
+
+// A change to one property of an existing node: a PropertyType child alone,
+// its owner not among the nodes added.
+NodeState MakePropertyChange() {
+  return NodeState{
+      .node_id = MakeNestedNodeId(NodeId{NumericId{8}, 1}, "Alias"),
+      .node_class = NodeClass::Variable,
+      .type_definition_id = NodeId{NumericId{68}},
+      .parent_id = NodeId{NumericId{8}, 1},
+      .reference_type_id = NodeId{NumericId{46}},
+      .attributes = {.browse_name = QualifiedName{"Alias", 3},
+                     .display_name = LocalizedText{u"Alias"},
+                     .value = Variant{String{"ts200"}}}};
+}
+
+ConfigurationNodeSetChanges MakeChanges() {
+  return {
+      .transaction_id = "tx-1",
+      .last_modified = At(60),
+      .version = "sha256:base",
+      .nodes_to_add = {MakeNode(), MakePropertyChange()},
+      .references_to_add = {{.source = NodeId{NumericId{7}, 1},
+                             .reference_type_id = NodeId{NumericId{9}, 3},
+                             .target = NodeId{NumericId{3}, 2}}},
+      .nodes_to_delete = {{.node_id = NodeId{NumericId{5}, 1}},
+                          {.node_id = NodeId{NumericId{6}, 1},
+                           .delete_reverse_references = false}},
+      .references_to_delete = {{.source = NodeId{NumericId{7}, 1},
+                                .reference_type_id = NodeId{NumericId{9}, 3},
+                                .forward = false,
+                                .target = NodeId{NumericId{2}, 2}}}};
+}
+
+// Every section of Part 6 §F.16 reads back as written, and a lone property
+// child stays a node the importer can recognise as a property change.
+TEST(ConfigurationNodeSetChangesTest, RoundTripsEverySection) {
+  const ConfigurationNodeSetChanges changes = MakeChanges();
+
+  const auto xml = WriteConfigurationNodeSetChanges(changes, kUris, Names());
+  ASSERT_TRUE(xml.ok()) << xml.status();
+  const auto read = ReadConfigurationNodeSetChanges(*xml, kUris, Names());
+  ASSERT_TRUE(read.ok()) << read.status();
+
+  EXPECT_EQ(read->transaction_id, "tx-1");
+  EXPECT_EQ(read->last_modified, At(60));
+  EXPECT_EQ(read->version, "sha256:base");
+  ASSERT_EQ(read->nodes_to_add.size(), 2u);
+  ExpectSameNode(read->nodes_to_add[0], changes.nodes_to_add[0]);
+  const NodeState& property = read->nodes_to_add[1];
+  EXPECT_EQ(property.node_id, MakePropertyChange().node_id);
+  EXPECT_EQ(property.type_definition_id, NodeId{NumericId{68}});
+  EXPECT_EQ(property.parent_id, (NodeId{NumericId{8}, 1}));
+  EXPECT_EQ(property.reference_type_id, NodeId{NumericId{46}});
+  EXPECT_EQ(property.attributes.value, Variant{String{"ts200"}});
+  EXPECT_EQ(read->references_to_add, changes.references_to_add);
+  EXPECT_EQ(read->nodes_to_delete, changes.nodes_to_delete);
+  EXPECT_EQ(read->references_to_delete, changes.references_to_delete);
+  EXPECT_FALSE(read->outcome);
+}
+
+// The schema's spelling (UANodeSet.xsd): TransactionId and AcceptAllOrNothing
+// on the root, a reference change's target as its text, DeleteReverseReferences
+// only where it differs from its default of true.
+TEST(ConfigurationNodeSetChangesTest, WritesTheSchemaSpelling) {
+  const auto xml =
+      WriteConfigurationNodeSetChanges(MakeChanges(), kUris, Names());
+  ASSERT_TRUE(xml.ok());
+
+  EXPECT_THAT(*xml, HasSubstr("<UANodeSetChanges xmlns=\"http://"
+                              "opcfoundation.org/UA/2011/03/UANodeSet.xsd\""));
+  EXPECT_THAT(*xml, HasSubstr("TransactionId=\"tx-1\""));
+  EXPECT_THAT(*xml, HasSubstr("AcceptAllOrNothing=\"true\""));
+  EXPECT_THAT(*xml,
+              HasSubstr("<Reference Source=\"ns=1;i=7\" "
+                        "ReferenceType=\"ns=3;i=9\">ns=2;i=3</Reference>"));
+  EXPECT_THAT(*xml, HasSubstr("<Node>ns=1;i=5</Node>"));
+  EXPECT_THAT(*xml, HasSubstr("<Node DeleteReverseReferences=\"false\">"
+                              "ns=1;i=6</Node>"));
+}
+
+// An import's result document: the changes, and in its Extensions what
+// happened to them — the §F.22 status plus the vendor outcome.
+TEST(ConfigurationNodeSetChangesTest, RoundTripsAnImportOutcome) {
+  ConfigurationNodeSetChanges changes = MakeChanges();
+  changes.outcome = ConfigurationImportOutcome{
+      .committed = false,
+      .dry_run = true,
+      .status = {.transaction_id = "tx-1",
+                 .last_modified = At(61),
+                 .nodes_to_add = {{}, {.code = 0x80340000, .details = "x"}}}};
+
+  const auto xml = WriteConfigurationNodeSetChanges(changes, kUris, Names());
+  ASSERT_TRUE(xml.ok());
+  EXPECT_THAT(*xml, HasSubstr("<Status Code=\"2150891520\">x</Status>"));
+  const auto read = ReadConfigurationNodeSetChanges(*xml, kUris, Names());
+  ASSERT_TRUE(read.ok()) << read.status();
+
+  ASSERT_TRUE(read->outcome);
+  EXPECT_FALSE(read->outcome->committed);
+  EXPECT_TRUE(read->outcome->dry_run);
+  EXPECT_EQ(read->outcome->status.transaction_id, "tx-1");
+  EXPECT_EQ(read->outcome->status.last_modified, At(61));
+  EXPECT_THAT(
+      read->outcome->status.nodes_to_add,
+      ElementsAre(NodeSetOperationStatus{},
+                  NodeSetOperationStatus{.code = 0x80340000, .details = "x"}));
+  EXPECT_THAT(read->outcome->status.references_to_add, IsEmpty());
+}
+
+TEST(ConfigurationNodeSetChangesTest, TellsTheDocumentKindsApart) {
+  const auto nodeset = WriteConfigurationNodeSet(MakeNodeSet(), kUris, Names());
+  const auto changes =
+      WriteConfigurationNodeSetChanges(MakeChanges(), kUris, Names());
+  ASSERT_TRUE(nodeset.ok() && changes.ok());
+
+  EXPECT_EQ(NodeSetDocumentKind(*nodeset), "UANodeSet");
+  EXPECT_EQ(NodeSetDocumentKind(*changes), "UANodeSetChanges");
+  EXPECT_EQ(NodeSetDocumentKind("<broken"), "");
+  EXPECT_EQ(
+      ReadConfigurationNodeSetChanges(*nodeset, kUris, Names()).status().code(),
       StatusCode::Bad_CantParseString);
 }
 
