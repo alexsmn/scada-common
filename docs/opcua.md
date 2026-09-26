@@ -852,7 +852,10 @@ excluded:
   and made `opcuapp`'s client suites fail about half their repeated runs
   (backlog 730). Both `TestExecutor` copies now own an `io_context` that
   `HasReadyTasks()` and `Advance()` poll, so a timer completion is ordinary
-  ready work at the next poll; it still measures real time.
+  ready work at the next poll; it still measures real time. The *instant*
+  mode (`TestExecutor{true}`) keeps the self-serviced context, because nothing
+  polls it: `LinkTest`'s reconnect timers timed out on every active-link case
+  when it shared the polled one.
 
 ### Codec
 
