@@ -326,20 +326,34 @@ void AppendNamespaceUris(pugi::xml_node root,
   }
 }
 
-// Appends `nodes` to `container` sorted by NodeId, so equal input gives
-// byte-equal output.
+// How AppendNodes orders the nodes it writes.
+enum class NodeOrder {
+  // By NodeId, so equal input gives byte-equal output — what lets a hash of a
+  // UANodeSet identify a configuration.
+  kSorted,
+  // As given. A UANodeSetChanges' NodesToAdd is a list of operations, and its
+  // status list (Part 6 §F.23) holds one entry per operation in the same
+  // order, so reordering the nodes would report each outcome against another
+  // node.
+  kAsGiven,
+};
+
+// Appends `nodes` to `container` in `order`.
 Status AppendNodes(pugi::xml_node container,
                    std::span<const NodeState> nodes,
                    const NamespaceTable& namespaces,
-                   const NodeSetPropertyNames& names) {
+                   const NodeSetPropertyNames& names,
+                   NodeOrder order) {
   std::vector<const NodeState*> sorted;
   sorted.reserve(nodes.size());
   for (const NodeState& node : nodes) {
     sorted.push_back(&node);
   }
-  std::ranges::sort(sorted, [](const NodeState* a, const NodeState* b) {
-    return NodeIdLess(a->node_id, b->node_id);
-  });
+  if (order == NodeOrder::kSorted) {
+    std::ranges::sort(sorted, [](const NodeState* a, const NodeState* b) {
+      return NodeIdLess(a->node_id, b->node_id);
+    });
+  }
   for (const NodeState* node : sorted) {
     if (auto status = AppendNode(container, *node, namespaces, names);
         !status) {
@@ -596,7 +610,8 @@ StatusOr<std::string> WriteConfigurationNodeSet(
     export_info.append_child("Scope").text().set(uri.c_str());
   }
 
-  if (auto status = AppendNodes(root, nodeset.nodes, namespaces, names);
+  if (auto status = AppendNodes(root, nodeset.nodes, namespaces, names,
+                                NodeOrder::kSorted);
       !status) {
     return status;
   }
@@ -709,8 +724,9 @@ StatusOr<std::string> WriteConfigurationNodeSetChanges(
   }
 
   if (!changes.nodes_to_add.empty()) {
-    if (auto status = AppendNodes(root.append_child("NodesToAdd"),
-                                  changes.nodes_to_add, namespaces, names);
+    if (auto status =
+            AppendNodes(root.append_child("NodesToAdd"), changes.nodes_to_add,
+                        namespaces, names, NodeOrder::kAsGiven);
         !status) {
       return status;
     }

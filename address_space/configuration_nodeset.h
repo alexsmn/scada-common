@@ -170,7 +170,9 @@ struct ConfigurationNodeSetChanges {
 };
 
 // Writes `changes` as a UANodeSetChanges document, AcceptAllOrNothing — every
-// change set this format carries is applied whole. Fails as
+// change set this format carries is applied whole. Nodes are written in the
+// order given, unlike WriteConfigurationNodeSet's: each is an operation, and
+// the status lists index the operations in that order. Fails as
 // WriteConfigurationNodeSet does.
 StatusOr<std::string> WriteConfigurationNodeSetChanges(
     const ConfigurationNodeSetChanges& changes,
