@@ -386,7 +386,7 @@ scada::MonitoringParameters ToScada(const opcua::MonitoringParameters& v) {
   return out;
 }
 
-opcua::Event ToOpcua(const scada::Event& v) {
+opcua::Event ToOpcua(const scada::Event& v, SourceNamePacking packing) {
   opcua::Event out;
   out.event_type_id = ToOpcua(v.event_type_id);
   out.event_id = v.event_id;
@@ -395,29 +395,35 @@ opcua::Event ToOpcua(const scada::Event& v) {
   out.change_mask = v.change_mask;
   out.severity = v.severity;
   out.source_node_id = ToOpcua(v.source_node_id);
-  // Part 5 §6.4.2 types SourceName as a `String`, so unlike `message` it
-  // cannot carry several languages across this projection. Resolve against no
-  // preference — Part 4 §5.4's "any locale the server has" — which yields the
-  // leading translation and never JSON.
+  // Part 5 §6.4.2 types SourceName as a `String`, so unlike `message` it has
+  // nowhere to carry the "mul" marker that tells a receiver to unpack it. Which
+  // way it goes is therefore the CALLER's to say, from the requesting session's
+  // locale ids, and the default is to resolve against no preference — Part 4
+  // §5.4's "any locale the server has" — which yields the leading translation
+  // and never JSON.
   //
-  // **Do not "fix" this by passing the packed value through.** That was tried
+  // **`kPacked` is not licensed by a session asking for "mul".** That was tried
   // (50cd12402) on the reasoning that a peer asking for "mul" is entitled to
   // every language and `message` already relies on exactly that. The contract
-  // is real; what defeats it is that a `String` has nowhere to carry the
-  // "mul" MARKER. `ToOpcua(LocalizedText)` keeps `message`'s locale field, so
-  // the receiving tier knows to unpack it; `source_name` arrives as a bare
-  // string, `ToScada` gives it an empty locale, and `DecodeMultiLanguage`
-  // unpacks only a value whose locale is "mul" — so the packed JSON is passed
-  // on verbatim and reaches the client. Measured on the demo 2026-09-21: the
-  // object column showed `{"t":[["ru","I ВЛ-110 П"],["en","I OHL-110 P"]]}`
-  // to every session, which is worse than the wrong language.
+  // is real; what defeats it is that any client may legally ask for "mul",
+  // including a third party with no idea what our JSON is, and it would receive
+  // the packed payload in a field the spec says is a plain name.
+  // `ToOpcua(LocalizedText)` keeps `message`'s locale field, so a receiver
+  // knows to unpack that one; `source_name` arrives as a bare string and
+  // `DecodeMultiLanguage` unpacks only a value whose locale is special — so a
+  // packed payload sent here is passed on verbatim and displayed. Measured on
+  // the demo 2026-09-21: the object column showed
+  // `{"t":[["ru","I ВЛ-110 П"],["en","I OHL-110 P"]]}` to every session, which
+  // is worse than the wrong language.
   //
-  // So the cost stands and is worth knowing: across an OPC UA tier hop
-  // SourceName collapses to one language here, where `message` survives
-  // packed. Lifting it needs the RECEIVER to know its own session asked for
-  // "mul" — context this conversion does not have. Backlog 819.
+  // So the licence is `kTierMultiLanguageLocale`, a private-use tag only our
+  // own tiers send, and `RequestsPackedStrings` is the only thing that should
+  // ever decide `packing`. Backlog 819.
   out.source_name =
-      UtfConvert<char>(scada::ResolveLocalizedText(v.source_name, {}).text);
+      packing == SourceNamePacking::kPacked
+          ? UtfConvert<char>(v.source_name.text)
+          : UtfConvert<char>(
+                scada::ResolveLocalizedText(v.source_name, {}).text);
   out.user_id = ToOpcua(v.user_id);
   out.value = ToOpcua(v.value);
   out.qualifier = ToOpcua(v.qualifier);
@@ -427,7 +433,7 @@ opcua::Event ToOpcua(const scada::Event& v) {
   out.acknowledged_user_id = ToOpcua(v.acknowledged_user_id);
   return out;
 }
-scada::Event ToScada(const opcua::Event& v) {
+scada::Event ToScada(const opcua::Event& v, SourceNamePacking packing) {
   scada::Event out;
   out.event_type_id = ToScada(v.event_type_id);
   out.event_id = v.event_id;
@@ -438,8 +444,20 @@ scada::Event ToScada(const opcua::Event& v) {
   out.source_node_id = ToScada(v.source_node_id);
   // One string in, one language out, with none declared: the wire type says
   // nothing about which language it is.
-  out.source_name = scada::LocalizedText{scada::String{},
-                                         UtfConvert<char16_t>(v.source_name)};
+  //
+  // `kPacked` says this session asked the peer for
+  // `kTierMultiLanguageLocale`, so the string it sent is a packed payload and
+  // the "mul" marker the field could not carry is re-attached here. Labelling
+  // it is safe even when the peer ignored the tag and sent one plain name:
+  // `DecodeMultiLanguage` returns a malformed payload as itself
+  // (`DecodingMalformedMulYieldsTheValueItself`), so the name survives intact
+  // and only its declared locale is a white lie — and that locale is dropped
+  // again by every projection out of here, all of which take `.text`.
+  out.source_name =
+      scada::LocalizedText{packing == SourceNamePacking::kPacked
+                               ? scada::String{scada::kMultiLanguageLocale}
+                               : scada::String{},
+                           UtfConvert<char16_t>(v.source_name)};
   out.user_id = ToScada(v.user_id);
   out.value = ToScada(v.value);
   out.qualifier = ToScada(v.qualifier);
@@ -493,13 +511,23 @@ scada::HistoryReadRawResult ToScada(const opcua::HistoryReadRawResult& v) {
           .continuation_point = v.continuation_point};
 }
 
-opcua::HistoryReadEventsResult ToOpcua(
-    const scada::HistoryReadEventsResult& v) {
-  return {.events = ToOpcuaVector(v.events)};
+opcua::HistoryReadEventsResult ToOpcua(const scada::HistoryReadEventsResult& v,
+                                       SourceNamePacking packing) {
+  // Not `ToOpcuaVector`: that helper maps a one-argument conversion, and the
+  // packing has to reach every event.
+  std::vector<opcua::Event> events;
+  events.reserve(v.events.size());
+  for (const scada::Event& event : v.events)
+    events.push_back(ToOpcua(event, packing));
+  return {.events = std::move(events)};
 }
-scada::HistoryReadEventsResult ToScada(
-    const opcua::HistoryReadEventsResult& v) {
-  return {.events = ToScadaVector(v.events)};
+scada::HistoryReadEventsResult ToScada(const opcua::HistoryReadEventsResult& v,
+                                       SourceNamePacking packing) {
+  std::vector<scada::Event> events;
+  events.reserve(v.events.size());
+  for (const opcua::Event& event : v.events)
+    events.push_back(ToScada(event, packing));
+  return {.events = std::move(events)};
 }
 
 opcua::UpdateDataDetails ToOpcua(const scada::UpdateDataDetails& v) {

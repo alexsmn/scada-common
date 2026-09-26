@@ -31,8 +31,15 @@ TEST(RemoteHistoryServiceTest, TheHistorianLinkAsksForEveryLanguage) {
   const opcua::SessionConnectParams params =
       MakeHistorySessionParams(config, config.endpoint_url);
 
-  EXPECT_EQ(params.locale_ids,
-            std::vector<std::string>{std::string{scada::kMultiLanguageLocale}});
+  // The tier tag leads and "mul" follows, and the ORDER is the whole content of
+  // this assertion. Only a leading entry licenses packing (Part 4 §5.4 gives
+  // the special locales meaning in that position alone), and the trailing "mul"
+  // is what an upstream predating the tag still recognises — so swapping them
+  // silently gives up either the packed SourceName or the packed Message.
+  // Backlog 819.
+  EXPECT_EQ(params.locale_ids, (std::vector<std::string>{
+                                   std::string{scada::kTierMultiLanguageLocale},
+                                   std::string{scada::kMultiLanguageLocale}}));
 }
 
 // The endpoint and credentials still reach the session: a locale is an

@@ -38,13 +38,16 @@ struct RemoteHistoryServiceConfig {
 
 // The session parameters for the link to the external historian.
 //
-// Named and exposed for the `locale_ids` in it, which must be "mul" — every
-// language the historian holds. This is a TIER HOP: one session serves every
-// client this server will ever answer, so asking for a single language makes
-// the historian resolve on our behalf and the answer reaches all of them in
-// that language. An archived event Message is packed (`MessageLocale` is
+// Named and exposed for the `locale_ids` in it, which must be the private tier
+// tag followed by "mul" — every language the historian holds, plus the licence
+// to leave an event's SourceName packed. This is a TIER HOP: one session serves
+// every client this server will ever answer, so asking for a single language
+// makes the historian resolve on our behalf and the answer reaches all of them
+// in that language. An archived event Message is packed (`MessageLocale` is
 // literally `mul`), and resolving it here throws the other languages away
-// before this server can choose per session.
+// before this server can choose per session. SourceName needs the extra tag
+// because its wire type is a plain `String`; see `kTierMultiLanguageLocale`
+// (`core/scada/locale_negotiation.h`) and backlog 819.
 //
 // Tested rather than written inline because the failure is invisible: the
 // journal is always readable, just always in one language. See

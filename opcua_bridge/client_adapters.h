@@ -198,9 +198,21 @@ class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
 class ClientHistoryServiceAdapter : public scada::HistoryService,
                                     public scada::HistoryUpdateService {
  public:
-  explicit ClientHistoryServiceAdapter(std::shared_ptr<opcua::ClientSession> s,
-                                       Tracer& tracer = Tracer::None())
-      : session_{std::move(s)}, tracer_{tracer} {}
+  // `packing` must be `kPacked` only when the session this adapter reads
+  // through was opened asking for `kTierMultiLanguageLocale` — see
+  // `MakeHistorySessionParams`. It says that an arriving SourceName is a packed
+  // payload whose "mul" marker the wire field could not carry, so this end
+  // re-attaches it; getting it wrong in that direction turns a plain name into
+  // a value labelled as packed, which `DecodeMultiLanguage` then returns
+  // unchanged, so the cost is a wrong locale label rather than lost text.
+  // Backlog 819.
+  explicit ClientHistoryServiceAdapter(
+      std::shared_ptr<opcua::ClientSession> s,
+      Tracer& tracer = Tracer::None(),
+      SourceNamePacking packing = SourceNamePacking::kResolved)
+      : session_{std::move(s)},
+        tracer_{tracer},
+        source_name_packing_{packing} {}
 
   // scada::HistoryService
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
@@ -222,6 +234,7 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
  private:
   std::shared_ptr<opcua::ClientSession> session_;
   Tracer& tracer_;
+  SourceNamePacking source_name_packing_;
 };
 
 // Assembles a ::DataServices backed by the given opcua client session.

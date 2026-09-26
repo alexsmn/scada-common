@@ -272,7 +272,7 @@ ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
-  co_return ToScada(*result);
+  co_return ToScada(*result, source_name_packing_);
 }
 
 scada::CoStatusOr<std::vector<scada::StatusCode>>

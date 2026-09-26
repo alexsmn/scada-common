@@ -345,14 +345,22 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::ServiceContext context,
   const std::vector<scada::String> locale_ids = context.locale_ids();
   for (scada::Event& event : result->events) {
     event.message = scada::ResolveLocalizedText(event.message, locale_ids);
-    // And SourceName, for the same reason and with the same constraint: it
-    // carries every language the source node's DisplayName had, and Part 5
-    // §6.4.2 makes the wire field a plain string, so it is resolved here
-    // rather than projected packed.
+    // And SourceName, for the same reason: it carries every language the source
+    // node's DisplayName had. Part 5 §6.4.2 makes its wire field a plain
+    // string, so whether the resolved value may stay packed is not this loop's
+    // call — it is `packing` below, and for all but our own tiers the answer is
+    // no.
     event.source_name =
         scada::ResolveLocalizedText(event.source_name, locale_ids);
   }
-  co_return ToOpcua(*result);
+  // A peer that asked for the private tier tag knows how to unpack a packed
+  // SourceName, so it may have one; anybody else — including a third party
+  // legitimately asking for "mul" — gets the one language resolved above.
+  // Backlog 819.
+  const SourceNamePacking packing = scada::RequestsPackedStrings(locale_ids)
+                                        ? SourceNamePacking::kPacked
+                                        : SourceNamePacking::kResolved;
+  co_return ToOpcua(*result, packing);
 }
 
 // --- HistoryUpdateService ----------------------------------------------

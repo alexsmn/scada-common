@@ -165,8 +165,27 @@ scada::EventFilter ToScada(const opcua::EventFilter&);
 opcua::MonitoringParameters ToOpcua(const scada::MonitoringParameters&);
 scada::MonitoringParameters ToScada(const opcua::MonitoringParameters&);
 
-opcua::Event ToOpcua(const scada::Event&);
-scada::Event ToScada(const opcua::Event&);
+// Whether an event's SourceName crosses this projection resolved to one
+// language or still packed. It is a parameter rather than something the
+// conversion works out for itself because the answer lives in the SESSION: Part
+// 5 §6.4.2 types SourceName as a `String`, so the field it lands in has nowhere
+// to carry the "mul" marker, and only the peer that asked for
+// `kTierMultiLanguageLocale` can be relied on to unpack it again.
+//
+// `kResolved` is the default deliberately. Every call site that has not thought
+// about it flattens, which is the safe direction: the failure of packing for a
+// session that cannot unpack is raw JSON in a journal column (50cd12402,
+// reverted), while the failure of flattening is one language instead of
+// several. Backlog 819.
+enum class SourceNamePacking {
+  kResolved,  // one language, already chosen for this session
+  kPacked,    // the packed "mul" payload, verbatim
+};
+
+opcua::Event ToOpcua(const scada::Event&,
+                     SourceNamePacking = SourceNamePacking::kResolved);
+scada::Event ToScada(const opcua::Event&,
+                     SourceNamePacking = SourceNamePacking::kResolved);
 
 // --- monitored item -----------------------------------------------------
 opcua::MonitoredItemSubscriptionOptions ToOpcua(
@@ -200,8 +219,12 @@ scada::HistoryReadEventsDetails ToScada(const opcua::HistoryReadEventsDetails&);
 opcua::HistoryReadRawResult ToOpcua(const scada::HistoryReadRawResult&);
 scada::HistoryReadRawResult ToScada(const opcua::HistoryReadRawResult&);
 
-opcua::HistoryReadEventsResult ToOpcua(const scada::HistoryReadEventsResult&);
-scada::HistoryReadEventsResult ToScada(const opcua::HistoryReadEventsResult&);
+opcua::HistoryReadEventsResult ToOpcua(
+    const scada::HistoryReadEventsResult&,
+    SourceNamePacking = SourceNamePacking::kResolved);
+scada::HistoryReadEventsResult ToScada(
+    const opcua::HistoryReadEventsResult&,
+    SourceNamePacking = SourceNamePacking::kResolved);
 
 opcua::UpdateDataDetails ToOpcua(const scada::UpdateDataDetails&);
 scada::UpdateDataDetails ToScada(const opcua::UpdateDataDetails&);

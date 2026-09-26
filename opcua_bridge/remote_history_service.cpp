@@ -56,7 +56,10 @@ RemoteHistoryService::RemoteHistoryService(
       config_{std::move(config)},
       session_{std::make_shared<opcua::ClientSession>(executor_,
                                                       transport_factory_)},
-      adapter_{session_, tracer} {}
+      // kPacked because `MakeHistorySessionParams` asks for the private tier
+      // tag: this session is entitled to a packed SourceName and knows how to
+      // put the marker back. Backlog 819.
+      adapter_{session_, tracer, SourceNamePacking::kPacked} {}
 
 RemoteHistoryService::~RemoteHistoryService() = default;
 
@@ -71,9 +74,15 @@ opcua::SessionConnectParams MakeHistorySessionParams(
       .connection_string = std::move(endpoint),
       .user_name = ToOpcua(config.user_name),
       .password = ToOpcua(config.password),
-      // "mul" asks the historian for EVERY language it archived rather than
-      // making it choose one for us (OPC UA Part 3 §8.5.2.2 Multiple language
-      // locale, https://reference.opcfoundation.org/Core/Part3/v105/docs/8.5).
+      // The private tier tag asks the historian for EVERY language it
+      // archived rather than making it choose one for us, and additionally
+      // licenses it to leave an event's SourceName packed — which plain "mul"
+      // must not, because any third-party client may ask for that and a
+      // SourceName is a `String` with nowhere to carry the marker (Part 5
+      // §6.4.2). "mul" follows it so an upstream predating the tag still
+      // answers the LocalizedText fields packed; see `kTierMultiLanguageLocale`
+      // and OPC UA Part 3 §8.5.2.2 Multiple language locale,
+      // https://reference.opcfoundation.org/Core/Part3/v105/docs/8.5.
       //
       // Without it the historian resolves each event Message against an empty
       // locale list, which Part 4 §5.4 reads as "any locale the server has",
@@ -83,7 +92,8 @@ opcua::SessionConnectParams MakeHistorySessionParams(
       // upstream. Measured on the demo 2026-09-21: the archive held
       // `mul|{"t":[["ru","Значение > 45"],["en","Value > 45"]]}` and an
       // English session was served the Russian one.
-      .locale_ids = {std::string{scada::kMultiLanguageLocale}},
+      .locale_ids = {std::string{scada::kTierMultiLanguageLocale},
+                     std::string{scada::kMultiLanguageLocale}},
       .security = config.security};
 }
 

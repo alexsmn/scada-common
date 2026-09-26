@@ -646,5 +646,89 @@ TEST(ServerAdapterTest, HistoryEventSourceNameIsNeverThePackedForm) {
   EXPECT_EQ(received.source_name.find("{\"t\":"), std::string::npos);
 }
 
+// --- SourceName across a tier hop (backlog 819) ------------------------
+
+// Our own tiers ask with the private tag, and only they may have the packed
+// payload: they know how to put the "mul" marker back on a field that could not
+// carry it. The hop is what this buys — without it the downstream tier holds
+// one language and every client it serves gets that one, whatever it asked for.
+TEST(ServerAdapterTest, HistoryEventSourceNameStaysPackedForATierSession) {
+  const auto received =
+      ReadOneEvent({std::string{scada::kTierMultiLanguageLocale},
+                    std::string{scada::kMultiLanguageLocale}});
+
+  ASSERT_NE(received.source_name.find("{\"t\":"), std::string::npos)
+      << "a tier session must receive the packed payload: "
+      << received.source_name;
+  // Both languages, so the downstream tier can resolve per client session.
+  EXPECT_NE(received.source_name.find("Server statistics"), std::string::npos);
+  EXPECT_NE(received.source_name.find("\"ru\""), std::string::npos);
+}
+
+// And the test that matters more, because it is the one that was shipped wrong.
+// `mul` is a locale any third-party client may legally ask for — it is asking
+// for multi-language LocalizedText values, which it is entitled to — and it
+// says nothing about being able to unpack a `String`. 50cd12402 packed for
+// everyone on the reasoning that asking for "mul" was licence enough, and the
+// demo served raw JSON in the journal's object column to every session;
+// 96f99d7ab reverted it. Only the private tag licenses packing.
+TEST(ServerAdapterTest, HistoryEventSourceNameIsNotPackedForAPlainMulSession) {
+  const auto received =
+      ReadOneEvent({std::string{scada::kMultiLanguageLocale}});
+
+  EXPECT_FALSE(received.source_name.empty());
+  EXPECT_EQ(received.source_name.find("{\"t\":"), std::string::npos)
+      << "a plain \"mul\" session must not receive packed JSON in SourceName: "
+      << received.source_name;
+}
+
+// The receiving half, which is where the marker goes back on. A packed
+// SourceName crossing as a bare `String` is only recoverable because this end
+// knows its own session asked for the tag; with `kResolved` the same bytes are
+// one opaque language, which is the pre-819 behaviour and still the default.
+TEST(ServerAdapterTest, APackedSourceNameSurvivesTheRoundTripOnlyWhenLabelled) {
+  const scada::LocalizedText names[] = {
+      {"ru", u"Статистика сервера"},
+      {"en", u"Server statistics"},
+  };
+  scada::Event event;
+  event.source_name = scada::EncodeMultiLanguage(names);
+
+  const opcua::Event on_the_wire = ToOpcua(event, SourceNamePacking::kPacked);
+  const scada::Event recovered =
+      ToScada(on_the_wire, SourceNamePacking::kPacked);
+  EXPECT_EQ(scada::ResolveLocalizedText(recovered.source_name,
+                                        std::vector<scada::String>{"en"})
+                .text,
+            u"Server statistics");
+  EXPECT_EQ(scada::ResolveLocalizedText(recovered.source_name,
+                                        std::vector<scada::String>{"ru"})
+                .text,
+            u"Статистика сервера");
+
+  // Unlabelled, the same wire bytes stay a single opaque value: resolution
+  // cannot tell there was ever more than one language in there.
+  const scada::Event unlabelled =
+      ToScada(on_the_wire, SourceNamePacking::kResolved);
+  EXPECT_TRUE(unlabelled.source_name.locale.empty());
+  EXPECT_EQ(scada::DecodeMultiLanguage(unlabelled.source_name).size(), 1u);
+}
+
+// Labelling a plain name as packed is the mislabelling this design tolerates on
+// purpose: an upstream that ignores the private tag answers with one language,
+// and the receiver has already committed to `kPacked`. The name must survive.
+TEST(ServerAdapterTest, LabellingAnUnpackedSourceNameKeepsTheNameIntact) {
+  scada::Event event;
+  event.source_name = scada::LocalizedText{"en", u"Server statistics"};
+
+  const scada::Event recovered = ToScada(
+      ToOpcua(event, SourceNamePacking::kResolved), SourceNamePacking::kPacked);
+
+  EXPECT_EQ(scada::ResolveLocalizedText(recovered.source_name,
+                                        std::vector<scada::String>{"en"})
+                .text,
+            u"Server statistics");
+}
+
 }  // namespace
 }  // namespace scada::opcua_bridge
