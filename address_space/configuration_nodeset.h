@@ -155,9 +155,12 @@ struct ConfigurationImportOutcome {
 struct ConfigurationNodeSetChanges {
   std::string transaction_id;
   Time last_modified;
-  // The configuration version the changes were made against, carried in the
-  // same ConfigurationExport extension an export writes. Empty: no check.
+  // The configuration version the changes were made against and the scope
+  // it was taken over — the namespace URIs of the export the changes were
+  // made from — carried in the same ConfigurationExport extension an export
+  // writes. An empty version asks for no check.
   std::string version;
+  std::vector<std::string> scope;
   std::vector<NodeState> nodes_to_add;
   std::vector<NodeSetReferenceChange> references_to_add;
   std::vector<NodeSetNodeDeletion> nodes_to_delete;

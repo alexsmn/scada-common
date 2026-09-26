@@ -1212,6 +1212,9 @@ StatusOr<std::string> WriteConfigurationNodeSetChanges(
                                      .append_child("ConfigurationExport");
     export_info.append_attribute("xmlns").set_value(kExportXmlns);
     export_info.append_attribute("Version").set_value(changes.version.c_str());
+    for (const std::string& uri : changes.scope) {
+      export_info.append_child("Scope").text().set(uri.c_str());
+    }
   }
   if (changes.outcome) {
     const ConfigurationImportOutcome& outcome = *changes.outcome;
@@ -1282,6 +1285,11 @@ StatusOr<ConfigurationNodeSetChanges> ReadConfigurationNodeSetChanges(
   for (pugi::xml_node export_info :
        FindExtensions(root, "ConfigurationExport")) {
     result.version = export_info.attribute("Version").as_string();
+    for (pugi::xml_node scope : export_info.children()) {
+      if (LocalName(scope.name()) == "Scope") {
+        result.scope.emplace_back(scope.text().as_string());
+      }
+    }
   }
   for (pugi::xml_node status_root :
        FindExtensions(root, "UANodeSetChangesStatus")) {

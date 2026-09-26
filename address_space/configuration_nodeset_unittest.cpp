@@ -297,6 +297,7 @@ ConfigurationNodeSetChanges MakeChanges() {
       .transaction_id = "tx-1",
       .last_modified = At(60),
       .version = "sha256:base",
+      .scope = {"urn:a"},
       .nodes_to_add = {MakeNode(), MakePropertyChange()},
       .references_to_add = {{.source = NodeId{NumericId{7}, 1},
                              .reference_type_id = NodeId{NumericId{9}, 3},
@@ -323,6 +324,7 @@ TEST(ConfigurationNodeSetChangesTest, RoundTripsEverySection) {
   EXPECT_EQ(read->transaction_id, "tx-1");
   EXPECT_EQ(read->last_modified, At(60));
   EXPECT_EQ(read->version, "sha256:base");
+  EXPECT_THAT(read->scope, ElementsAre("urn:a"));
   ASSERT_EQ(read->nodes_to_add.size(), 2u);
   ExpectSameNode(read->nodes_to_add[0], changes.nodes_to_add[0]);
   const NodeState& property = read->nodes_to_add[1];
