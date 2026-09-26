@@ -566,8 +566,8 @@
        pattern does not fit. The Devices companion spec (Part 100 §5) models
        ConnectionPointType and NetworkType with no Methods at all, so there is
        nothing to inherit there either. What IS standard and is used: the
-       Method node class itself, the Call service (Part 4 §5.11.2,
-       https://reference.opcfoundation.org/Core/Part4/v105/docs/5.11.2), the
+       Method node class itself, the Call service (Part 4 §5.12.2,
+       https://reference.opcfoundation.org/Core/Part4/v105/docs/5.12.2), the
        Call permission above, and Executable/UserExecutable — which is how a
        client is meant to learn it may not call this, instead of inventing a
        client-side rule. -->

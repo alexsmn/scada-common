@@ -215,7 +215,7 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
   EXPECT_EQ(wire(scada::StatusCode::Bad_CantParseString),
             0x80740000u);  // BadTypeMismatch
   // Both core codes for "the Server will not store this value" go out as the
-  // one standard code — OPC UA Part 4 §7.39 Bad_OutOfRange.
+  // one standard code — OPC UA Part 4 §7.38.2 Bad_OutOfRange.
   EXPECT_EQ(wire(scada::StatusCode::Bad_TooLongString),
             0x803C0000u);  // BadOutOfRange
   EXPECT_EQ(wire(scada::StatusCode::Bad_OutOfRange),

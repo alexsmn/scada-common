@@ -108,7 +108,7 @@ namespace scada::opcua_bridge {
 // duplicate `case` label in ToScada. Core draws finer distinctions than the
 // wire does in a few places (Bad_TooLongString and Bad_OutOfRange are both
 // OPC UA's Bad_OutOfRange, "outside the valid range ... or other
-// server-defined restrictions", Part 4 §7.39), and the distinction is worth
+// server-defined restrictions", Part 4 §7.38.2), and the distinction is worth
 // keeping in logs even though it cannot survive the round trip.
 //
 // These convert one way only: ToOpcua maps them, and ToScada resolves the wire
