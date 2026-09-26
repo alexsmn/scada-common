@@ -2,7 +2,8 @@
 
 Status: Living reference
 Last verified against code: 2026-09-26 for `max_message_size` in the
-WebSocket options; 2026-08-31 (the "Test strategy" section's inventory
+WebSocket options and for the `TestExecutor` timer note under "Test
+strategy"; 2026-08-31 (the "Test strategy" section's inventory
 of WebSocket suites only, re-read against `git ls-files` — two claims about
 which suites exist were wrong and are corrected; the rest last verified
 2026-08-02)
@@ -838,10 +839,20 @@ excluded:
   fix.** They synchronised on wall clock, which is why the suites read as flaky
   (5/80 failures idle, 0/30 under load). The cause was a deferred Publish
   scheduled through `post_delayed_task`, whose default posts a
-  `boost::asio::steady_timer` that `TestExecutor` — a bare `execution_context`
-  — has no reactor for. The contract fixture captures the deferred task and
-  lets its deadline elapse on the virtual clock instead. Delete the spins and
-  their stale comments together.
+  `boost::asio::steady_timer` on `TestExecutor`'s context. The contract fixture
+  captures the deferred task and lets its deadline elapse on the virtual clock
+  instead. Delete the spins and their stale comments together.
+  This bullet said the bare `execution_context` "has no reactor" for that
+  timer until 2026-09-26, and that was the wrong half of the story: asio gave
+  it one, on a scheduler thread of its own (Boost 1.91
+  `boost/asio/detail/scheduler.hpp`, `own_thread = true`), so the timer fired in real time and its completion
+  arrived from that thread at a moment no `Drain` could see. That is also why
+  every `ClientChannel` call raced its own test — `AsyncCompletion::WaitFor`'s
+  `cancel_after` completes only after its cancelled timer's handler runs —
+  and made `opcuapp`'s client suites fail about half their repeated runs
+  (backlog 730). Both `TestExecutor` copies now own an `io_context` that
+  `HasReadyTasks()` and `Advance()` poll, so a timer completion is ordinary
+  ready work at the next poll; it still measures real time.
 
 ### Codec
 
@@ -1010,3 +1021,5 @@ guard described earlier in this document.
   starts consuming the WS endpoint.
 - UA SecureChannel over WS. TLS is the channel; we do not layer UA's own
   secure-channel framing on top.
+
+<!-- doc-citations: external boost/ -->
