@@ -1,7 +1,8 @@
 # OPC UA Module and Endpoint Design
 
 Status: Living reference
-Last verified against code: 2026-08-31 (the "Test strategy" section's inventory
+Last verified against code: 2026-09-26 for `max_message_size` in the
+WebSocket options; 2026-08-31 (the "Test strategy" section's inventory
 of WebSocket suites only, re-read against `git ls-files` — two claims about
 which suites exist were wrong and are corrected; the rest last verified
 2026-08-02)
@@ -711,8 +712,15 @@ Notes:
   `opc.tcp://` SecureChannel: when both are set the binary endpoint additionally
   advertises and accepts `Basic256Sha256` / `SignAndEncrypt` (see
   `scada-server-framework/docs/opcua_module.md`).
-- `max_message_size` bounds both directions; over-large messages close the
-  socket with status 1009.
+- `max_message_size` bounds both directions, differently in each. A
+  **response** that encodes larger is replaced by a `ServiceFault` carrying
+  `Bad_ResponseTooLarge` under the same request handle, so the client gets a
+  status instead of waiting out its timeout (OPC UA Part 4 §5.3 Service results;
+  since 2026-09-26, backlog 821 — until then it was dropped without a reply).
+  A **request** is read whole before its size is checked, and an oversized one
+  ends the connection; nothing in our code sends the 1009 close code that
+  Part 6 §7.5 WebSockets asks of a receiver (backlog 823). This section said
+  both directions closed with 1009 until 2026-09-26; neither did.
 - `operation_limits` is per-field (every field defaults to 1000) and names the
   fields of `opcua::OperationLimits`: `max_nodes_per_read`,
   `max_nodes_per_write`, `max_nodes_per_method_call`, `max_nodes_per_browse`,

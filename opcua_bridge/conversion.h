@@ -75,6 +75,8 @@ namespace scada::opcua_bridge {
   MAP(Bad_WrongCallArguments, Bad_InvalidArgument)                      \
   MAP(Bad_CantParseString, Bad_TypeMismatch)                            \
   MAP(Bad_OutOfRange, Bad_OutOfRange)                                   \
+  MAP(Bad_NotWritable, Bad_NotWritable)                                 \
+  MAP(Bad_ResponseTooLarge, Bad_ResponseTooLarge)                       \
   MAP(Bad_WrongPropertyId, Bad_WrongPropertyId)                         \
   MAP(Bad_WrongReferenceId, Bad_ReferenceTypeIdInvalid)                 \
   MAP(Bad_WrongNodeClass, Bad_NodeClassInvalid)                         \

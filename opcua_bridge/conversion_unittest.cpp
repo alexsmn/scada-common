@@ -190,6 +190,12 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x810E0000u);  // BadLicenseExpired
   EXPECT_EQ(wire(scada::StatusCode::Bad_WaitingForInitialData),
             0x80320000u);  // BadWaitingForInitialData
+  // Regression: Bad_NotWritable had no map entry, so the default cast sent
+  // its internal value, Bad | 53 -- which is 0x80350000, BadAttributeIdInvalid.
+  EXPECT_EQ(wire(scada::StatusCode::Bad_NotWritable),
+            0x803B0000u);  // BadNotWritable
+  EXPECT_EQ(wire(scada::StatusCode::Bad_ResponseTooLarge),
+            0x80B90000u);  // BadResponseTooLarge
   EXPECT_EQ(wire(scada::StatusCode::Bad_Disconnected),
             0x80310000u);  // BadNoCommunication
   EXPECT_EQ(wire(scada::StatusCode::Bad_SessionForcedLogoff),
@@ -336,6 +342,8 @@ TEST(ConversionTest, AllStatusCodesRoundTripAndAvoidStandardCollisions) {
       StatusCode::Bad_NotSupported,
       StatusCode::Bad_LicenseExpired,
       StatusCode::Bad_WaitingForInitialData,
+      StatusCode::Bad_NotWritable,
+      StatusCode::Bad_ResponseTooLarge,
   };
   // Core codes that deliberately collapse onto a wire code another core code
   // owns (SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE). They cannot round-trip — that
@@ -552,9 +560,9 @@ TEST(ServiceContextConversionTest, LocaleIdsReachTheScadaContext) {
 
 TEST(ServiceContextConversionTest, LocaleIdsRoundTripBothWays) {
   const std::vector<std::string> locales{"en", "ru", "de"};
-  EXPECT_EQ(locales, ToScada(ToOpcua(scada::ServiceContext{}.with_locale_ids(
-                                 locales)))
-                         .locale_ids());
+  EXPECT_EQ(locales,
+            ToScada(ToOpcua(scada::ServiceContext{}.with_locale_ids(locales)))
+                .locale_ids());
 }
 
 TEST(ServiceContextConversionTest, AnEmptyLocaleListStaysEmpty) {
