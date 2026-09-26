@@ -243,6 +243,7 @@ TsFormatType_OpenLabel,data_items
 TsFormats,data_items
 TsFormatsFolderType,data_items
 UserExtensionType,security
+UserExtensionType_GetProfile,security
 UserExtensionType_MultiSessions,security
 UserExtensionType_ProfileJson,security
 UserExtensionType_ProfileRevision,security
@@ -253,6 +254,7 @@ UserExtensionsFolderType_UserExtensionPlaceholder,security
 UserType,security
 UserType_AccessRights,security
 UserType_Description,security
+UserType_GetProfile,security
 UserType_MultiSessions,security
 UserType_ProfileJson,security
 UserType_ProfileRevision,security

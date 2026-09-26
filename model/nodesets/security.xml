@@ -122,6 +122,14 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAMethod>
+  <UAMethod NodeId="ns=1;i=15152" BrowseName="GetProfile" SymbolicName="UserType_GetProfile" ParentNodeId="ns=1;i=16">
+    <DisplayName Locale="ru">Получить профиль</DisplayName>
+    <DisplayName Locale="en">Get profile</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
   <UAMethod NodeId="ns=1;i=353" BrowseName="VerifyPassword" SymbolicName="UserType_VerifyPassword" ParentNodeId="ns=1;i=16">
     <DisplayName Locale="ru">Проверить пароль</DisplayName>
     <DisplayName Locale="en">Verify password</DisplayName>
@@ -315,6 +323,14 @@
   <UAMethod NodeId="ns=1;i=15148" BrowseName="SaveProfile" SymbolicName="UserExtensionType_SaveProfile" ParentNodeId="ns=1;i=15144">
     <DisplayName Locale="ru">Сохранить профиль</DisplayName>
     <DisplayName Locale="en">Save profile</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15144</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
+  <UAMethod NodeId="ns=1;i=15153" BrowseName="GetProfile" SymbolicName="UserExtensionType_GetProfile" ParentNodeId="ns=1;i=15144">
+    <DisplayName Locale="ru">Получить профиль</DisplayName>
+    <DisplayName Locale="en">Get profile</DisplayName>
     <References>
       <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=15144</Reference>
       <Reference ReferenceType="HasModellingRule">i=78</Reference>

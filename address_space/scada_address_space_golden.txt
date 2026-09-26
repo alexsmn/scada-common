@@ -160,6 +160,8 @@ SCADA.15150!MultiSessions	class=2 browse=0:MultiSessions typedef=NS0.68 parent=S
 SCADA.15150!ProfileJson	class=2 browse=0:ProfileJson typedef=NS0.68 parent=SCADA.15150 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.12 value=set refs=[NS0.40->NS0.68;]
 SCADA.15150!ProfileRevision	class=2 browse=0:ProfileRevision typedef=NS0.68 parent=SCADA.15150 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.9 value=set refs=[NS0.40->NS0.68;]
 SCADA.15151	class=1 browse=0:UserExtensions typedef=SCADA.15149 parent=NS0.85 parentRef=NS0.35 supertype=NS0.0 dataType=NS0.0 value=none refs=[NS0.40->SCADA.15149;]
+SCADA.15152	class=4 browse=0:GetProfile typedef=NS0.0 parent=SCADA.16 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.0 value=none refs=[NS0.37->NS0.78;]
+SCADA.15153	class=4 browse=0:GetProfile typedef=NS0.0 parent=SCADA.15144 parentRef=NS0.47 supertype=NS0.0 dataType=NS0.0 value=none refs=[NS0.37->NS0.78;]
 SCADA.152	class=32 browse=0:HasHistoricalDatabase typedef=NS0.0 parent=NS0.32 parentRef=NS0.45 supertype=NS0.32 dataType=NS0.0 value=none refs=[SCADA.311->SCADA.317;]
 SCADA.153	class=2 browse=0:Inverted typedef=NS0.68 parent=SCADA.72 parentRef=NS0.46 supertype=NS0.0 dataType=NS0.1 value=set refs=[NS0.37->NS0.78;NS0.40->NS0.68;SCADA.311->SCADA.314;]
 SCADA.154	class=32 browse=0:HasTsFormat typedef=NS0.0 parent=NS0.32 parentRef=NS0.45 supertype=NS0.32 dataType=NS0.0 value=none refs=[SCADA.311->SCADA.316;]
