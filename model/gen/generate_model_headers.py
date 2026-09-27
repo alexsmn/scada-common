@@ -74,7 +74,7 @@ GEN_BANNER = ("// GENERATED FILE - DO NOT EDIT.\n"
 
 def load_namespaces(path):
     rows = []
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             rows.append((int(r["index"]), r["const_name"], r["db_name"],
                          r.get("row_type", "") or "",
@@ -88,7 +88,7 @@ def read_code_domains(path):
     is not an OPC UA concept, so it lives in this sidecar rather than in the
     nodesets. See common/model/docs/uanodeset-migration.md."""
     domains = {}
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             domains[r["symbolic_name"]] = r["domain"]
     return domains
@@ -131,7 +131,7 @@ def collect_constants(nodesets_dir):
             out[domain]["id"][sym] = (value, ns_index)
     # From the supplement CSV.
     csv_path = os.path.join(nodesets_dir, "extra_node_ids.csv")
-    with open(csv_path, newline="") as f:
+    with open(csv_path, newline="", encoding="utf-8") as f:
         for r in csv.DictReader(f):
             domain, kind, name, value = r["domain"], r["kind"], r["name"], int(r["value"])
             if kind == "numeric_id":
@@ -465,16 +465,20 @@ def main():
 
     os.makedirs(args.out, exist_ok=True)
     written = []
-    with open(os.path.join(args.out, "namespaces.h"), "w") as f:
+    # Every open() here names UTF-8: the CSVs carry Cyrillic display names, and
+    # Python's default is the locale encoding -- Windows-1252 on a Windows
+    # runner -- which read them as mojibake and wrote config_tables.h back as
+    # invalid UTF-8 (MSVC C4828 under /utf-8, scada-client run 36306873339).
+    with open(os.path.join(args.out, "namespaces.h"), "w", encoding="utf-8") as f:
         f.write(emit_namespaces_h(ns_rows))
-    with open(os.path.join(args.out, "namespaces.cpp"), "w") as f:
+    with open(os.path.join(args.out, "namespaces.cpp"), "w", encoding="utf-8") as f:
         f.write(emit_namespaces_cpp(ns_rows))
-    with open(os.path.join(args.out, "config_tables.h"), "w") as f:
+    with open(os.path.join(args.out, "config_tables.h"), "w", encoding="utf-8") as f:
         f.write(emit_config_tables_h(ns_rows, consts, ns_const_index_all))
     written += ["namespaces.h", "namespaces.cpp", "config_tables.h"]
     for domain in DOMAINS:
         fname, text = emit_domain_header(domain, consts[domain], ns_const_index_all)
-        with open(os.path.join(args.out, fname), "w") as f:
+        with open(os.path.join(args.out, fname), "w", encoding="utf-8") as f:
             f.write(text)
         written.append(fname)
     print("generated:", ", ".join(written))
