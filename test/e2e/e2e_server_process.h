@@ -134,6 +134,22 @@ class ServerTier {
   // Terminates the process (idempotent).
   void Terminate();
 
+  // Kills the process and starts the same executable again from the workspace
+  // Launch() prepared -- the same server.json, ports, config DB and data -- the
+  // way a supervisor restarts a tier that died. Nothing is regenerated, so a
+  // tier that read its config remotely still holds none of its own. Does not
+  // wait for a listener; call WaitListening() next. Requires Launch() first.
+  void Relaunch();
+
+#if !defined(_WIN32)
+  // Freezes the process (SIGSTOP) and thaws it (SIGCONT). While frozen its
+  // sockets stay open and the kernel still completes TCP handshakes, but
+  // nothing is ever answered -- the shape of a downstream that has stopped
+  // responding without disconnecting, which a kill cannot produce. POSIX only.
+  void Suspend();
+  void Resume();
+#endif
+
   // Keeps the workspace on disk after the test for post-mortem inspection.
   void PreserveWorkspace() { workspace_.Preserve(); }
 

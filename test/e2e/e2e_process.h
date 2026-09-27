@@ -34,6 +34,11 @@ struct ChildProcess {
 
 void ForceTerminate(ChildProcess& child);
 void WaitForExit(ChildProcess& child, int timeout_ms = 5000);
+#if !defined(_WIN32)
+// Sends `signal` to the child's recorded pid; a no-op for a child that was
+// never launched. POSIX only.
+void SignalProcess(ChildProcess& child, int signal);
+#endif
 // Launches `exe` with `args` in `workdir`, tracked by `job`. `extra_env`, when
 // non-empty, is layered on top of the current process environment for the child
 // only (each pair is a name/value override); an empty list means the child

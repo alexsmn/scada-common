@@ -13,6 +13,10 @@
 #include <system_error>
 #include <thread>
 
+#ifndef _WIN32
+#include <csignal>
+#endif
+
 using namespace std::chrono_literals;
 
 namespace client::test {
@@ -236,5 +240,25 @@ void ServerTier::Terminate() {
   ForceTerminate(process_);
   WaitForExit(process_);
 }
+
+void ServerTier::Relaunch() {
+  Terminate();
+  // Terminating the job also retires its process group (boost resets the
+  // handle), so the new child founds a fresh group rather than joining a dead
+  // one.
+  LaunchProcess(context_.server_exe,
+                {"--param=" + (workspace_.path() / "server.json").string()},
+                workspace_.path(), job_, process_);
+}
+
+#if !defined(_WIN32)
+void ServerTier::Suspend() {
+  SignalProcess(process_, SIGSTOP);
+}
+
+void ServerTier::Resume() {
+  SignalProcess(process_, SIGCONT);
+}
+#endif
 
 }  // namespace client::test

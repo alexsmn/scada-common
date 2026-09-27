@@ -84,6 +84,18 @@ void ForceTerminate(ChildProcess& child) {
   WaitForExit(child);
 }
 
+#ifndef _WIN32
+void SignalProcess(ChildProcess& child, int signal) {
+  if (!child.process.valid())
+    return;
+  // By pid, for the reason HardKill gives: boost's own tracking of a macOS
+  // child is not reliable enough to gate on.
+  const auto pid = child.process.id();
+  if (pid > 0)
+    ::kill(static_cast<pid_t>(pid), signal);
+}
+#endif
+
 void WaitForExit(ChildProcess& child, int timeout_ms) {
   if (!child.process.valid())
     return;
