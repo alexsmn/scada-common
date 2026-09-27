@@ -1,15 +1,17 @@
 # CI for scada-common, which runs on the published export at
 # github.com/alexsmn/scada-common.
 #
-# STATIC ANALYSIS ONLY, DELIBERATELY. There is no build job because a public
-# runner cannot assemble one: a standalone common build resolves the products it
-# consumes as sibling checkouts (ADR 0011), and `net` — which common reaches
-# through `core` — is `published = false` in tools/export/products.toml with a
-# local destination. The workflow this replaced tried to paper over that by
-# cloning the pre-monorepo repos and hand-assembling CMAKE_MODULE_PATH; it spent
-# 3h33m per push building vcpkg dependencies from source and then failed at
-# configure, on every push from 2026-05 to 2026-08. A build job comes back when
-# the consumed products are published, not before.
+# common consumes core, express and opcuapp, and through core and opcuapp,
+# net. A standalone build resolves each as a SIBLING directory named after the
+# product (build-support/ScadaProducts.cmake resolves `../<name>`), so each
+# checkout names its `path` explicitly: net publishes as `transport`, and the
+# directory must be `net`. Everything else is common's own presets and its own
+# vcpkg.json, resolved by the toolchain during configure (ADR 0011).
+#
+# Until 2026-09-27 this workflow was static analysis only, on the stated
+# ground that `net` was unpublished and no public runner could assemble the
+# closure. net has published as `transport` since 2026-09-20, which ended
+# that. There is no `continue-on-error` in this file, on purpose.
 #
 # cppcheck here is the same configuration the build runs — see
 # `scada_configure_cppcheck()` in build-support/ScadaProductBase.cmake, which
@@ -24,6 +26,133 @@ on:
     branches: [ "main", "release/**" ]
 
 jobs:
+  build:
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows / MSVC
+            os: windows-latest
+          - name: Ubuntu / GCC
+            os: ubuntu-latest
+          - name: macOS / AppleClang
+            os: macos-latest
+
+    env:
+      # A plain directory carried between runs by the restore/save steps below.
+      # Not `x-gha`: vcpkg has removed that backend.
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/vcpkg-cache,readwrite"
+
+    steps:
+    - name: Check out scada-common
+      uses: actions/checkout@v7
+      with:
+        path: common
+
+    - name: Check out scada-core
+      uses: actions/checkout@v7
+      with:
+        repository: alexsmn/scada-core
+        path: core
+
+    - name: Check out express
+      uses: actions/checkout@v7
+      with:
+        repository: alexsmn/express
+        path: express
+
+    - name: Check out opcuapp
+      uses: actions/checkout@v7
+      with:
+        repository: alexsmn/opcuapp
+        path: opcuapp
+
+    # Publishes as `transport`; the directory must be `net`.
+    - name: Check out transport (the `net` product)
+      uses: actions/checkout@v7
+      with:
+        repository: alexsmn/transport
+        path: net
+
+    - name: Install Ninja (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build
+
+    # GCC 14, not the runner's default GCC 13: GCC 13.3 hits an internal
+    # compiler error on coroutine code in core and opcuapp, which this build
+    # compiles (superproject docs/ops/deployment.md, "When the cross-build
+    # crashes the compiler"). The ubuntu-24.04 image ships 12.4, 13.3 and 14.2
+    # side by side (actions/runner-images, images/ubuntu/Ubuntu2404-Readme.md,
+    # checked 2026-09-26).
+    - name: Select GCC 14 (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        echo "CC=gcc-14" >> "$GITHUB_ENV"
+        echo "CXX=g++-14" >> "$GITHUB_ENV"
+
+    - name: Install Ninja (macOS)
+      if: runner.os == 'macOS'
+      run: brew install ninja
+
+    - name: Set up MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Set up vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: 'f3e10653cc27d62a37a3763cd84b38bca07c6075'
+        runVcpkgInstall: false
+
+    - name: Create the binary cache directory
+      run: cmake -E make_directory "${{ github.workspace }}/vcpkg-cache"
+
+    - name: Restore the vcpkg binary cache
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ github.workspace }}/vcpkg-cache
+        key: vcpkg-${{ matrix.os }}-${{ hashFiles('common/vcpkg.json') }}-${{ github.run_id }}
+        restore-keys: |
+          vcpkg-${{ matrix.os }}-${{ hashFiles('common/vcpkg.json') }}-
+          vcpkg-${{ matrix.os }}-
+
+    # Classic OPC and Vidicon are off on Windows: their modules do
+    # `find_package(OPC REQUIRED)` and `find_package(MIDL REQUIRED)`, out-of-tree
+    # SDKs no public runner has (superproject CLAUDE.md, "Dependencies").
+    - name: Configure
+      working-directory: common
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          cmake --preset ninja -DBUILD_OPC=OFF -DBUILD_VIDICON=OFF
+        else
+          cmake --preset ninja
+        fi
+
+    # `-k 0`: report every compile error in one run rather than the first.
+    - name: Build (Release)
+      working-directory: common
+      run: cmake --build --preset release -- -k 0
+
+    - name: Save the vcpkg binary cache
+      if: always()
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ github.workspace }}/vcpkg-cache
+        key: vcpkg-${{ matrix.os }}-${{ hashFiles('common/vcpkg.json') }}-${{ github.run_id }}
+
+    # Runs the consumed products' tests as well as common's: they are built
+    # into this tree. `--timeout 300` turns a hang into one named failure.
+    - name: Test (Release)
+      working-directory: common
+      run: ctest --preset test-release --output-on-failure --timeout 300
+
   analyze:
     name: Static Analysis
     runs-on: ubuntu-latest
