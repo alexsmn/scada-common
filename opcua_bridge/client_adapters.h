@@ -153,13 +153,17 @@ class ClientMonitoredItemSubscriptionAdapter
   // `context` is the one the subscription was created with, so AddItems can
   // span item creation — where a monitored item's destination is decided —
   // under the caller's trace.
+  //
+  // `packing` is the owning service's; see `ClientMonitoredItemServiceAdapter`.
   ClientMonitoredItemSubscriptionAdapter(
       std::unique_ptr<opcua::MonitoredItemSubscription> inner,
       scada::ServiceContext context,
-      Tracer& tracer)
+      Tracer& tracer,
+      SourceNamePacking packing = SourceNamePacking::kResolved)
       : inner_{std::move(inner)},
         context_{std::move(context)},
-        tracer_{tracer} {}
+        tracer_{tracer},
+        source_name_packing_{packing} {}
 
   Awaitable<std::vector<scada::MonitoredItemCreateResult>> AddItems(
       std::vector<scada::MonitoredItemCreateRequest> requests) override;
@@ -173,14 +177,24 @@ class ClientMonitoredItemSubscriptionAdapter
   std::unique_ptr<opcua::MonitoredItemSubscription> inner_;
   const scada::ServiceContext context_;
   Tracer& tracer_;
+  const SourceNamePacking source_name_packing_;
 };
 
+// Presents the remote server's subscriptions as the core monitored-item
+// service.
 class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
  public:
+  // `packing` must be `kPacked` only when `s` was opened asking for
+  // `scada::kTierMultiLanguageLocale`: it says each arriving event SourceName
+  // is a packed payload whose "mul" marker the wire field could not carry.
+  // Same contract as `ClientHistoryServiceAdapter`'s. Backlog 819.
   explicit ClientMonitoredItemServiceAdapter(
       std::shared_ptr<opcua::ClientSession> s,
-      Tracer& tracer = Tracer::None())
-      : session_{std::move(s)}, tracer_{tracer} {}
+      Tracer& tracer = Tracer::None(),
+      SourceNamePacking packing = SourceNamePacking::kResolved)
+      : session_{std::move(s)},
+        tracer_{tracer},
+        source_name_packing_{packing} {}
 
   scada::StatusOr<std::unique_ptr<scada::MonitoredItemSubscription>>
   CreateSubscription(scada::ServiceContext context,
@@ -189,6 +203,7 @@ class ClientMonitoredItemServiceAdapter : public scada::MonitoredItemService {
  private:
   std::shared_ptr<opcua::ClientSession> session_;
   Tracer& tracer_;
+  const SourceNamePacking source_name_packing_;
 };
 
 // Presents a remote OPC UA historian (reached over the client session) as the
@@ -241,9 +256,14 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 // `tracer` (typically the core module's) makes every context-carrying call
 // emit a CLIENT span and propagate its traceparent to the remote tier via the
 // OPC UA request header.
+//
+// `packing` must be `kPacked` exactly when the session is connected asking for
+// `scada::kTierMultiLanguageLocale` — a tier-to-tier link. It applies to the
+// event SourceNames of live subscriptions and of HistoryReadEvents alike.
 ::DataServices CreateClientDataServices(
     std::shared_ptr<opcua::ClientSession> session,
-    Tracer& tracer = Tracer::None());
+    Tracer& tracer = Tracer::None(),
+    SourceNamePacking packing = SourceNamePacking::kResolved);
 
 // Assembles a ::DataServices that translates NodeIds between the client's own
 // namespace index space and the remote server's, so a client keeps using its
@@ -262,10 +282,13 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 // historian's external history-collection client. OPC UA Part 3 §8.2.3 makes
 // the URI the stable identity,
 // https://reference.opcfoundation.org/Core/Part3/v105/docs/8.2.3 .
+//
+// `packing` as for `CreateClientDataServices`.
 ::DataServices CreateRemappingClientDataServices(
     std::shared_ptr<opcua::ClientSession> session,
     std::vector<std::string> local_namespace_uris,
-    Tracer& tracer = Tracer::None());
+    Tracer& tracer = Tracer::None(),
+    SourceNamePacking packing = SourceNamePacking::kResolved);
 
 // Probes a peer's Server_ServiceLevel (i=2267) over a throwaway session, so
 // probing a standby does not disturb the active session. Shared by the

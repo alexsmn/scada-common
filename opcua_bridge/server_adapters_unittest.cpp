@@ -280,6 +280,109 @@ TEST(ServerAdapterTest, ScadaEventRoundTripsThroughDefaultProjection) {
   EXPECT_EQ(*reconstructed, event);
 }
 
+// Projects `event` through a live subscription adapter created with
+// `locale_ids`, subscribed the way the SCADA client subscribes, and decodes the
+// one notification on the client side with `packing`.
+scada::Event RoundTripLiveEvent(const scada::Event& event,
+                                std::vector<std::string> locale_ids,
+                                SourceNamePacking packing) {
+  auto fake = std::make_unique<FakeMonitoredItemSubscription>();
+  fake->next = scada::EventNotification{.item_id = 1,
+                                        .client_handle = 55,
+                                        .status = scada::StatusCode::Good,
+                                        .event = std::any{event}};
+  MonitoredItemSubscriptionAdapter adapter{
+      std::move(fake),
+      opcua::ServiceContext{}.with_locale_ids(std::move(locale_ids)),
+      Tracer::None()};
+
+  scada::MonitoringParameters scada_params;
+  scada_params.filter = scada::EventFilter{
+      .of_type = {scada::NodeId{scada::id::SystemEventType}}};
+  opcua::MonitoredItemCreateRequest request;
+  request.item_to_monitor = {.node_id = opcua::NodeId{2253u},
+                             .attribute_id = opcua::AttributeId::EventNotifier};
+  request.requested_parameters = ToOpcua(scada_params);
+  request.requested_parameters.client_handle = 55;
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
+      read_result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        std::vector<opcua::MonitoredItemCreateRequest> requests;
+        requests.push_back(request);
+        co_await adapter.AddItems(std::move(requests));
+        read_result = co_await adapter.ReadNext(10);
+      },
+      boost::asio::detached);
+  io.run();
+
+  EXPECT_TRUE(read_result.has_value() && read_result->ok() &&
+              (*read_result)->size() == 1u);
+  if (!read_result.has_value() || !read_result->ok() ||
+      (*read_result)->size() != 1u) {
+    return {};
+  }
+  const scada::MonitoredItemNotification decoded =
+      ToScada((**read_result)[0], packing);
+  const auto* notification = std::get_if<scada::EventNotification>(&decoded);
+  const auto* result = notification
+                           ? std::any_cast<scada::Event>(&notification->event)
+                           : nullptr;
+  EXPECT_NE(result, nullptr);
+  return result ? *result : scada::Event{};
+}
+
+scada::Event EventNamedInTwoLanguages() {
+  scada::Event event;
+  event.event_type_id = scada::id::SystemEventType;
+  event.event_id = 0x42;
+  event.time = scada::Now();
+  event.severity = 10;
+  event.source_node_id = scada::NodeId{5, 2};
+  const scada::LocalizedText names[] = {{"ru", u"I ВЛ-110 П"},
+                                        {"en", u"I OHL-110 P"}};
+  event.source_name = scada::EncodeMultiLanguage(names);
+  event.message = scada::LocalizedText{u"Value > 45"};
+  return event;
+}
+
+// A live event's SourceName crosses a tier hop in every language. It is a
+// plain String on the wire (Part 5 §6.4.2), so it stays packed only for a
+// subscriber that asked for the private tier tag, and that subscriber's end
+// re-attaches the "mul" label. Until this held, the edge flattened every name
+// to its first translation for live events — HistoryReadEvents already packed
+// — and the proxy served English clients the Russian name. Backlog 819.
+TEST(ServerAdapterTest, LiveEventSourceNameStaysPackedAcrossATierHop) {
+  const scada::Event received =
+      RoundTripLiveEvent(EventNamedInTwoLanguages(),
+                         {std::string{scada::kTierMultiLanguageLocale},
+                          std::string{scada::kMultiLanguageLocale}},
+                         SourceNamePacking::kPacked);
+
+  const std::vector<scada::LocalizedText> names =
+      scada::DecodeMultiLanguage(received.source_name);
+  ASSERT_EQ(names.size(), 2u);
+  EXPECT_EQ(scada::ResolveLocalizedText(received.source_name,
+                                        std::vector<std::string>{"en"})
+                .text,
+            u"I OHL-110 P");
+}
+
+// The other half, and the one a packed payload must never cross: any peer that
+// did not ask for the tier tag — including a third party legitimately asking
+// for "mul" — gets one language, not our JSON.
+TEST(ServerAdapterTest, LiveEventSourceNameIsFlattenedForAnyOtherSubscriber) {
+  const scada::Event received = RoundTripLiveEvent(
+      EventNamedInTwoLanguages(), {std::string{scada::kMultiLanguageLocale}},
+      SourceNamePacking::kResolved);
+
+  EXPECT_EQ(received.source_name.text, u"I ВЛ-110 П");
+  EXPECT_EQ(scada::DecodeMultiLanguage(received.source_name).size(), 1u);
+}
+
 // A core AttributeService returning caller-supplied Read results, so the
 // adapter's outbound status projection can be observed.
 class FakeAttributeService : public scada::AttributeService {

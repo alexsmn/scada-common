@@ -448,8 +448,15 @@ opcua::ItemNotification MonitoredItemSubscriptionAdapter::ToItemNotification(
           }
           std::vector<opcua::Variant> event_fields;
           if (const auto* scada_event = std::any_cast<scada::Event>(&x.event)) {
+            // SourceName is a plain `String` on the wire (Part 5 §6.4.2), so
+            // whether it may stay packed is the subscribing session's call:
+            // only a peer that asked for the private tier tag can unpack it.
+            // HistoryReadEvents decides the same way. Without this a tier
+            // subscriber got the leading translation of every name, and the
+            // proxy served it to English clients in Russian. Backlog 819.
             event_fields = opcua::ProjectEventFields(
-                field_paths, std::any{ToOpcua(*scada_event)});
+                field_paths,
+                std::any{ToOpcua(*scada_event, source_name_packing_)});
           } else if (x.event.has_value()) {
             // Non-system SCADA events (GeneralModelChangeEventType,
             // SemanticChangeEventType) have no OPC UA select-clause projection;

@@ -216,7 +216,13 @@ ClientMonitoredItemSubscriptionAdapter::RemoveItems(
 scada::CoStatusOr<std::vector<scada::MonitoredItemNotification>>
 ClientMonitoredItemSubscriptionAdapter::ReadNext(std::size_t max_count) {
   auto result = co_await inner_->ReadNext(max_count);
-  co_return ToScada(result);
+  if (!result.ok())
+    co_return ToScada(result.status());
+  std::vector<scada::MonitoredItemNotification> notifications;
+  notifications.reserve(result->size());
+  for (const opcua::ItemNotification& notification : *result)
+    notifications.push_back(ToScada(notification, source_name_packing_));
+  co_return notifications;
 }
 void ClientMonitoredItemSubscriptionAdapter::Close(scada::Status status) {
   inner_->Close(ToOpcua(status));
@@ -235,7 +241,7 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
     return ToScada(result.status());
   return std::unique_ptr<scada::MonitoredItemSubscription>{
       std::make_unique<ClientMonitoredItemSubscriptionAdapter>(
-          std::move(*result), context, tracer_)};
+          std::move(*result), context, tracer_, source_name_packing_)};
 }
 
 // --- HistoryService / HistoryUpdateService -----------------------------
@@ -306,7 +312,8 @@ ClientHistoryServiceAdapter::HistoryUpdateEvent(
 // --- factory ------------------------------------------------------------
 ::DataServices CreateClientDataServices(
     std::shared_ptr<opcua::ClientSession> session,
-    Tracer& tracer) {
+    Tracer& tracer,
+    SourceNamePacking packing) {
   ::DataServices services;
   services.session_service_ =
       std::make_shared<ClientSessionServiceAdapter>(session);
@@ -319,9 +326,10 @@ ClientHistoryServiceAdapter::HistoryUpdateEvent(
   services.node_management_service_ =
       std::make_shared<ClientNodeManagementServiceAdapter>(session, tracer);
   services.monitored_item_service_ =
-      std::make_shared<ClientMonitoredItemServiceAdapter>(session, tracer);
+      std::make_shared<ClientMonitoredItemServiceAdapter>(session, tracer,
+                                                          packing);
   services.history_service_ =
-      std::make_shared<ClientHistoryServiceAdapter>(session, tracer);
+      std::make_shared<ClientHistoryServiceAdapter>(session, tracer, packing);
   return services;
 }
 
@@ -403,8 +411,9 @@ class RemappingClientServices
 ::DataServices CreateRemappingClientDataServices(
     std::shared_ptr<opcua::ClientSession> session,
     std::vector<std::string> local_namespace_uris,
-    Tracer& tracer) {
-  ::DataServices inner = CreateClientDataServices(session, tracer);
+    Tracer& tracer,
+    SourceNamePacking packing) {
+  ::DataServices inner = CreateClientDataServices(session, tracer, packing);
   auto holder = std::make_shared<RemappingClientServices>(
       std::move(session), std::move(inner), std::move(local_namespace_uris),
       tracer);

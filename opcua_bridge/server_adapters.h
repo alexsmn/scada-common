@@ -14,6 +14,7 @@
 #include "scada/authentication.h"
 #include "scada/history_service.h"
 #include "scada/history_update_service.h"
+#include "scada/locale_negotiation.h"
 #include "scada/method_service.h"
 #include "scada/monitored_item_service.h"
 #include "scada/node_management_service.h"
@@ -189,6 +190,9 @@ class MonitoredItemSubscriptionAdapter
       Tracer& tracer)
       : inner_{std::move(inner)},
         context_{std::move(context)},
+        source_name_packing_{scada::RequestsPackedStrings(context_.locale_ids())
+                                 ? SourceNamePacking::kPacked
+                                 : SourceNamePacking::kResolved},
         tracer_{tracer} {}
 
   opcua::Awaitable<std::vector<opcua::MonitoredItemCreateResult>> AddItems(
@@ -211,6 +215,11 @@ class MonitoredItemSubscriptionAdapter
 
   std::unique_ptr<scada::MonitoredItemSubscription> inner_;
   const opcua::ServiceContext context_;
+  // Whether event SourceNames go out packed: only for a subscriber whose
+  // session asked for `scada::kTierMultiLanguageLocale`, i.e. one of our own
+  // tiers. Decided once, from the locale ids the subscription was created
+  // with. See `SourceNamePacking`.
+  const SourceNamePacking source_name_packing_;
   Tracer& tracer_;
   // Event-field select-clause paths parsed from each item's wire filter, keyed
   // by client_handle. Populated in AddItems; consumed in ReadNext to project

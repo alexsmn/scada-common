@@ -597,7 +597,25 @@ scada::MonitoredItemCreateResult ToScada(
   return {.item_id = v.monitored_item_id, .status = ToScada(v.status)};
 }
 
-scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n) {
+namespace {
+
+// Re-attaches the "mul" marker a packed SourceName lost crossing the wire as a
+// plain `String`, for an event rebuilt by `AssembleEvent`. Only scada::Event
+// and its DeviceFrameEvent extension carry a SourceName.
+void RelabelPackedSourceName(std::any& event) {
+  scada::Event* base = std::any_cast<scada::Event>(&event);
+  if (!base) {
+    if (auto* frame = std::any_cast<scada::DeviceFrameEvent>(&event))
+      base = &frame->base;
+  }
+  if (base && base->source_name.locale.empty())
+    base->source_name.locale = scada::String{scada::kMultiLanguageLocale};
+}
+
+}  // namespace
+
+scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n,
+                                         SourceNamePacking packing) {
   // The wire notification is one of two standard types. A
   // MonitoredItemNotification (client_handle + DataValue) maps to a core
   // DataChangeNotification. An EventFieldList (client_handle + projected event
@@ -605,7 +623,7 @@ scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n) {
   // reassembled from the event fields via the core AssembleEvent. Consumers
   // correlate by client_handle.
   return std::visit(
-      [](const auto& x) -> scada::MonitoredItemNotification {
+      [packing](const auto& x) -> scada::MonitoredItemNotification {
         using T = std::decay_t<decltype(x)>;
         if constexpr (std::is_same_v<T, opcua::MonitoredItemNotification>) {
           return scada::DataChangeNotification{.item_id = 0,
@@ -642,10 +660,16 @@ scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n) {
             // outside the process and must degrade, never panic a consumer.
             scada::Event reconstructed =
                 ToScada(opcua::ReconstructEventFromFields(
-                    opcua::DefaultEventFieldPaths(), x.event_fields));
+                            opcua::DefaultEventFieldPaths(), x.event_fields),
+                        packing);
             if (reconstructed.event_id != 0) {
               event = std::any{std::move(reconstructed)};
             }
+          } else if (packing == SourceNamePacking::kPacked) {
+            // The AssembleEvent route rebuilds SourceName from a bare string
+            // too, so it needs the same "mul" label re-attached; see
+            // `ToScada(const opcua::Event&, SourceNamePacking)`.
+            RelabelPackedSourceName(event);
           }
           return scada::EventNotification{.item_id = 0,
                                           .client_handle = x.client_handle,

@@ -208,7 +208,13 @@ scada::MonitoredItemCreateResult ToScada(
 // DataChangeNotification; a wire EventFieldList becomes a core
 // EventNotification whose std::any payload is reassembled from the event
 // fields. Consumers correlate by client_handle.
-scada::MonitoredItemNotification ToScada(const opcua::ItemNotification&);
+//
+// `packing` must be `kPacked` only when the session the notification arrived
+// on asked its server for `scada::kTierMultiLanguageLocale`; see
+// `SourceNamePacking`.
+scada::MonitoredItemNotification ToScada(
+    const opcua::ItemNotification&,
+    SourceNamePacking = SourceNamePacking::kResolved);
 
 opcua::HistoryReadRawDetails ToOpcua(const scada::HistoryReadRawDetails&);
 scada::HistoryReadRawDetails ToScada(const opcua::HistoryReadRawDetails&);
