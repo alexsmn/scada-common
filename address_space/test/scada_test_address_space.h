@@ -350,12 +350,25 @@ inline void AddScadaDevicesTestTypes(AddressSpaceImpl& address_space) {
 
   std::vector<scada::NodeState> nodes;
 
+  // The folder type of "Все оборудование" (devices.xml i=403, a FolderType
+  // subtype). It is what carries the <Link> and <Iec61850Device> placeholders,
+  // so typing the folder with plain FolderType left nothing creatable at the
+  // hardware tree's root.
+  nodes.push_back(scada::NodeState{
+      .node_id = dev::DevicesFolderType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::FolderType, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{.browse_name = "DevicesFolderType",
+                                          .display_name = u"DevicesFolderType"},
+      .supertype_id = {scada::id::FolderType, scada::NamespaceIndexes::NS0}});
+
   // The "Все оборудование" folder that owns device instances.
   nodes.push_back(scada::NodeState{
       .node_id = dev::Devices,
       .node_class = scada::NodeClass::Object,
-      .type_definition_id = {scada::id::FolderType,
-                             scada::NamespaceIndexes::NS0},
+      .type_definition_id = dev::DevicesFolderType,
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
       .attributes = scada::NodeAttributes{
@@ -912,6 +925,17 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     AddCreatablePlaceholder(scada::devices::id::ModbusDeviceType,
                             scada::devices::id::ModbusTransmissionItemType,
                             "<TransmissionItem>");
+    // The hardware tree's own placeholders (devices.xml i=413,
+    // devices_iec61850.xml i=414, devices_iec60870.xml i=424). <Link> is typed
+    // with the abstract LinkType, and CreateTree matches subtypes, so it admits
+    // both the Modbus and the IEC 60870 link.
+    AddCreatablePlaceholder(scada::devices::id::DevicesFolderType,
+                            scada::devices::id::LinkType, "<Link>");
+    AddCreatablePlaceholder(scada::devices::id::DevicesFolderType,
+                            scada::devices::id::Iec61850DeviceType,
+                            "<Iec61850Device>");
+    AddCreatablePlaceholder(scada::devices::id::Iec60870LinkType,
+                            scada::devices::id::Iec60870DeviceType, "<Device>");
   }
 
   ~ScadaTestAddressSpace() { Clear(); }
