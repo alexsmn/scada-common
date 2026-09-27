@@ -5,6 +5,7 @@
 #include "address_space/mutable_address_space.h"
 #include "address_space/node_factory.h"
 #include "address_space/node_utils.h"
+#include "address_space/variable.h"
 #include "address_space/uanodeset_xml.h"
 #include "base/time/time_wire_codec.h"
 #include "common/node_state.h"
@@ -681,7 +682,18 @@ Status ApplyNodeStates(std::vector<NodeState> node_states,
   SortNodesHierarchically(node_states);
 
   for (const auto& node_state : node_states) {
-    if (address_space.GetNode(node_state.node_id)) {
+    if (Node* existing = address_space.GetMutableNode(node_state.node_id)) {
+      // Creating a typed instance materializes its type's properties under
+      // nested ids (CreateMissingProperties), carrying the declaration's value.
+      // A document that also declares one of them states the instance's own
+      // value, which must win over that default -- the configuration transfer
+      // object's ClientProcessingTimeout read null until it did.
+      if (node_state.attributes.value.has_value()) {
+        if (auto* variable = AsVariable(existing)) {
+          variable->SetValue(DataValue{
+              *node_state.attributes.value, {}, kNullTime, kNullTime});
+        }
+      }
       continue;
     }
 

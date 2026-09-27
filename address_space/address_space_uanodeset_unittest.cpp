@@ -150,5 +150,22 @@ TEST(ScadaAddressSpace, PlaceholderParentedThroughCustomHierarchicalReference) {
   EXPECT_EQ(parent->id(), NodeId{devices::id::Iec60870DeviceType});
 }
 
+// A typed instance gets its type's properties materialized with the
+// declaration's value; a property the document ALSO declares for the instance
+// keeps the instance's own value. The configuration transfer object's
+// ClientProcessingTimeout (opcua_base.xml) is the case that exposed it: the
+// explicit node was skipped as already present, and the value read null.
+TEST(ScadaAddressSpace, AnInstancesDeclaredPropertyValueWins) {
+  AddressSpaceImpl2 space;
+  GenericNodeFactory factory{space};
+  ASSERT_TRUE(LoadStaticAddressSpace(GetScadaStaticNodesetSourcePaths(), space,
+                                     factory));
+
+  const Variable* timeout = AsVariable(space.GetNode(NodeIdFromScadaString(
+      "SECURITY.ConfigurationTransfer!ClientProcessingTimeout")));
+  ASSERT_TRUE(timeout);
+  EXPECT_EQ(timeout->GetValue().value, Variant{60000.0});
+}
+
 }  // namespace
 }  // namespace scada

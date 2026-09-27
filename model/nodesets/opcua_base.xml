@@ -315,4 +315,42 @@
     <AttributeValue type="Empty" />
     <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
   </Node>
+  <!-- TemporaryFileTransferType (OPC UA Part 20 §4.4.1,
+       https://reference.opcfoundation.org/Core/Part20/v105/docs/4.4.1). Ids
+       per Opc.Ua.NodeSet2.xml at UA-Nodeset tag UA-1.05.07-2026-07-30. The
+       methods' InputArguments/OutputArguments properties and the optional
+       <TransferState> placeholder are not declared, as with RoleSet's methods
+       above. -->
+  <Node id="NS0.290" class="DataType" parent="NS0.11" parentReference="NS0.45" supertype="NS0.11" browseName="Duration" displayName="Duration" />
+  <Node id="NS0.15744" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="TemporaryFileTransferType" displayName="TemporaryFileTransferType" />
+  <Node id="NS0.15745" class="Variable" typeDefinition="NS0.68" parent="NS0.15744" parentReference="NS0.46" browseName="ClientProcessingTimeout" displayName="ClientProcessingTimeout" dataType="NS0.290">
+    <AttributeValue type="Empty" />
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
+  <Node id="NS0.15746" class="Method" parent="NS0.15744" parentReference="NS0.47" browseName="GenerateFileForRead" displayName="GenerateFileForRead" />
+  <Node id="NS0.15749" class="Method" parent="NS0.15744" parentReference="NS0.47" browseName="GenerateFileForWrite" displayName="GenerateFileForWrite" />
+  <Node id="NS0.15751" class="Method" parent="NS0.15744" parentReference="NS0.47" browseName="CloseAndCommit" displayName="CloseAndCommit" />
+  <!-- The configuration transfer object (ADR 0014), organized under Objects so
+       a generic client can browse to it. Only the configuration server serves
+       its methods (the configuration_transfer module with
+       configurationTransfer.host); the proxy routes the SECURITY namespace
+       there. Its methods are the type's own Method nodes, which Part 3 §5.7.1
+       Method NodeClass allows ("A Method shall always be the TargetNode of at least one
+       HasComponent Reference",
+       https://reference.opcfoundation.org/Core/Part3/v105/docs/5.7.1), and which
+       keeps the MethodId a client calls the one Part 4 §5.12.2 Call already
+       accepted for an instance of the type
+       (https://reference.opcfoundation.org/Core/Part4/v105/docs/5.12.2). -->
+  <Node id="SECURITY.ConfigurationTransfer" class="Object" typeDefinition="NS0.15744" parent="NS0.85" parentReference="NS0.35" browseName="ConfigurationTransfer" displayName="ConfigurationTransfer">
+    <Reference type="NS0.40" forward="true" target="NS0.15744" targetClass="ObjectType" />
+    <Reference type="NS0.47" forward="true" target="NS0.15746" targetClass="Method" />
+    <Reference type="NS0.47" forward="true" target="NS0.15749" targetClass="Method" />
+    <Reference type="NS0.47" forward="true" target="NS0.15751" targetClass="Method" />
+  </Node>
+  <!-- TemporaryFileTransfers' TransferLimits::client_processing_timeout, in
+       milliseconds (Duration); a test pins the two together. -->
+  <Node id="SECURITY.ConfigurationTransfer!ClientProcessingTimeout" class="Variable" typeDefinition="NS0.68" parent="SECURITY.ConfigurationTransfer" parentReference="NS0.46" browseName="ClientProcessingTimeout" displayName="ClientProcessingTimeout" dataType="NS0.290">
+    <AttributeValue type="Double">60000</AttributeValue>
+    <Reference type="NS0.40" forward="true" target="NS0.68" targetClass="VariableType" />
+  </Node>
 </AddressSpace>
