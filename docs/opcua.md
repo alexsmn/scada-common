@@ -1,7 +1,7 @@
 # OPC UA Module and Endpoint Design
 
 Status: Living reference
-Last verified against code: 2026-09-26 for `max_message_size` in the
+Last verified against code: 2026-09-27 for `max_message_size` in the
 WebSocket options and for the `TestExecutor` timer note under "Test
 strategy"; 2026-08-31 (the "Test strategy" section's inventory
 of WebSocket suites only, re-read against `git ls-files` — two claims about
@@ -718,10 +718,15 @@ Notes:
   `Bad_ResponseTooLarge` under the same request handle, so the client gets a
   status instead of waiting out its timeout (OPC UA Part 4 §5.3 Service results;
   since 2026-09-26, backlog 821 — until then it was dropped without a reply).
-  A **request** is read whole before its size is checked, and an oversized one
-  ends the connection; nothing in our code sends the 1009 close code that
-  Part 6 §7.5 WebSockets asks of a receiver (backlog 823). This section said
-  both directions closed with 1009 until 2026-09-26; neither did.
+  A **request** is refused before its payload is buffered: the server reads
+  into a `max_message_size` buffer, and `WebSocketTransport::read`
+  (`third_party/net/transport/websocket_transport.h`) sets Beast's
+  `read_message_max` to that buffer's size, so an over-limit frame — or, under
+  permessage-deflate, over-limit inflated output — fails the connection with
+  the 1009 close code Part 6 §7.5 WebSockets asks of a receiver (since
+  2026-09-27, backlog 823; until then the request was read whole, then the
+  connection ended with no close frame). This section said both directions
+  closed with 1009 until 2026-09-26, when neither did.
 - `max_byte_string_length` is published as
   Server.ServerCapabilities.MaxByteStringLength and enforced on Write values
   and Method input arguments (`Bad_OutOfRange` for that node,
