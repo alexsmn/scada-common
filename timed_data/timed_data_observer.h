@@ -4,6 +4,7 @@ class PropertySet;
 
 class TimedDataObserver {
  public:
+  virtual ~TimedDataObserver() = default;
   virtual void OnTimedDataNodeModified() {}
   virtual void OnTimedDataDeleted() {}
   virtual void OnEventsChanged() {}

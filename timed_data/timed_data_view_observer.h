@@ -7,6 +7,7 @@
 template <typename T>
 class BasicTimedDataViewObserver {
  public:
+  virtual ~BasicTimedDataViewObserver() = default;
   virtual void OnTimedDataUpdates(std::span<const T> values) {}
   virtual void OnTimedDataReady() {}
 };
