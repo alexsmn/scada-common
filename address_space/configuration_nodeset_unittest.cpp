@@ -402,5 +402,46 @@ TEST(ConfigurationNodeSetChangesTest, TellsTheDocumentKindsApart) {
       StatusCode::Bad_CantParseString);
 }
 
+// What a client displays: the codec's own result document, read without any
+// namespace table. MakeNode carries eight properties, written as property
+// children beside it; they belong to its operation, so the second add's
+// status stays with the second node.
+TEST(ConfigurationNodeSetChangesTest, SummarizesAResultForDisplay) {
+  NodeState replaced = MakeNode();
+  NodeState created = MakeNode();
+  created.node_id = NodeId{NumericId{8}, 1};
+  ConfigurationNodeSetChanges changes{
+      .nodes_to_add = {replaced, created},
+      .references_to_add = {{.source = NodeId{NumericId{7}, 1},
+                             .reference_type_id = NodeId{NumericId{9}, 3},
+                             .target = NodeId{NumericId{3}, 2}}},
+      .nodes_to_delete = {{.node_id = NodeId{NumericId{5}, 1}},
+                          {.node_id = replaced.node_id,
+                           .delete_reverse_references = false}},
+      .outcome = ConfigurationImportOutcome{
+          .dry_run = true,
+          .status = {.nodes_to_add = {{}, {.code = 0x80340000, .details = "x"}},
+                     .references_to_add = {{}},
+                     .nodes_to_delete = {{}, {}}}}};
+  const auto xml = WriteConfigurationNodeSetChanges(changes, kUris, Names());
+  ASSERT_TRUE(xml.ok());
+
+  const auto summary = ReadImportResultSummary(*xml);
+  ASSERT_TRUE(summary.ok()) << summary.status();
+  EXPECT_TRUE(summary->dry_run);
+  EXPECT_FALSE(summary->committed);
+  EXPECT_THAT(summary->added, ElementsAre("ns=1;i=8"));
+  EXPECT_THAT(summary->modified, ElementsAre("ns=1;i=7"));
+  EXPECT_THAT(summary->deleted, ElementsAre("ns=1;i=5"));
+  EXPECT_EQ(summary->references_added, 1u);
+  ASSERT_THAT(summary->failures, SizeIs(1));
+  EXPECT_EQ(summary->failures[0].list, "NodesToAdd");
+  EXPECT_EQ(summary->failures[0].target, "ns=1;i=8");
+  EXPECT_EQ(summary->failures[0].status.code, 0x80340000u);
+
+  EXPECT_EQ(ReadImportResultSummary("<UANodeSet/>").status().code(),
+            StatusCode::Bad_CantParseString);
+}
+
 }  // namespace
 }  // namespace scada

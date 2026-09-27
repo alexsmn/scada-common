@@ -830,6 +830,121 @@ StatusOr<ConfigurationNodeSetChanges> ReadConfigurationNodeSetChanges(
   return result;
 }
 
+namespace {
+
+bool IsPropertyChildElement(pugi::xml_node element) {
+  for (pugi::xml_node reference :
+       element.child("References").children("Reference")) {
+    if (std::string_view{reference.attribute("ReferenceType").as_string()} ==
+            "i=40" &&
+        reference.attribute("IsForward").as_bool(true) &&
+        std::string_view{reference.text().as_string()} == "i=68") {
+      return true;
+    }
+  }
+  return false;
+}
+
+// The operations of a NodesToAdd list, by NodeId text.
+std::vector<std::string> AddedNodeIds(pugi::xml_node list) {
+  std::set<std::string> added;
+  for (pugi::xml_node element : list.children()) {
+    if (element.type() == pugi::node_element) {
+      added.insert(element.attribute("NodeId").as_string());
+    }
+  }
+  std::vector<std::string> operations;
+  for (pugi::xml_node element : list.children()) {
+    if (element.type() != pugi::node_element) {
+      continue;
+    }
+    if (IsPropertyChildElement(element) &&
+        added.contains(element.attribute("ParentNodeId").as_string())) {
+      continue;
+    }
+    operations.emplace_back(element.attribute("NodeId").as_string());
+  }
+  return operations;
+}
+
+std::vector<std::string> ReferenceSources(pugi::xml_node list) {
+  std::vector<std::string> sources;
+  for (pugi::xml_node reference : list.children("Reference")) {
+    sources.emplace_back(reference.attribute("Source").as_string());
+  }
+  return sources;
+}
+
+}  // namespace
+
+StatusOr<ImportResultSummary> ReadImportResultSummary(std::string_view xml) {
+  pugi::xml_document document;
+  if (!document.load_buffer(xml.data(), xml.size())) {
+    return StatusCode::Bad_CantParseString;
+  }
+  const pugi::xml_node root = document.child("UANodeSetChanges");
+  if (!root) {
+    return StatusCode::Bad_CantParseString;
+  }
+
+  ImportResultSummary summary;
+  for (pugi::xml_node import_info :
+       FindExtensions(root, "ConfigurationImport")) {
+    summary.committed = import_info.attribute("Committed").as_bool();
+    summary.dry_run = import_info.attribute("DryRun").as_bool();
+    summary.version = import_info.attribute("Version").as_string();
+  }
+
+  const std::vector<std::string> nodes_to_add =
+      AddedNodeIds(root.child("NodesToAdd"));
+  std::vector<std::string> nodes_to_delete;
+  for (pugi::xml_node node : root.child("NodesToDelete").children("Node")) {
+    nodes_to_delete.emplace_back(node.text().as_string());
+  }
+  const std::vector<std::string> references_to_add =
+      ReferenceSources(root.child("ReferencesToAdd"));
+  const std::vector<std::string> references_to_delete =
+      ReferenceSources(root.child("ReferencesToDelete"));
+
+  const std::set<std::string> deleted{nodes_to_delete.begin(),
+                                      nodes_to_delete.end()};
+  const std::set<std::string> added{nodes_to_add.begin(), nodes_to_add.end()};
+  for (const std::string& node_id : nodes_to_add) {
+    (deleted.contains(node_id) ? summary.modified : summary.added)
+        .push_back(node_id);
+  }
+  for (const std::string& node_id : nodes_to_delete) {
+    if (!added.contains(node_id)) {
+      summary.deleted.push_back(node_id);
+    }
+  }
+  summary.references_added = references_to_add.size();
+  summary.references_deleted = references_to_delete.size();
+
+  for (pugi::xml_node status_root :
+       FindExtensions(root, "UANodeSetChangesStatus")) {
+    const NodeSetChangesStatus status = ReadChangesStatus(status_root);
+    const auto collect = [&](std::string_view list,
+                             const std::vector<NodeSetOperationStatus>& entries,
+                             const std::vector<std::string>& targets) {
+      for (std::size_t i = 0; i < entries.size(); ++i) {
+        if (entries[i].code != 0) {
+          summary.failures.push_back(
+              {.list = std::string{list},
+               .target = i < targets.size() ? targets[i] : std::string{},
+               .status = entries[i]});
+        }
+      }
+    };
+    collect("NodesToAdd", status.nodes_to_add, nodes_to_add);
+    collect("ReferencesToAdd", status.references_to_add, references_to_add);
+    collect("NodesToDelete", status.nodes_to_delete, nodes_to_delete);
+    collect("ReferencesToDelete", status.references_to_delete,
+            references_to_delete);
+  }
+  return summary;
+}
+
 std::string NodeSetDocumentKind(std::string_view xml) {
   pugi::xml_document document;
   if (!document.load_buffer(xml.data(), xml.size())) {

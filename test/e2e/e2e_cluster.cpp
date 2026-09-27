@@ -287,6 +287,10 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       .configure =
           [endpoint, enforce_permissions](boost::json::object& json) {
             json["deviceConfig"] = boost::json::object{};
+            // The server owning the configuration hosts the transfer object
+            // (ADR 0014), as the deployed config.json says; every other tier
+            // leaves it to the proxy to route there.
+            json["configurationTransfer"] = boost::json::object{{"host", true}};
             // Serves config only — no protocol drivers of its own, and no file
             // store (the filesystem tier owns the FileSystem subtree).
             EraseDrivers(json);
@@ -669,6 +673,35 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
                               {"password", std::string{kSvcPassword}}});
     }
   }
+  // The configuration owner, mirroring the dev-cluster and GCP proxy.json
+  // entries — which this fixture lacked until 2026-09-26, so a proxy here had
+  // no route to the config tier at all. "configuration" names it the owner of
+  // the configuration facet (nested configuration-property routing); the
+  // "namespaces" claim lists only the config-only namespaces, with no runtime
+  // counterpart on any edge — the security namespace among them, which is
+  // where the configuration transfer object lives (ADR 0014), and why a Call
+  // on it reached some other tier without this entry; the "nodes" claim
+  // anchors AddNodes under the config-table folders in the shared SCADA
+  // namespace. LAST, as in those files: a namespace claim scopes only the
+  // single-target services, and the Read fan-out takes the first registered
+  // downstream that answers, which must not be this one for shared nodes.
+  aggregation_servers_.push_back(boost::json::object{
+      {"endpoint", config.OpcUaUrl()},
+      {"user", std::string{kSvcUser}},
+      {"password", std::string{kSvcPassword}},
+      {"configuration", true},
+      {"namespaces",
+       boost::json::array{
+           "http://telecontrol.ru/opcua/security",
+           "http://telecontrol.ru/opcua/security/UserType",
+           "http://telecontrol.ru/opcua/security/RoleType",
+           "http://telecontrol.ru/opcua/security/IdentityMappingRuleType",
+           "http://telecontrol.ru/opcua/security/ConfigurationType",
+           "http://telecontrol.ru/opcua/data_items/TsFormatType",
+           "http://telecontrol.ru/opcua/history/"
+           "HistoricalDataConfigurationType"}},
+      {"nodes", boost::json::array{"ns=7;i=27", "ns=7;i=29", "ns=7;i=12"}},
+      {"forward_events", false}});
 
   return ::testing::AssertionSuccess();
 }

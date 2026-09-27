@@ -5,6 +5,7 @@
 #include "scada/qualified_name.h"
 #include "scada/status_or.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <optional>
@@ -185,6 +186,40 @@ StatusOr<ConfigurationNodeSetChanges> ReadConfigurationNodeSetChanges(
     std::string_view xml,
     std::span<const std::string> namespace_uris,
     const NodeSetPropertyNames& names);
+
+// An import's result document read for display, without resolving anything:
+// NodeIds stay the document's own text, so a client needs no namespace table
+// and no property names to say what happened. The status list's entries
+// align with the operations the same way ReadConfigurationNodeSetChanges
+// aligns them — a property child whose owner is also added belongs to that
+// owner's operation.
+struct ImportResultSummary {
+  // A failed operation: the list it is in (NodesToAdd, ReferencesToAdd,
+  // NodesToDelete, ReferencesToDelete), the node or reference source it
+  // names, and its status.
+  struct Failure {
+    std::string list;
+    std::string target;
+    NodeSetOperationStatus status;
+  };
+
+  bool committed = false;
+  bool dry_run = false;
+  // The configuration's version after a committed import.
+  std::string version;
+  // Nodes created, changed in place (deleted and added in one document, the
+  // Part 6 §F.16 replace idiom) and deleted.
+  std::vector<std::string> added;
+  std::vector<std::string> modified;
+  std::vector<std::string> deleted;
+  std::size_t references_added = 0;
+  std::size_t references_deleted = 0;
+  std::vector<Failure> failures;
+};
+
+// Reads a result document written by WriteConfigurationNodeSetChanges with
+// an outcome. Bad_CantParseString when it is not a UANodeSetChanges.
+StatusOr<ImportResultSummary> ReadImportResultSummary(std::string_view xml);
 
 // The root element's local name — "UANodeSet", "UANodeSetChanges" — or empty
 // when `xml` does not parse. What an import decides its operation by.
