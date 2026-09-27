@@ -33,6 +33,13 @@ endif()
 add_subdirectory(v3)
 add_subdirectory(proxy)
 
+# node_service_factory.cpp, compiled into node_service, constructs the v3
+# implementation, which itself links node_service: a genuine cycle between two
+# static libraries. Declared, CMake repeats them on the link line; undeclared,
+# only a linker that rescans archives (macOS's) resolved it, and GNU ld did
+# not (undefined v3::CreateNodeService, scada-client run 36304111222).
+target_link_libraries(node_service PRIVATE node_service_v3)
+
 # Link implementations to common UTs.
 
 target_link_libraries(node_service_unittests PUBLIC
