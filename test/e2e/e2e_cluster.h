@@ -150,6 +150,13 @@ struct ClusterOptions {
   // rows, while the client suite's flows do not touch them and should not have
   // its Windows topology perturbed.
   bool include_windows_module_tiers = false;
+  // ADR 0006 Phase 2: every tier materialises only the data items it owns and
+  // the non-config tiers hide the rest, so the proxy routes each item to its
+  // owner. The iec104 edge owns the items no device produces (the simulated
+  // TIT.4 among them), as on the GCP demo; config and historian own none and
+  // the config tier keeps serving every row for the edges' remote
+  // configuration. Off by default so the client suite's topology is unchanged.
+  bool single_owner = false;
 };
 
 // Owns the downstream tier processes of one cluster. Non-copyable and

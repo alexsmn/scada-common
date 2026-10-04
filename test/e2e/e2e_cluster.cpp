@@ -278,6 +278,19 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   // shared test server) and the TIT.4 historization live here because the edges
   // read their config from here. Mirrors
   // gcp/free-tier/multitier/configs/config.json.
+  const bool single_owner = options.single_owner;
+  // The dataItems block one tier runs with in single-owner mode; see
+  // ClusterOptions::single_owner.
+  const auto single_owner_items = [single_owner](boost::json::object& json,
+                                                 bool owns_unassigned,
+                                                 bool hide_unowned) {
+    if (!single_owner)
+      return;
+    json["dataItems"] =
+        boost::json::object{{"singleOwner", true},
+                            {"ownsUnassignedItems", owns_unassigned},
+                            {"hideUnownedItems", hide_unowned}};
+  };
   ServerTier& config =
       Reserve(ClusterTier::kConfig, executables_.config, ports);
   std::string config_sql{kSvcUserSql};
@@ -285,7 +298,12 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
     config_sql += std::string{kHistorizeSimulatedItemSql};
   config.Launch(ServerTier::Options{
       .configure =
-          [endpoint, enforce_permissions](boost::json::object& json) {
+          [endpoint, enforce_permissions,
+           single_owner_items](boost::json::object& json) {
+            // Owns nothing and hides nothing: the edges load their item
+            // configuration by browsing this tier.
+            single_owner_items(json, /*owns_unassigned=*/false,
+                               /*hide_unowned=*/false);
             json["deviceConfig"] = boost::json::object{};
             // The server owning the configuration hosts the transfer object
             // (ADR 0014), as the deployed config.json says; every other tier
@@ -366,9 +384,11 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   historian.Launch(ServerTier::Options{
       .configure =
           [collect_source_url, historian_url, endpoint, enforce_permissions,
-           proxy_opcua_url = options.proxy_opcua_url,
+           single_owner_items, proxy_opcua_url = options.proxy_opcua_url,
            historize =
                options.historize_simulated_item](boost::json::object& json) {
+            single_owner_items(json, /*owns_unassigned=*/false,
+                               /*hide_unowned=*/true);
             EraseDrivers(json);
             json.erase("filesystem");
             ProvisionSvcPassword(json);
@@ -409,18 +429,23 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   }
 
   auto make_edge_configure = [config_url, endpoint, enforce_permissions,
+                              single_owner_items,
                               proxy_opcua_url = options.proxy_opcua_url](
                                  std::string_view keep_driver,
                                  bool dynamic_registration,
                                  std::string advertise_url) {
     return [config_url, proxy_opcua_url, endpoint, enforce_permissions,
-            keep_driver, dynamic_registration,
+            single_owner_items, keep_driver, dynamic_registration,
             advertise_url =
                 std::move(advertise_url)](boost::json::object& json) {
       for (std::string_view driver : {"iec60870", "modbus", "iec61850"}) {
         if (driver != keep_driver)
           json.erase(driver);
       }
+      // The iec104 edge owns the device-less items: the historian collects
+      // TIT.4 from it, and the proxy forwards its events.
+      single_owner_items(json, /*owns_unassigned=*/keep_driver == "iec60870",
+                         /*hide_unowned=*/true);
       // The filesystem tier exclusively owns the FileSystem subtree; an edge
       // running its own file store would merge a second tree into the proxy's
       // fan-out Browse.
