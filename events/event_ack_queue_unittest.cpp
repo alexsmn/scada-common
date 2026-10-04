@@ -15,11 +15,12 @@ namespace {
 
 class EventAckQueueTest : public Test {
  protected:
-  EventAckQueue MakeQueue() {
+  EventAckQueue MakeQueue(EventAckFailedHandler ack_failed_handler = {}) {
     return EventAckQueue{EventAckQueueContext{
         .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
         .executor_ = executor_,
-        .method_service_ = method_service_}};
+        .method_service_ = method_service_,
+        .ack_failed_handler_ = std::move(ack_failed_handler)}};
   }
 
   void DrainExecutor() { Drain(executor_); }
@@ -117,5 +118,41 @@ TEST_F(EventAckQueueTest, DestroyedQueueSuppressesPendingAckDispatch) {
     queue.Ack(11);
   }
 
+  DrainExecutor();
+}
+
+// Backlog 848: a refused acknowledgement used to be discarded, so the operator
+// saw nothing and the event just stayed unacknowledged. The refusal is now
+// reported, and the event is released so a retry is actually sent.
+TEST_F(EventAckQueueTest, RefusedAckIsReportedAndCanBeRetried) {
+  std::vector<scada::EventId> refused_ids;
+  scada::Status refused_status{scada::StatusCode::Good};
+  auto queue = MakeQueue([&](std::span<const scada::EventId> event_ids,
+                             const scada::Status& status) {
+    refused_ids.assign(event_ids.begin(), event_ids.end());
+    refused_status = status;
+  });
+  queue.OnChannelOpened(
+      scada::ServiceContext{}.with_user_id(scada::NodeId{scada::id::Server}));
+
+  EXPECT_CALL(
+      method_service_,
+      Call(_, _, ArgumentsContainEventIds(std::vector<scada::EventId>{7}), _))
+      .WillOnce(Invoke([](auto, auto, auto, auto) {
+        return scada::MakeMethodCallResult(
+            scada::StatusCode::Bad_UserAccessDenied);
+      }))
+      .WillOnce(Invoke([](auto, auto, auto, auto) {
+        return scada::MakeMethodCallResult();
+      }));
+
+  queue.Ack(7);
+  DrainExecutor();
+
+  EXPECT_THAT(refused_ids, ElementsAre(7));
+  EXPECT_EQ(refused_status.code(), scada::StatusCode::Bad_UserAccessDenied);
+  EXPECT_FALSE(queue.IsAcking());
+
+  queue.Ack(7);
   DrainExecutor();
 }

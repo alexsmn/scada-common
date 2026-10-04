@@ -2,6 +2,7 @@
 
 #include "base/any_executor.h"
 #include "base/boost_log.h"
+#include "events/event_ack_queue.h"
 #include "scada/data_services.h"
 #include "scada/services.h"
 
@@ -25,6 +26,9 @@ struct EventFetcherBuilder {
 
   // TODO: Switch to `scada::client`.
   scada::services services_;
+
+  // Optional: told when the Server refuses an acknowledgement.
+  EventAckFailedHandler ack_failed_handler_ = {};
 };
 
 struct CoroutineEventFetcherBuilder {

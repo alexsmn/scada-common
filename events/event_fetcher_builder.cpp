@@ -76,14 +76,17 @@ struct EventFetcherHolder : EventFetcherHolderBase {
   explicit EventFetcherHolder(EventFetcherBuilder&& builder)
       : EventFetcherHolderBase{std::move(builder.executor_),
                                std::move(builder.logger_)},
-        services_{executor_, builder} {}
+        services_{executor_, builder},
+        ack_failed_handler_{std::move(builder.ack_failed_handler_)} {}
 
   EventFetcherServices services_;
+  EventAckFailedHandler ack_failed_handler_;
 
-  EventAckQueue event_ack_queue_{
-      EventAckQueueContext{.logger_ = nested_logger_,
-                           .executor_ = executor_,
-                           .method_service_ = *services_.method_service_}};
+  EventAckQueue event_ack_queue_{EventAckQueueContext{
+      .logger_ = nested_logger_,
+      .executor_ = executor_,
+      .method_service_ = *services_.method_service_,
+      .ack_failed_handler_ = std::move(ack_failed_handler_)}};
 
   EventFetcher event_fetcher_{EventFetcherContext{
       .executor_ = executor_,

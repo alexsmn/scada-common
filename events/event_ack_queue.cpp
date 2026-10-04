@@ -55,14 +55,40 @@ void EventAckQueue::AckPendingEvents() {
     CoSpawn(executor_, cancelation_,
             [this, event_ids = std::move(event_ids),
              context = service_context_]() mutable -> Awaitable<void> {
-              // Fire and forget: the acknowledge is best-effort and has no
-              // output arguments to consume, so the result is discarded
-              // explicitly rather than tripping StatusOr's [[nodiscard]].
-              std::ignore = co_await method_service_.Call(
+              // A success needs nothing here: the acknowledged events come back
+              // through OnAcked. A refusal does not, so it has to be reported
+              // from the call's own result or the operator never learns of it
+              // (backlog 848).
+              auto result = co_await method_service_.Call(
                   scada::id::Server,
                   scada::id::AcknowledgeableConditionType_Acknowledge,
                   {event_ids, scada::Now()}, std::move(context));
+              if (!result.ok()) {
+                OnAckFailed(event_ids, result.status());
+              }
             });
+  }
+
+  PostAckPendingEvents();
+}
+
+void EventAckQueue::OnAckFailed(std::span<const scada::EventId> event_ids,
+                                const scada::Status& status) {
+  LOG_WARNING(*logger_) << std::format(
+      "Acknowledge of events {} refused: {}",
+      scada::base::AsList(
+          std::vector<scada::EventId>(event_ids.begin(), event_ids.end())),
+      ToString(status));
+
+  // Still running means no OnAcked has raced ahead. Releasing them lets the
+  // operator retry; left in place they would block every later Ack of the
+  // same events and keep IsAcking() true for good.
+  for (scada::EventId event_id : event_ids) {
+    running_ack_event_ids_.erase(event_id);
+  }
+
+  if (ack_failed_handler_) {
+    ack_failed_handler_(event_ids, status);
   }
 
   PostAckPendingEvents();

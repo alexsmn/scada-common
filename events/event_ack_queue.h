@@ -9,17 +9,28 @@
 
 #include <algorithm>
 #include <deque>
+#include <functional>
 #include <memory>
 #include <set>
+#include <span>
 
 namespace scada {
 class MethodService;
 }  // namespace scada
 
+// Called when the Server refuses an acknowledgement, with the events the
+// refused call carried and the status it answered. Runs on the queue's
+// executor.
+using EventAckFailedHandler =
+    std::function<void(std::span<const scada::EventId> event_ids,
+                       const scada::Status& status)>;
+
 struct EventAckQueueContext {
   const std::shared_ptr<BoostLogger> logger_;
   AnyExecutor executor_;
   scada::MethodService& method_service_;
+  // Optional. Without it a refusal is only logged.
+  EventAckFailedHandler ack_failed_handler_ = {};
 };
 
 class EventAckQueue : private EventAckQueueContext {
@@ -52,6 +63,10 @@ class EventAckQueue : private EventAckQueueContext {
  private:
   void AckPendingEvents();
   void PostAckPendingEvents();
+  // Releases the events of a refused call so they can be acknowledged again,
+  // and reports the refusal.
+  void OnAckFailed(std::span<const scada::EventId> event_ids,
+                   const scada::Status& status);
 
   using EventIdQueue = std::deque<scada::EventId>;
   EventIdQueue pending_ack_event_ids_;
