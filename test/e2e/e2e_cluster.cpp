@@ -749,10 +749,14 @@ void ConfigureProxyRole(boost::json::object& server_json,
   server_json.erase("filesystem");
   server_json.erase("history");
   server_json["dataItems"] = boost::json::object{{"enabled", false}};
+  // The block is written even with no static servers: its presence is what
+  // makes a server aggregate the edges that RegisterServer with it (backlog
+  // 851 — the config tier they also register with must not).
+  boost::json::object aggregation;
   if (options.aggregation_servers) {
-    server_json["aggregation"] =
-        boost::json::object{{"servers", *options.aggregation_servers}};
+    aggregation["servers"] = *options.aggregation_servers;
   }
+  server_json["aggregation"] = std::move(aggregation);
   // History lives in the historian tier, not in the namespace-owning edges
   // (edges run no history module), so the proxy routes ALL
   // HistoryRead/HistoryUpdate through the history-link module. No endpoint: the
