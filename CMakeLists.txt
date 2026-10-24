@@ -40,10 +40,10 @@ endif()
 enable_testing()
 
 # Skip linting for third-party dependencies.
-set(CMAKE_SKIP_LINTING ON)
+scada_skip_linting_begin()
 find_package(ScadaCore REQUIRED)
 find_package(Express REQUIRED)
-set(CMAKE_SKIP_LINTING OFF)
+scada_skip_linting_end()
 
 add_subdirectory(model)
 

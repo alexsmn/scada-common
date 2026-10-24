@@ -6,9 +6,9 @@ target_link_libraries(scada_common_vidicon PRIVATE scada_common_opc)
 
 target_include_directories(scada_common_vidicon PUBLIC "..")
 
-set(CMAKE_SKIP_LINTING ON)
+scada_skip_linting_begin()
 find_package(MIDL REQUIRED)
-set(CMAKE_SKIP_LINTING OFF)
+scada_skip_linting_end()
 add_idl(teleclient_idl "TeleClient.idl" INCLUDE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(scada_common_vidicon PUBLIC teleclient_idl)
 target_include_directories(scada_common_vidicon PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

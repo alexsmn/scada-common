@@ -6,10 +6,10 @@ target_link_libraries(scada_common_opc PUBLIC scada_core)
 
 target_link_libraries(scada_common_opc PRIVATE scada_model)
 
-set(CMAKE_SKIP_LINTING ON)
+scada_skip_linting_begin()
 find_package(OPC REQUIRED)
 find_package(OpcClient REQUIRED)
-set(CMAKE_SKIP_LINTING OFF)
+scada_skip_linting_end()
 
 target_link_libraries(scada_common_opc PRIVATE OPC::opc)
 # Apply `PUBLIC` scope since `opc_client::DataValue` is used in the public API.

@@ -9,6 +9,7 @@
 #include "scada/view_service.h"
 
 #include <list>
+#include <map>
 #include <set>
 #include <unordered_map>
 
