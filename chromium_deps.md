@@ -2,9 +2,6 @@
 
 Remaining chromium-base headers used in the common module.
 
-## Threading
-- `base/threading/thread_checker.h` — `node_service/fetch_queue.h`
-
 ## Utilities
 - `base/md5.h` — `common/file_system.h`
 

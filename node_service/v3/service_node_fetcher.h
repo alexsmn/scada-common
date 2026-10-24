@@ -22,12 +22,11 @@ struct ServiceNodeFetcherContext {
 // Production v3::NodeFetcher: loads node data straight from the OPC UA
 // attribute and view services.
 //
-// Unlike v2's NodeFetcherImpl (which drives a shared FetchingNodeGraph and
-// fans out child fetches itself), this fetcher answers one node or one node's
-// children per call as a straight-line coroutine and returns the assembled
-// NodeState / ReferenceDescriptions to the service, which owns residency and
-// schedules follow-up fetches. It reproduces v2's attribute and reference
-// selection so nodes come back populated identically.
+// It answers one node or one node's children per call as a straight-line
+// coroutine and returns the assembled NodeState / ReferenceDescriptions to the
+// service, which owns residency and schedules follow-up fetches. There is no
+// batching, queueing or dependency tracking here; this is the only production
+// fetcher.
 class ServiceNodeFetcher : private ServiceNodeFetcherContext,
                            public NodeFetcher {
  public:

@@ -19,15 +19,9 @@ module;
 
 // ---- Global module fragment: headers stay the source of truth ----
 #include "node_service/cached_node_service.h"
-#include "node_service/fetch_queue.h"
-#include "node_service/fetching_node.h"
-#include "node_service/fetching_node_graph.h"
 #include "node_service/node_awaitable.h"
-#include "node_service/node_children_fetcher.h"
 #include "node_service/node_events.h"
 #include "node_service/node_fetch_status.h"
-#include "node_service/node_fetcher.h"
-#include "node_service/node_fetcher_impl.h"
 #include "node_service/node_format.h"
 #include "node_service/node_ref.h"
 #include "node_service/node_service.h"
@@ -46,11 +40,6 @@ export {
   // cached_node_service.h
   using ::cached_node_service;
 
-  // fetch_queue.h / fetching_node.h / fetching_node_graph.h
-  using ::FetchingNode;
-  using ::FetchingNodeGraph;
-  using ::FetchQueue;
-
   // node_awaitable.h / node_util.h
   using ::FetchChildren;
   using ::FetchNode;
@@ -62,11 +51,6 @@ export {
   using ::IsSubtypeOf;
   using ::WaitForPendingNodes;
 
-  // node_children_fetcher.h
-  using ::NodeChildrenFetcher;
-  using ::NodeChildrenFetcherContext;
-  using ::ReferenceValidator;
-
   // node_events.h
   using ::ModelChangedCallback;
   using ::NodeFetchedCallback;
@@ -76,15 +60,8 @@ export {
   using ::NodeStateChangedCallback;
   using ::NodeStateChangedEvent;
 
-  // node_fetch_status.h / node_fetcher.h / node_fetcher_impl.h
-  using ::FetchCompletedHandler;
-  using ::FetchCompletedResult;
-  using ::NodeFetcher;
-  using ::NodeFetcherImpl;
-  using ::NodeFetcherImplContext;
+  // node_fetch_status.h
   using ::NodeFetchStatus;
-  using ::NodeFetchStatuses;
-  using ::NodeValidator;
 
   // node_ref.h / node_service.h / node_service_factory.h
   using ::CoroutineNodeServiceContext;

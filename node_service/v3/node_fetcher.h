@@ -11,9 +11,9 @@ struct NodeFetcherContext {};
 
 // Coroutine fetch facade used by v3::NodeServiceImpl.
 //
-// v3 depends on this small abstraction instead of constructing the concrete
-// NodeFetcherImpl/NodeChildrenFetcher pair used by v2, keeping remote loading
-// policy outside the service.
+// v3 depends on this small abstraction rather than on a concrete fetcher,
+// keeping remote loading policy outside the service. ServiceNodeFetcher is the
+// production implementation.
 class NodeFetcher : private NodeFetcherContext {
  public:
   virtual ~NodeFetcher() = default;

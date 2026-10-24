@@ -2,9 +2,7 @@
 
 #include "base/any_executor.h"
 #include "events/view_events_subscription.h"
-#include "node_service/node_children_fetcher.h"
 #include "node_service/node_events.h"
-#include "node_service/node_fetcher_impl.h"
 #include "node_service/node_service.h"
 #include "node_service/node_subscription_table.h"
 #include "scada/client.h"
@@ -20,6 +18,9 @@ struct ModelChangeEvent;
 }  // namespace scada
 
 namespace v3 {
+
+// Per-node fetch failures, reported to the node's subscribers.
+using NodeFetchStatuses = std::vector<std::pair<scada::NodeId, scada::Status>>;
 
 class NodeFetcher;
 class NodeModelImpl;
@@ -60,10 +61,9 @@ struct NodeModelRegistry {
 
 // NodeService implementation using injected coroutine fetch logic.
 //
-// v3 keeps v2's direct per-node NodeState cache but moves fetch mechanics
-// behind NodeFetcher. This makes the service smaller and easier to adapt to
-// alternate data sources; unlike v2, it does not own NodeFetcherImpl or
-// NodeChildrenFetcher directly.
+// It keeps a direct per-node NodeState cache and leaves fetch mechanics to the
+// injected NodeFetcher, which keeps the service small and easy to adapt to
+// alternate data sources.
 class NodeServiceImpl : private NodeServiceImplContext,
                         private scada::ViewEvents,
                         public NodeService,
@@ -226,11 +226,10 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   // Nodes with a fetch coroutine currently in flight. NodeModelImpl re-requests
   // a fetch on every StartFetch until the status is fetched; because the
-  // injected NodeFetcher is stateless (unlike v2's self-deduping
-  // NodeFetcherImpl), without this guard a slow/asynchronous fetch would spawn
-  // a duplicate coroutine per call, and each duplicate result would re-run the
-  // fetched-node notification path. Entries are cleared when the fetch
-  // resolves.
+  // injected NodeFetcher is stateless and does not dedupe, without this guard
+  // a slow/asynchronous fetch would spawn a duplicate coroutine per call, and
+  // each duplicate result would re-run the fetched-node notification path.
+  // Entries are cleared when the fetch resolves.
   std::set<scada::NodeId> node_fetch_in_flight_;
   std::set<scada::NodeId> children_fetch_in_flight_;
 

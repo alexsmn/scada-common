@@ -16,8 +16,8 @@ using node_service::internal::HasRequiredNodeServices;
 using node_service::internal::MakeDataServicesNodeServiceContext;
 using node_service::internal::ResolvedNodeServices;
 
-// Builds the production coroutine fetcher v3::NodeServiceImpl injects. Like
-// v2's internal NodeFetcherImpl, it runs with a default ServiceContext.
+// Builds the production coroutine fetcher v3::NodeServiceImpl injects. It runs
+// with a default ServiceContext.
 std::shared_ptr<NodeFetcher> MakeServiceNodeFetcher(
     scada::ViewService& view_service,
     scada::AttributeService& attribute_service) {

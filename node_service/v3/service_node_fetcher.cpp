@@ -32,10 +32,10 @@ void LogUnexpectedAttributeValue(const scada::NodeId& node_id,
                       << LOG_TAG("Value", ToString(value));
 }
 
-// Applies one fetched attribute to |node_state|. Mirrors
-// NodeFetcherImpl::SetFetchedAttribute. Returns false only when the failure
-// must fail the whole node fetch (an invalid BrowseName, or a value whose type
-// does not match the attribute); other cases fill the field or are ignored.
+// Applies one fetched attribute to |node_state|. Returns false only when the
+// failure must fail the whole node fetch (an invalid BrowseName, or a value
+// whose type does not match the attribute); other cases fill the field or are
+// ignored.
 bool ApplyFetchedAttribute(scada::NodeState& node_state,
                            scada::AttributeId attribute_id,
                            scada::Variant&& value) {
@@ -89,11 +89,10 @@ bool ApplyFetchedAttribute(scada::NodeState& node_state,
   }
 }
 
-// Applies one browsed reference to |node_state|. Mirrors the parent/supertype
-// and forward-non-hierarchical branches of
-// NodeFetcherImpl::AddFetchedReference. The Aggregates/child branch is
-// intentionally absent: v3 does not browse Aggregates during the node fetch —
-// children come from FetchChildren.
+// Applies one browsed reference to |node_state|: the parent, the supertype and
+// the forward non-hierarchical references. There is deliberately no
+// Aggregates/child branch: v3 does not browse Aggregates during the node fetch
+// — children come from FetchChildren.
 void ApplyFetchedReference(scada::NodeState& node_state,
                            const scada::BrowseDescription& description,
                            scada::ReferenceDescription&& reference) {
@@ -170,9 +169,9 @@ scada::CoStatusOr<scada::NodeState> ServiceNodeFetcher::FetchNode(
   scada::NodeState node_state;
   node_state.node_id = node_id;
 
-  // Attributes. Same set as NodeFetcherImpl::GetFetchAttributes; Value is read
-  // for every node (property values are needed and Value on non-Variable nodes
-  // simply comes back with a bad per-value status that is skipped below).
+  // Attributes. Value is read for every node (property values are needed and
+  // Value on non-Variable nodes simply comes back with a bad per-value status
+  // that is skipped below).
   const std::vector<scada::ReadValueId> read_ids{
       {node_id, scada::AttributeId::BrowseName},
       {node_id, scada::AttributeId::DisplayName},
@@ -206,8 +205,8 @@ scada::CoStatusOr<scada::NodeState> ServiceNodeFetcher::FetchNode(
       co_return scada::Status{scada::StatusCode::Bad_WrongTypeId};
   }
 
-  // References. Same set as NodeFetcherImpl::GetFetchReferences, minus the
-  // Aggregates (children) browse: v3 fetches children via FetchChildren.
+  // References. No Aggregates (children) browse: v3 fetches children via
+  // FetchChildren.
   //  - forward NonHierarchicalReferences → type definition + other refs;
   //  - inverse HierarchicalReferences    → parent and supertype.
   std::vector<scada::BrowseDescription> descriptions;
@@ -240,11 +239,10 @@ scada::CoStatusOr<scada::NodeState> ServiceNodeFetcher::FetchNode(
 scada::CoStatusOr<scada::ReferenceDescriptions>
 ServiceNodeFetcher::FetchChildren(const scada::NodeId& node_id) {
   // v3 keeps children in the model's child_references_ and resolves them via
-  // GetTargets(HierarchicalReferences, ...). Unlike v2 — which splits children
-  // between an Aggregates browse in the node fetch and an Organizes/HasSubtype
-  // browse here — v3 does not browse Aggregates in FetchNode, so every
-  // hierarchical child (components, properties, organized nodes, subtypes) must
-  // come from a single forward HierarchicalReferences browse. This matches the
+  // GetTargets(HierarchicalReferences, ...). v3 does not browse Aggregates in
+  // FetchNode, so every hierarchical child (components, properties, organized
+  // nodes, subtypes) must come from a single forward HierarchicalReferences
+  // browse. This matches the
   // TestNodeFetcher contract the v3 model is written against.
   std::vector<scada::BrowseDescription> descriptions;
   descriptions.emplace_back(node_id, scada::BrowseDirection::Forward,
