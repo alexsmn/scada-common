@@ -247,7 +247,7 @@
     <Value><uax:Boolean>false</uax:Boolean></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=158" BrowseName="EuLo" SymbolicName="AnalogItemType_EuLo" ParentNodeId="ns=1;i=76" DataType="Double">
-    <DisplayName Locale="ru">Логический минимимум</DisplayName>
+    <DisplayName Locale="ru">Логический минимум</DisplayName>
     <DisplayName Locale="en">Logical minimum</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
@@ -269,7 +269,7 @@
     <Value><uax:Double>100</uax:Double></Value>
   </UAVariable>
   <UAVariable NodeId="ns=1;i=160" BrowseName="IrLo" SymbolicName="AnalogItemType_IrLo" ParentNodeId="ns=1;i=76" DataType="Double">
-    <DisplayName Locale="ru">Физический минимимум</DisplayName>
+    <DisplayName Locale="ru">Физический минимум</DisplayName>
     <DisplayName Locale="en">Physical minimum</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=76</Reference>
