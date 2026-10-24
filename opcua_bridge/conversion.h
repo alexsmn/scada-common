@@ -109,7 +109,16 @@ namespace scada::opcua_bridge {
   MAP(Bad_UserAccessDenied, Bad_UserAccessDenied)                       \
   MAP(Bad_NotSupported, Bad_NotSupported)                               \
   MAP(Bad_LicenseExpired, Bad_LicenseExpired)                           \
-  MAP(Bad_WaitingForInitialData, Bad_WaitingForInitialData)
+  MAP(Bad_WaitingForInitialData, Bad_WaitingForInitialData)             \
+  MAP(Bad_TooManySessions, Bad_TooManySessions) \
+  MAP(Bad_TooManySubscriptions, Bad_TooManySubscriptions) \
+  MAP(Bad_TooManyPublishRequests, Bad_TooManyPublishRequests) \
+  MAP(Bad_CertificateHostNameInvalid, Bad_CertificateHostNameInvalid) \
+  MAP(Bad_CertificateUriInvalid, Bad_CertificateUriInvalid) \
+  MAP(Bad_CertificateUntrusted, Bad_CertificateUntrusted) \
+  MAP(Bad_CertificateInvalid, Bad_CertificateInvalid) \
+  MAP(Bad_CertificateTimeInvalid, Bad_CertificateTimeInvalid) \
+  MAP(Bad_SecurityModeInsufficient, Bad_SecurityModeInsufficient)
 
 // Core codes that share a wire code with an entry in the table above.
 //

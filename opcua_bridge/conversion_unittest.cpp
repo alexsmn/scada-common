@@ -200,6 +200,24 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x80AF0000u);  // BadInvalidState
   EXPECT_EQ(wire(scada::StatusCode::Bad_NotReadable),
             0x803A0000u);  // BadNotReadable
+  EXPECT_EQ(wire(scada::StatusCode::Bad_TooManySessions),
+            0x80560000u);  // BadTooManySessions
+  EXPECT_EQ(wire(scada::StatusCode::Bad_TooManySubscriptions),
+            0x80770000u);  // BadTooManySubscriptions
+  EXPECT_EQ(wire(scada::StatusCode::Bad_TooManyPublishRequests),
+            0x80780000u);  // BadTooManyPublishRequests
+  EXPECT_EQ(wire(scada::StatusCode::Bad_CertificateHostNameInvalid),
+            0x80160000u);  // BadCertificateHostNameInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_CertificateUriInvalid),
+            0x80170000u);  // BadCertificateUriInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_CertificateUntrusted),
+            0x801A0000u);  // BadCertificateUntrusted
+  EXPECT_EQ(wire(scada::StatusCode::Bad_CertificateInvalid),
+            0x80120000u);  // BadCertificateInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_CertificateTimeInvalid),
+            0x80140000u);  // BadCertificateTimeInvalid
+  EXPECT_EQ(wire(scada::StatusCode::Bad_SecurityModeInsufficient),
+            0x80E60000u);  // BadSecurityModeInsufficient
   EXPECT_EQ(wire(scada::StatusCode::Bad_Disconnected),
             0x80310000u);  // BadNoCommunication
   EXPECT_EQ(wire(scada::StatusCode::Bad_SessionForcedLogoff),
