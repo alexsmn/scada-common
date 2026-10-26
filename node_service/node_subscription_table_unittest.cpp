@@ -144,4 +144,21 @@ TEST(NodeSubscriptionTableTest, SelfDisconnectDuringEmitIsSafe) {
   EXPECT_EQ(calls, 1);
 }
 
+// A subscription may outlive the table: the Qt client destroys its node
+// service before the ActionManager whose node-action titles still subscribe
+// (backlog 950). Releasing the subscription afterwards must not touch the
+// freed table. Before the table detached its entries, this erased a map entry
+// in freed memory, which crashed on Windows and passed by luck elsewhere.
+TEST(NodeSubscriptionTableTest, SubscriptionOutlivingTheTableReleasesSafely) {
+  boost::signals2::scoped_connection connection;
+  {
+    NodeSubscriptionTable table;
+    connection =
+        table.SubscribeNodeSemanticChanged(Id(1), [](const scada::NodeId&) {});
+    EXPECT_EQ(table.entry_count(), 1u);
+  }
+  connection.disconnect();
+  EXPECT_FALSE(connection.connected());
+}
+
 }  // namespace

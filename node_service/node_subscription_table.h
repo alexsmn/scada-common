@@ -26,6 +26,12 @@
 class NodeSubscriptionTable {
  public:
   NodeSubscriptionTable() = default;
+  // Detaches every entry that is still alive, so that a subscription released
+  // after the table is gone does not reach back into it. Owners are destroyed
+  // before their subscribers often enough to need this: the Qt client's
+  // ClientApplication destroys its node service before the ActionManager whose
+  // node-action titles still hold node-semantics subscriptions (backlog 950).
+  ~NodeSubscriptionTable();
   NodeSubscriptionTable(const NodeSubscriptionTable&) = delete;
   NodeSubscriptionTable& operator=(const NodeSubscriptionTable&) = delete;
 
@@ -60,6 +66,11 @@ class NodeSubscriptionTable {
   // Holds one node's signal bundle. Self-erases from the owning table when its
   // last reference (a subscribing slot) drops, so `entries_` never accumulates
   // dead weak pointers beyond the erasing entry itself.
+  //
+  // `owner` is null once the table is gone (see ~NodeSubscriptionTable). It
+  // was a plain back-pointer until 2026-10-26, so an entry outliving the
+  // table erased itself from freed memory: harmless by luck on macOS and
+  // Linux, an access violation on Windows (backlog 950).
   struct Entry {
     NodeSubscriptionTable* owner;
     scada::NodeId node_id;
@@ -68,7 +79,10 @@ class NodeSubscriptionTable {
     // code through v3::NodeServiceImpl.
     NodeSignals signals_;
 
-    ~Entry() { owner->entries_.erase(node_id); }
+    ~Entry() {
+      if (owner)
+        owner->entries_.erase(node_id);
+    }
   };
 
   // Returns the entry for `node_id`, creating it if absent. The caller must

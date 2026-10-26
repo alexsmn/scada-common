@@ -1,7 +1,8 @@
 # NodeService Design
 
 Status: Living reference
-Last verified against code: 2026-08-31 (the type table's notification row and
+Last verified against code: 2026-10-26 (the subscription-lifetime bullet
+under the residency section); 2026-08-31 (the type table's notification row and
 the class diagram only: `NodeRefObserver` was replaced by Boost.Signals2
 signals in `d85b7bb01` and no longer exists. The rest is unverified — this
 document has never carried a date.)
@@ -98,6 +99,18 @@ Ownership rules:
   it resident by holding its `NodeRef`. This also removes the fixed
   four-`signals2`-signal storage every resident node used to carry regardless
   of whether anyone subscribed.
+- **A subscription may outlive its service, and must be safe to release
+  then.** An entry erases itself from the table when its last subscription
+  drops, through a back-pointer to the table. Owners do not always outlive
+  their subscribers: the Qt client's `ClientApplication` destroys its node
+  service before the `ActionManager` whose node-action titles still hold
+  node-semantics subscriptions. Until 2026-10-26 that release erased into the
+  freed table, which crashed only on Windows and so surfaced only as the
+  screenshot generator's teardown fault (backlog 950). The table's destructor
+  now clears every live entry's back-pointer, so a late release is a no-op.
+  `NodeSubscriptionTableTest.SubscriptionOutlivingTheTableReleasesSafely`
+  pins it. Without a sanitizer that test crashes only where freed memory is
+  reused or scribbled, as under macOS's `MallocScribble=1`.
 
 Diagnostics: `v3::NodeServiceImpl::GetResidentNodeCount()` reports the
 current registry size (used by the residency unit tests).

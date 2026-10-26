@@ -2,6 +2,16 @@
 
 #include "scada/event.h"
 
+NodeSubscriptionTable::~NodeSubscriptionTable() {
+  // Entries are kept alive by their subscribing slots, not by this map, so one
+  // can outlive the table. Clearing its back-pointer makes its later release a
+  // no-op instead of an erase into freed memory.
+  for (const auto& [node_id, weak] : entries_) {
+    if (auto entry = weak.lock())
+      entry->owner = nullptr;
+  }
+}
+
 std::shared_ptr<NodeSubscriptionTable::Entry> NodeSubscriptionTable::Ensure(
     const scada::NodeId& node_id) {
   auto& weak = entries_[node_id];
