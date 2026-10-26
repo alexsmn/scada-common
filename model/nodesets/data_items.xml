@@ -589,12 +589,18 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
     </References>
   </UADataType>
-  <UAVariable NodeId="ns=1;i=321" BrowseName="EnumStrings" SymbolicName="AnalogConversionDataType_EnumStrings" ParentNodeId="ns=1;i=320" DataType="LocalizedText">
+  <UAVariable NodeId="ns=1;i=321" BrowseName="EnumStrings" SymbolicName="AnalogConversionDataType_EnumStrings" ParentNodeId="ns=1;i=320" DataType="LocalizedText" ValueRank="1">
     <DisplayName>EnumStrings</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=320</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
     </References>
+    <Value>
+      <uax:ListOfLocalizedText>
+        <uax:LocalizedText><uax:Text>Нет</uax:Text></uax:LocalizedText>
+        <uax:LocalizedText><uax:Text>Линейное</uax:Text></uax:LocalizedText>
+      </uax:ListOfLocalizedText>
+    </Value>
   </UAVariable>
   <UADataType NodeId="ns=1;i=326" BrowseName="SimulationSignalTypeEnum" SymbolicName="SimulationFunctionDataType">
     <DisplayName Locale="ru">Тип эмуляции</DisplayName>
@@ -603,12 +609,21 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
     </References>
   </UADataType>
-  <UAVariable NodeId="ns=1;i=327" BrowseName="EnumStrings" SymbolicName="SimulationFunctionDataType_EnumStrings" ParentNodeId="ns=1;i=326" DataType="LocalizedText">
+  <UAVariable NodeId="ns=1;i=327" BrowseName="EnumStrings" SymbolicName="SimulationFunctionDataType_EnumStrings" ParentNodeId="ns=1;i=326" DataType="LocalizedText" ValueRank="1">
     <DisplayName>EnumStrings</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=326</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
     </References>
+    <Value>
+      <uax:ListOfLocalizedText>
+        <uax:LocalizedText><uax:Text>Случайный</uax:Text></uax:LocalizedText>
+        <uax:LocalizedText><uax:Text>Пилообразный</uax:Text></uax:LocalizedText>
+        <uax:LocalizedText><uax:Text>Скачкообразный</uax:Text></uax:LocalizedText>
+        <uax:LocalizedText><uax:Text>Синус</uax:Text></uax:LocalizedText>
+        <uax:LocalizedText><uax:Text>Косинус</uax:Text></uax:LocalizedText>
+      </uax:ListOfLocalizedText>
+    </Value>
   </UAVariable>
   <UAObjectType NodeId="ns=1;i=62" BrowseName="DataGroupType" SymbolicName="DataGroupType">
     <DisplayName Locale="ru">Группа</DisplayName>

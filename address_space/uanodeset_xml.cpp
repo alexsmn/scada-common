@@ -344,6 +344,21 @@ std::string IntegerText(const Variant& value) {
 bool WriteValue(pugi::xml_node parent,
                 const Variant& value,
                 const NamespaceTable& namespaces) {
+  // Part 6 §5.3.4 Arrays, in the ListOf<Type> container ReadValue reads.
+  if (value.is_array() && (value.type() == Variant::LOCALIZED_TEXT ||
+                           value.type() == Variant::STRING)) {
+    const bool localized = value.type() == Variant::LOCALIZED_TEXT;
+    pugi::xml_node list = parent.append_child(
+        localized ? "uax:ListOfLocalizedText" : "uax:ListOfString");
+    if (localized) {
+      for (const LocalizedText& item : value.get<std::vector<LocalizedText>>())
+        WriteValue(list, Variant{item}, namespaces);
+    } else {
+      for (const String& item : value.get<std::vector<String>>())
+        WriteValue(list, Variant{item}, namespaces);
+    }
+    return true;
+  }
   const auto name = TypeElementName(value);
   if (!name) {
     return false;
@@ -483,6 +498,50 @@ std::optional<Variant> ParseDouble(std::string_view text) {
 
 }  // namespace
 
+namespace {
+
+std::optional<Variant> ReadScalarElement(pugi::xml_node element,
+                                         const NamespaceTable& namespaces,
+                                         const AliasMap& aliases);
+
+// Part 6 §5.3.4 Arrays: a one-dimensional array is a container whose children
+// are elements named after the built-in type. UANodeSet values name the
+// container ListOf<Type> (Types.xsd), e.g. an EnumStrings value is a
+// <ListOfLocalizedText> of <LocalizedText>. Only the element types a Variant
+// can hold as an array here are read; anything else is unsupported.
+std::optional<Variant> ReadArrayElement(pugi::xml_node container,
+                                        std::string_view element_type,
+                                        const NamespaceTable& namespaces,
+                                        const AliasMap& aliases) {
+  if (element_type != "LocalizedText" && element_type != "String") {
+    return std::nullopt;
+  }
+  std::vector<LocalizedText> texts;
+  std::vector<String> strings;
+  for (pugi::xml_node child : container.children()) {
+    if (child.type() != pugi::node_element) {
+      continue;
+    }
+    if (LocalName(child.name()) != element_type) {
+      return std::nullopt;
+    }
+    const std::optional<Variant> item =
+        ReadScalarElement(child, namespaces, aliases);
+    if (!item) {
+      return std::nullopt;
+    }
+    if (element_type == "LocalizedText") {
+      texts.push_back(item->get<LocalizedText>());
+    } else {
+      strings.push_back(item->get<String>());
+    }
+  }
+  return element_type == "LocalizedText" ? Variant{std::move(texts)}
+                                         : Variant{std::move(strings)};
+}
+
+}  // namespace
+
 // Reads the UA XML element inside a <Value>.
 std::optional<Variant> ReadValue(pugi::xml_node value_node,
                                  const NamespaceTable& namespaces,
@@ -491,6 +550,20 @@ std::optional<Variant> ReadValue(pugi::xml_node value_node,
   if (!element) {
     return std::nullopt;
   }
+  const std::string_view type = LocalName(element.name());
+  constexpr std::string_view kListOf = "ListOf";
+  if (type.starts_with(kListOf)) {
+    return ReadArrayElement(element, type.substr(kListOf.size()), namespaces,
+                            aliases);
+  }
+  return ReadScalarElement(element, namespaces, aliases);
+}
+
+namespace {
+
+std::optional<Variant> ReadScalarElement(pugi::xml_node element,
+                                         const NamespaceTable& namespaces,
+                                         const AliasMap& aliases) {
   const std::string_view type = LocalName(element.name());
   const std::string_view text = element.text().as_string();
   if (type == "Boolean") {
@@ -568,6 +641,8 @@ std::optional<Variant> ReadValue(pugi::xml_node value_node,
   }
   return std::nullopt;
 }
+
+}  // namespace
 
 LocalizedText ReadLocalizedTexts(pugi::xml_node node, const char* name) {
   std::vector<LocalizedText> translations;

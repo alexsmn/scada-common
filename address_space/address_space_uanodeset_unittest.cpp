@@ -13,6 +13,7 @@
 #include "address_space/node_utils.h"
 #include "address_space/type_definition.h"
 #include "common/node_state.h"
+#include "model/data_items_node_ids.h"
 #include "model/devices_node_ids.h"
 #include "model/node_id_util.h"
 #include "model/static_nodesets.h"
@@ -33,9 +34,9 @@ namespace {
 std::string Canonicalize(const NodeState& n) {
   std::vector<std::string> refs;
   for (const auto& r : n.references) {
-    refs.push_back(std::format("{}{}{}", NodeIdToScadaString(r.reference_type_id),
-                               r.forward ? "->" : "<-",
-                               NodeIdToScadaString(r.node_id)));
+    refs.push_back(
+        std::format("{}{}{}", NodeIdToScadaString(r.reference_type_id),
+                    r.forward ? "->" : "<-", NodeIdToScadaString(r.node_id)));
   }
   std::ranges::sort(refs);
   std::string joined;
@@ -44,7 +45,8 @@ std::string Canonicalize(const NodeState& n) {
   return std::format(
       "class={} browse={}:{} typedef={} parent={} parentRef={} supertype={} "
       "dataType={} value={} refs=[{}]",
-      static_cast<int>(n.node_class), n.attributes.browse_name.namespace_index(),
+      static_cast<int>(n.node_class),
+      n.attributes.browse_name.namespace_index(),
       std::string{n.attributes.browse_name.name()},
       NodeIdToScadaString(n.type_definition_id),
       NodeIdToScadaString(n.parent_id),
@@ -57,12 +59,13 @@ std::string Canonicalize(const NodeState& n) {
 std::map<std::string, std::string> LoadAndDump() {
   AddressSpaceImpl2 space;
   GenericNodeFactory factory{space};
-  const Status status =
-      LoadStaticAddressSpace(GetScadaStaticNodesetSourcePaths(), space, factory);
+  const Status status = LoadStaticAddressSpace(
+      GetScadaStaticNodesetSourcePaths(), space, factory);
   EXPECT_TRUE(status);
   std::map<std::string, std::string> out;
   for (const auto& node_state : MakeNodeStates(space))
-    out.emplace(NodeIdToScadaString(node_state.node_id), Canonicalize(node_state));
+    out.emplace(NodeIdToScadaString(node_state.node_id),
+                Canonicalize(node_state));
   return out;
 }
 
@@ -113,7 +116,8 @@ TEST(ScadaAddressSpace, MatchesGolden) {
   for (const auto& [id, canonical] : golden) {
     auto it = actual.find(id);
     if (it != actual.end())
-      EXPECT_EQ(canonical, it->second) << "node " << id << " differs from golden";
+      EXPECT_EQ(canonical, it->second)
+          << "node " << id << " differs from golden";
   }
 }
 
@@ -165,6 +169,40 @@ TEST(ScadaAddressSpace, AnInstancesDeclaredPropertyValueWins) {
       "SECURITY.ConfigurationTransfer!ClientProcessingTimeout")));
   ASSERT_TRUE(timeout);
   EXPECT_EQ(timeout->GetValue().value, Variant{60000.0});
+}
+
+// Every enumeration a property editor offers as a dropdown carries its choices
+// as the EnumStrings value, index = the stored Int32 (OPC UA Part 3 §5.8.3
+// DataType NodeClass,
+// https://reference.opcfoundation.org/Core/Part3/v105/docs/5.8.3). The
+// UANodeSet migration dropped these values — the reader had no array support —
+// so every such dropdown in the Client came up empty on a real server.
+TEST(ScadaAddressSpace, EnumerationsCarryTheirChoices) {
+  AddressSpaceImpl2 space;
+  GenericNodeFactory factory{space};
+  ASSERT_TRUE(LoadStaticAddressSpace(GetScadaStaticNodesetSourcePaths(), space,
+                                     factory));
+
+  const std::pair<NodeId, std::vector<LocalizedText>> kExpected[] = {
+      {devices::id::Iec60870ProtocolDataType_EnumStrings,
+       {u"МЭК-60870-5-104", u"МЭК-60870-5-101"}},
+      {devices::id::Iec60870ModeDataType_EnumStrings,
+       {u"Опрос", u"Ретрансляция", u"Прослушивание"}},
+      {devices::id::ModbusLinkProtocol_EnumStrings, {u"RTU", u"ASCII", u"TCP"}},
+      {devices::id::ModbusModeDataType_EnumStrings,
+       {u"Опрос", u"Ретрансляция"}},
+      {data_items::id::AnalogConversionDataType_EnumStrings,
+       {u"Нет", u"Линейное"}},
+      {data_items::id::SimulationFunctionDataType_EnumStrings,
+       {u"Случайный", u"Пилообразный", u"Скачкообразный", u"Синус",
+        u"Косинус"}},
+  };
+  for (const auto& [id, choices] : kExpected) {
+    const Variable* enum_strings = AsVariable(space.GetNode(id));
+    ASSERT_TRUE(enum_strings) << NodeIdToScadaString(id);
+    EXPECT_EQ(enum_strings->GetValue().value, Variant{choices})
+        << NodeIdToScadaString(id);
+  }
 }
 
 }  // namespace

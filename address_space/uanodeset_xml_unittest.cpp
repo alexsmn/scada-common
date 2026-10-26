@@ -74,6 +74,39 @@ TEST(UaNodeSetXmlTest, ReadsEveryScalarTheModelUses) {
   EXPECT_EQ(Read("<uax:DateTime>0</uax:DateTime>"), std::nullopt);
 }
 
+// Part 6 §5.3.4 Arrays: a ListOf<Type> container of type-named elements. This
+// is how an EnumStrings value is written in a model file.
+TEST(UaNodeSetXmlTest, ReadsAndWritesLocalizedTextAndStringArrays) {
+  const Variant texts{std::vector<LocalizedText>{u"Опрос", u"Ретрансляция"}};
+  EXPECT_EQ(Read("<uax:ListOfLocalizedText>"
+                 "<uax:LocalizedText><uax:Text>Опрос</uax:Text>"
+                 "</uax:LocalizedText>"
+                 "<uax:LocalizedText><uax:Text>Ретрансляция</uax:Text>"
+                 "</uax:LocalizedText>"
+                 "</uax:ListOfLocalizedText>"),
+            texts);
+  EXPECT_EQ(Read("<uax:ListOfString><uax:String>a</uax:String>"
+                 "<uax:String>b</uax:String></uax:ListOfString>"),
+            (Variant{std::vector<String>{"a", "b"}}));
+  EXPECT_EQ(Read("<uax:ListOfLocalizedText></uax:ListOfLocalizedText>"),
+            Variant{std::vector<LocalizedText>{}});
+  // An element of the wrong type inside the list is not silently dropped.
+  EXPECT_EQ(Read("<uax:ListOfString><uax:Int32>1</uax:Int32>"
+                 "</uax:ListOfString>"),
+            std::nullopt);
+
+  for (const Variant& value : {texts, Variant{std::vector<String>{"x", "y"}}}) {
+    pugi::xml_document document;
+    pugi::xml_node node = document.append_child("Value");
+    node.append_attribute("xmlns:uax")
+        .set_value("http://opcfoundation.org/UA/2008/02/Types.xsd");
+    const std::vector<std::string> uris;
+    const NamespaceTable namespaces{uris};
+    ASSERT_TRUE(WriteValue(node, value, namespaces));
+    EXPECT_EQ(ReadValue(node, namespaces, {}), value);
+  }
+}
+
 // The static model loader resolves every vendor URI to one namespace; the
 // configuration codec resolves by an exact table and refuses the unknown.
 TEST(UaNodeSetXmlTest, AnUnknownUriResolvesToTheFallbackOrFails) {

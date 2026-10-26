@@ -587,12 +587,18 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
     </References>
   </UADataType>
-  <UAVariable NodeId="ns=1;i=323" BrowseName="EnumStrings" SymbolicName="Iec60870ProtocolDataType_EnumStrings" ParentNodeId="ns=1;i=322" DataType="LocalizedText">
+  <UAVariable NodeId="ns=1;i=323" BrowseName="EnumStrings" SymbolicName="Iec60870ProtocolDataType_EnumStrings" ParentNodeId="ns=1;i=322" DataType="LocalizedText" ValueRank="1">
     <DisplayName>EnumStrings</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=322</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
     </References>
+    <Value>
+      <uax:ListOfLocalizedText>
+        <uax:LocalizedText><uax:Text>МЭК-60870-5-104</uax:Text></uax:LocalizedText>
+        <uax:LocalizedText><uax:Text>МЭК-60870-5-101</uax:Text></uax:LocalizedText>
+      </uax:ListOfLocalizedText>
+    </Value>
   </UAVariable>
   <UADataType NodeId="ns=1;i=324" BrowseName="Iec60870ModeType" SymbolicName="Iec60870ModeDataType">
     <DisplayName Locale="ru">Режим МЭК-60870</DisplayName>
@@ -601,12 +607,19 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">i=29</Reference>
     </References>
   </UADataType>
-  <UAVariable NodeId="ns=1;i=325" BrowseName="EnumStrings" SymbolicName="Iec60870ModeDataType_EnumStrings" ParentNodeId="ns=1;i=324" DataType="LocalizedText">
+  <UAVariable NodeId="ns=1;i=325" BrowseName="EnumStrings" SymbolicName="Iec60870ModeDataType_EnumStrings" ParentNodeId="ns=1;i=324" DataType="LocalizedText" ValueRank="1">
     <DisplayName>EnumStrings</DisplayName>
     <References>
       <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=324</Reference>
       <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
     </References>
+    <Value>
+      <uax:ListOfLocalizedText>
+        <uax:LocalizedText><uax:Text>Опрос</uax:Text></uax:LocalizedText>
+        <uax:LocalizedText><uax:Text>Ретрансляция</uax:Text></uax:LocalizedText>
+        <uax:LocalizedText><uax:Text>Прослушивание</uax:Text></uax:LocalizedText>
+      </uax:ListOfLocalizedText>
+    </Value>
   </UAVariable>
   <UAObjectType NodeId="ns=1;i=331" BrowseName="Iec60870DeviceType" SymbolicName="Iec60870DeviceType">
     <DisplayName Locale="ru">Устройство МЭК-60870</DisplayName>
