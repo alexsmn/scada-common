@@ -64,10 +64,10 @@ TEST(AggregationTest, MaximumOfNegativeValuesIsTheLargestOfThem) {
   EXPECT_EQ(-2.0, ValueOf(Aggregate(id::AggregateFunction_Maximum,
                                     {Sample(-5, 0min), Sample(-2, 10min),
                                      Sample(-7, 20min)})));
-  EXPECT_EQ(-2.0, ValueOf(Aggregate(id::AggregateFunction_Maximum,
-                                    {Sample(-5, 0min), Sample(-2, 10min),
-                                     Sample(-7, 20min)},
-                                    /*forward=*/true, /*one_by_one=*/true)));
+  EXPECT_EQ(-2.0, ValueOf(Aggregate(
+                      id::AggregateFunction_Maximum,
+                      {Sample(-5, 0min), Sample(-2, 10min), Sample(-7, 20min)},
+                      /*forward=*/true, /*one_by_one=*/true)));
 }
 
 TEST(AggregationTest, MinimumAndMaximumSkipNonGoodValues) {
@@ -85,9 +85,9 @@ TEST(AggregationTest, AverageIsTheArithmeticMeanOfGoodValues) {
 }
 
 TEST(AggregationTest, CountCountsGoodValuesOnly) {
-  DataValue count = Aggregate(id::AggregateFunction_Count,
-                              {Sample(1, 0min), Sample(2, 1min, kBad),
-                               Sample(3, 2min)});
+  DataValue count =
+      Aggregate(id::AggregateFunction_Count,
+                {Sample(1, 0min), Sample(2, 1min, kBad), Sample(3, 2min)});
   UInt64 result = 0;
   ASSERT_TRUE(count.value.get(result));
   EXPECT_EQ(2u, result);
@@ -114,17 +114,16 @@ TEST(AggregationTest, TimeAverageWeightsEachValueByHowLongItHeld) {
   std::vector<DataValue> values = {Sample(10, 0min), Sample(30, 15min)};
   EXPECT_DOUBLE_EQ(
       25.0, ValueOf(Aggregate(id::AggregateFunction_TimeAverage2, values)));
-  EXPECT_DOUBLE_EQ(25.0,
-                   ValueOf(Aggregate(id::AggregateFunction_TimeAverage2,
-                                     values, /*forward=*/false)));
+  EXPECT_DOUBLE_EQ(25.0, ValueOf(Aggregate(id::AggregateFunction_TimeAverage2,
+                                           values, /*forward=*/false)));
 }
 
 TEST(AggregationTest, TimeBeforeTheFirstSampleIsNotCovered) {
   // The value in force before 30 min is unknown to the aggregator, so only the
   // last half hour counts.
   std::vector<DataValue> values = {Sample(4, 30min)};
-  EXPECT_DOUBLE_EQ(4.0, ValueOf(Aggregate(id::AggregateFunction_TimeAverage2,
-                                          values)));
+  EXPECT_DOUBLE_EQ(
+      4.0, ValueOf(Aggregate(id::AggregateFunction_TimeAverage2, values)));
   EXPECT_DOUBLE_EQ(4.0 * 1800,
                    ValueOf(Aggregate(id::AggregateFunction_Total, values)));
 }
@@ -134,9 +133,9 @@ TEST(AggregationTest, ABadSampleEndsTheStepAndItsDurationIsLeftOut) {
   std::vector<DataValue> values = {Sample(10, 0min), Sample(999, 20min, kBad),
                                    Sample(40, 40min)};
   for (bool forward : {true, false}) {
-    EXPECT_DOUBLE_EQ(10 * 1200 + 40 * 1200,
-                     ValueOf(Aggregate(id::AggregateFunction_Total, values,
-                                       forward)));
+    EXPECT_DOUBLE_EQ(
+        10 * 1200 + 40 * 1200,
+        ValueOf(Aggregate(id::AggregateFunction_Total, values, forward)));
     EXPECT_DOUBLE_EQ(25.0, ValueOf(Aggregate(id::AggregateFunction_TimeAverage2,
                                              values, forward)));
   }
@@ -153,14 +152,13 @@ TEST(AggregationTest, AnIntervalWithoutGoodValuesYieldsNoData) {
 }
 
 TEST(AggregationTest, AggregateStateSplitsRawValuesIntoIntervals) {
-  const AggregateFilter filter{.start_time = kStart,
-                               .interval = 30min,
-                               .aggregate_type = NodeId{
-                                   id::AggregateFunction_TimeAverage2}};
+  const AggregateFilter filter{
+      .start_time = kStart,
+      .interval = 30min,
+      .aggregate_type = NodeId{id::AggregateFunction_TimeAverage2}};
   std::vector<DataValue> results;
-  AggregateState state{.forward = true,
-                       .aggregation = filter,
-                       .data_values = results};
+  AggregateState state{
+      .forward = true, .aggregation = filter, .data_values = results};
   // A sample exactly on a boundary is counted in the earlier interval by
   // AggregateState (UpperBound), so the second interval starts at 40 min.
   std::vector<DataValue> raw = {Sample(10, 0min), Sample(30, 15min),

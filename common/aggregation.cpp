@@ -87,7 +87,9 @@ class SteppedIntegral {
   }
 
   // Seconds of the interval covered by Good samples.
-  Double covered() const { return covered_ + (pending_ ? PendingSeconds() : 0); }
+  Double covered() const {
+    return covered_ + (pending_ ? PendingSeconds() : 0);
+  }
 
  private:
   void AddForward(const DataValue& data_value) {
@@ -210,8 +212,10 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
           integral.Add(values);
           if (integral.covered() <= 0)
             return MakeNoDataValue(interval);
-          return DataValue{integral.area() / integral.covered(), {},
-                           interval.first, interval.second};
+          return DataValue{integral.area() / integral.covered(),
+                           {},
+                           interval.first,
+                           interval.second};
         };
       });
 
@@ -221,8 +225,8 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
   aggregators.emplace(
       id::AggregateFunction_Average,
       [](const TimeRange& interval, bool forward) -> Aggregator {
-        return [interval, total = Double{0}, count = size_t{0}](
-                   std::span<const DataValue> values) mutable {
+        return [interval, total = Double{0},
+                count = size_t{0}](std::span<const DataValue> values) mutable {
           for (const auto& data_value : values) {
             if (auto value = GetGoodDouble(data_value)) {
               total += *value;
@@ -231,36 +235,39 @@ std::map<NodeId, AggregatorFactory> BuildAggregatorFactoryMap() {
           }
           if (count == 0)
             return MakeNoDataValue(interval);
-          return DataValue{total / static_cast<Double>(count), {},
-                           interval.first, interval.second};
+          return DataValue{total / static_cast<Double>(count),
+                           {},
+                           interval.first,
+                           interval.second};
         };
       });
 
   // Part 13 §5.4.3.21 Count: the number of Good raw values; zero when there
-  // are none. https://reference.opcfoundation.org/Core/Part13/v105/docs/5.4.3.21
+  // are none.
+  // https://reference.opcfoundation.org/Core/Part13/v105/docs/5.4.3.21
   aggregators.emplace(
       id::AggregateFunction_Count,
       [](const TimeRange& interval, bool forward) -> Aggregator {
-        return [interval, count = size_t{0}](
-                   std::span<const DataValue> values) mutable {
+        return [interval,
+                count = size_t{0}](std::span<const DataValue> values) mutable {
           count += std::ranges::count_if(values, IsGoodSample);
-          return DataValue{static_cast<UInt64>(count), {}, interval.first,
-                           interval.second};
+          return DataValue{
+              static_cast<UInt64>(count), {}, interval.first, interval.second};
         };
       });
 
   // Part 13 §5.4.3.10 Minimum / §5.4.3.11 Maximum: the extreme Good raw value.
   // https://reference.opcfoundation.org/Core/Part13/v105/docs/5.4.3.10
-  aggregators.emplace(id::AggregateFunction_Minimum,
-                      [](const TimeRange& interval, bool forward) {
-                        return MakeExtremeAggregator<std::less<Double>>(
-                            interval);
-                      });
-  aggregators.emplace(id::AggregateFunction_Maximum,
-                      [](const TimeRange& interval, bool forward) {
-                        return MakeExtremeAggregator<std::greater<Double>>(
-                            interval);
-                      });
+  aggregators.emplace(
+      id::AggregateFunction_Minimum,
+      [](const TimeRange& interval, bool forward) {
+        return MakeExtremeAggregator<std::less<Double>>(interval);
+      });
+  aggregators.emplace(
+      id::AggregateFunction_Maximum,
+      [](const TimeRange& interval, bool forward) {
+        return MakeExtremeAggregator<std::greater<Double>>(interval);
+      });
 
   aggregators.emplace(id::AggregateFunction_Start,
                       [](const TimeRange& interval, bool forward) {
