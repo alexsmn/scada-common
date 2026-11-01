@@ -84,15 +84,14 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
   } else {
     // A braced identifier is unbraced here as it is in a whole formula. A
     // channel reference such as `{IEC_DEV.1!5}` used to reach the alias
-    // resolver with its braces on inside an expression and resolve to nothing, so a Control
-    // condition `{IEC_DEV.1!5} = 1` stayed false in the Control window while
-    // the Server -- which unbraces every operand in its name resolver
-    // (`GetFormulaSingleNodeId`) -- evaluated it (backlog 958).
+    // resolver with its braces on inside an expression and resolve to nothing,
+    // so a Control condition `{IEC_DEV.1!5} = 1` stayed false in the Control
+    // window while the Server -- which unbraces an identifier operand in its
+    // name resolver (`GetFormulaSingleNodeId`) -- evaluated it (backlog 958).
     std::vector<std::shared_ptr<TimedData>> operands(expression->items.size());
     for (size_t i = 0; i < operands.size(); ++i) {
-      operands[i] =
-          GetAliasTimedData(UnbraceOperand(expression->items[i].name),
-                            aggregation);
+      operands[i] = GetAliasTimedData(UnbraceOperand(expression->items[i].name),
+                                      aggregation);
     }
     return std::make_shared<ExpressionTimedData>(std::move(expression),
                                                  std::move(operands));
