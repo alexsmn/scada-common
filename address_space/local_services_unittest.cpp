@@ -8,6 +8,7 @@
 #include "address_space/test/test_address_space.h"
 
 #include "base/test/awaitable_test.h"
+#include "base/time/calendar.h"
 #include "common/sync_attribute_service.h"
 #include "scada/date_time.h"
 #include "scada/monitored_item.h"
@@ -17,6 +18,7 @@
 
 #include <boost/json.hpp>
 #include <gmock/gmock.h>
+#include <map>
 #include <variant>
 
 namespace scada {
@@ -259,15 +261,14 @@ TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
                                   .to = scada::Now()}));
 
   ASSERT_TRUE(result.ok()) << result.status();
-  ASSERT_EQ(result->values.size(), 48u);
+  ASSERT_FALSE(result->values.empty());
   EXPECT_EQ(result->values.front().status_code, StatusCode::Good);
   EXPECT_FALSE(result->values.front().value.is_null());
 }
 
-// The synthesized series spans the requested window, so a narrow range (a
-// table row's 1 h sparkline window) still reads a fully-populated series
-// instead of the tail of a fixed 30-minute-spaced day.
-TEST(LocalHistoryService, GeneratedProfileSpansTheRequestedRange) {
+// A narrow window (a table row's 1 h sparkline) reads every sample of the
+// stored series inside it, on the series' fixed spacing.
+TEST(LocalHistoryService, ReadReturnsTheSeriesSamplesInsideTheWindow) {
   TestExecutor executor;
   LocalHistoryService service;
   const NodeId node_id{7, 2};
@@ -280,18 +281,24 @@ TEST(LocalHistoryService, GeneratedProfileSpansTheRequestedRange) {
                                   .node_id = node_id, .from = from, .to = to}));
 
   ASSERT_TRUE(result.ok()) << result.status();
-  ASSERT_EQ(result->values.size(), 48u);
-  // All 48 points fall inside [from, to], evenly spaced, ending at `to`.
+  ASSERT_GE(result->values.size(), 11u);
+  EXPECT_LE(result->values.size(), 12u);
   EXPECT_GE(result->values.front().source_timestamp, from);
-  EXPECT_EQ(result->values.back().source_timestamp, to - (to - from) / 48);
+  EXPECT_LT(result->values.back().source_timestamp, to);
+  for (size_t i = 1; i < result->values.size(); ++i) {
+    EXPECT_EQ(result->values[i].source_timestamp -
+                  result->values[i - 1].source_timestamp,
+              std::chrono::minutes(5));
+  }
 }
 
 // A read whose upper bound is the "current-only" sentinel (Time::Max, used
 // by live consumers that want the latest sample rather than a finite window)
-// must anchor the synthesized series to now, not to Max. Anchoring to Max
-// spread the 48 points across ~285,000 years, so every point but the first
-// fell outside any real query window and the series read flat (the trend and
-// its value grid showed constant lines with Min == Max == Average).
+// must end at now, not at Max. The series used to be anchored to the read's
+// upper bound, and anchoring it to Max spread its points across ~285,000
+// years, so every point but the first fell outside any real query window and
+// the series read flat (the trend and its value grid showed constant lines
+// with Min == Max == Average).
 TEST(LocalHistoryService, UnboundedEndAnchorsToNow) {
   TestExecutor executor;
   LocalHistoryService service;
@@ -304,20 +311,20 @@ TEST(LocalHistoryService, UnboundedEndAnchorsToNow) {
                     .node_id = node_id, .from = from, .to = scada::kMaxTime}));
 
   ASSERT_TRUE(result.ok()) << result.status();
-  ASSERT_EQ(result->values.size(), 48u);
-  // The newest point is within a day of now, not centuries into the future.
+  ASSERT_FALSE(result->values.empty());
   const auto now = scada::Now();
-  EXPECT_LT(result->values.back().source_timestamp, now + std::chrono::days(1));
-  EXPECT_GT(result->values.back().source_timestamp, now - std::chrono::days(1));
+  EXPECT_LT(result->values.back().source_timestamp, now);
+  EXPECT_GT(result->values.back().source_timestamp,
+            now - std::chrono::minutes(10));
 }
 
 // A window far wider than the data is meant to cover must not stretch the
 // series to fit it. The trend probes for its earliest available sample to fill
 // the left edge of the plot, which asks for everything from the epoch to now;
-// spreading 48 points across that put them ~14 months apart, so every point
-// but the last fell outside the 24 h the graph was displaying. The plot came
-// out empty while the axes, limit bands and legend were all correct, which
-// read as a rendering quirk rather than as bad data.
+// spreading a fixed number of points across that put them ~14 months apart, so
+// every point but the last fell outside the 24 h the graph was displaying. The
+// plot came out empty while the axes, limit bands and legend were all correct,
+// which read as a rendering quirk rather than as bad data.
 TEST(LocalHistoryService, VeryWideRangeStillYieldsADayOfSamples) {
   TestExecutor executor;
   LocalHistoryService service;
@@ -330,13 +337,73 @@ TEST(LocalHistoryService, VeryWideRangeStillYieldsADayOfSamples) {
                     .node_id = node_id, .from = scada::Time{}, .to = to}));
 
   ASSERT_TRUE(result.ok()) << result.status();
-  ASSERT_EQ(result->values.size(), 48u);
-  // Capped at the default 30-minute spacing, so the series spans a day ending
-  // at `to` rather than reaching back to the epoch.
-  EXPECT_EQ(result->values.back().source_timestamp,
-            to - std::chrono::minutes(30));
-  EXPECT_EQ(result->values.front().source_timestamp,
-            to - std::chrono::minutes(30) * 48);
+  // A day at five-minute spacing, ending just before `to`.
+  EXPECT_GE(result->values.size(), 287u);
+  EXPECT_LE(result->values.size(), 288u);
+  EXPECT_GE(result->values.front().source_timestamp,
+            to - std::chrono::hours(24));
+  EXPECT_LT(result->values.back().source_timestamp, to);
+}
+
+// Regression for backlog 949. The series used to be synthesized to fit each
+// read's window, so a 1 h read and a 16 h read of the same node gave different
+// values at the same instants — and the client's timed-data cache merges both,
+// so a table sparkline depended on which other capture had read the node
+// first. Every read must be a slice of one series.
+TEST(LocalHistoryService, OverlappingReadsAgreeAtEveryInstant) {
+  TestExecutor executor;
+  LocalHistoryService service;
+  const NodeId node_id{211, 2};
+  service.SetRawProfile(node_id, 42.3);
+  const auto now = scada::Time{} + std::chrono::days(20559) +
+                   std::chrono::hours(15) + std::chrono::minutes(2);
+  service.SetNowOverride(now);
+
+  auto narrow =
+      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                                  .node_id = node_id,
+                                  .from = now - std::chrono::hours(1),
+                                  .to = scada::kMaxTime}));
+  auto wide =
+      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                                  .node_id = node_id,
+                                  .from = now - std::chrono::hours(15),
+                                  .to = now + std::chrono::hours(1)}));
+  ASSERT_TRUE(narrow.ok()) << narrow.status();
+  ASSERT_TRUE(wide.ok()) << wide.status();
+  ASSERT_FALSE(narrow->values.empty());
+
+  std::map<scada::Time, double> by_time;
+  for (const auto& v : wide->values)
+    by_time[v.source_timestamp] = v.value.as_double();
+  for (const auto& v : narrow->values) {
+    auto it = by_time.find(v.source_timestamp);
+    ASSERT_NE(it, by_time.end())
+        << "the wide read lacks an instant the narrow read has";
+    EXPECT_EQ(it->second, v.value.as_double());
+  }
+}
+
+// The window-anchored series also ran to the read's upper bound when that was
+// after now, so a graph showing a little past the present was handed samples
+// from the future. A historian holds nothing past now.
+TEST(LocalHistoryService, ReadEndingInTheFutureStopsAtNow) {
+  TestExecutor executor;
+  LocalHistoryService service;
+  const NodeId node_id{10, 2};
+  service.SetRawProfile(node_id, 42.0);
+  const auto now = scada::Now();
+  service.SetNowOverride(now);
+
+  auto result =
+      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
+                                  .node_id = node_id,
+                                  .from = now - std::chrono::hours(16),
+                                  .to = now + std::chrono::hours(1)}));
+
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_FALSE(result->values.empty());
+  EXPECT_LT(result->values.back().source_timestamp, now);
 }
 
 // Regression: a raw read used to fall back to a synthesized series around a
@@ -383,13 +450,15 @@ TEST(LocalHistoryService, LoadFromJsonSkipsNodesTheCallerDoesNotHave) {
       })"),
       [&present](const NodeId& node_id) { return node_id == present; });
 
-  const auto to = scada::Now();
+  // Read relative to the fixture's frozen clock: the series ends there.
+  const auto to = *base::TimeFromString("2026-04-16 15:02:00",
+                                        /*is_local=*/true);
   const auto from = to - std::chrono::hours(1);
   auto kept =
       WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
                                   .node_id = present, .from = from, .to = to}));
   ASSERT_TRUE(kept.ok()) << kept.status();
-  EXPECT_EQ(kept->values.size(), 48u);
+  EXPECT_FALSE(kept->values.empty());
 
   auto skipped =
       WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{

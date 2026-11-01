@@ -1,10 +1,13 @@
 #pragma once
 
+#include "base/time/time.h"
 #include "scada/co_result.h"
 #include "scada/event.h"
 #include "scada/history_service.h"
 #include "scada/node_id.h"
 
+#include <chrono>
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string_view>
@@ -18,8 +21,8 @@ class value;
 namespace scada {
 
 // In-memory HistoryService backed by a static table of per-node base values
-// (synthesized into a 48-point raw-history series on demand) and a fixed list
-// of events.
+// (each synthesized into one fixed raw-history series, which every raw read
+// slices) and a fixed list of events.
 //
 // The table is the whole truth: a raw read for a node with no registered
 // profile returns no values rather than inventing a series, so a consumer can
@@ -32,9 +35,10 @@ class LocalHistoryService : public HistoryService {
   LocalHistoryService();
   ~LocalHistoryService() override;
 
-  // Registers `node_id` as having history. Raw reads for it return a 48-point
-  // normal distribution around `base_value` at 30-minute intervals ending at
-  // "now" (see SetNowOverride).
+  // Registers `node_id` as having history: a series around `base_value`
+  // sampled every kRawSampleStep over the kRawSeriesSpan before "now" (see
+  // SetNowOverride). A raw read returns the samples of that one series that
+  // fall inside its window, so overlapping reads always agree.
   // The standard deviation defaults to 5% of |base_value|; pass `noise_stddev`
   // to override it with an absolute value. An explicit override lets a node
   // with a narrow engineering-unit range (e.g. grid frequency at 50 Hz within
@@ -91,6 +95,16 @@ class LocalHistoryService : public HistoryService {
   // express a severity that sits deliberately between them.
   static UInt32 ParseSeverity(const boost::json::value& value);
   scada::Time Now() const;
+
+  // Spacing of the synthesized raw series, how far back it reaches, how far
+  // apart its interpolation knots are, and the per-sample jitter as a fraction
+  // of the profile's standard deviation. kRawKnotStep must be a whole multiple
+  // of kRawSampleStep.
+  static constexpr scada::Duration kRawSampleStep = std::chrono::minutes{5};
+  static constexpr scada::Duration kRawSeriesSpan = std::chrono::hours{24};
+  static constexpr scada::Duration kRawKnotStep = std::chrono::minutes{30};
+  static constexpr double kRawJitterRatio = 0.35;
+
   HistoryReadRawResult ReadRaw(HistoryReadRawDetails details) const;
   HistoryReadEventsResult ReadEvents(NodeId node_id,
                                      scada::Time from,
@@ -104,6 +118,12 @@ class LocalHistoryService : public HistoryService {
     double base_value = 0.0;
     std::optional<double> noise_stddev;
   };
+
+  // The value of `profile`'s series at the `sample_index`-th kRawSampleStep
+  // since the epoch. A pure function of its arguments.
+  static double SampleValue(const NodeId& node_id,
+                            const RawProfile& profile,
+                            std::int64_t sample_index);
 
   std::unordered_map<NodeId, RawProfile> raw_profiles_;
   std::vector<Event> events_;

@@ -157,39 +157,6 @@ CoStatusOr<HistoryReadEventsResult> LocalHistoryService::HistoryReadEvents(
 
 HistoryReadRawResult LocalHistoryService::ReadRaw(
     HistoryReadRawDetails details) const {
-  // Anchor the synthesized series to the requested window when it has a
-  // finite end: consumers (TimedDataFetcher) filter returned values by the
-  // requested range, so a series pinned to a frozen "now" would otherwise
-  // vanish for wall-clock-ranged queries, and vice versa.
-  // A history read whose upper bound is null or the "current-only" sentinel
-  // (Time::Max — used by live consumers that want the latest sample, not a
-  // finite window) has no real end time. Anchoring the synthesized series to
-  // Max would spread its 48 points across geological time, so every point but
-  // the first falls outside any real query window and the series reads flat.
-  // Treat an unbounded end as "now".
-  const auto now = (scada::IsNull(details.to) || details.to == scada::kMaxTime)
-                       ? Now()
-                       : details.to;
-
-  // Span the requested window when it is finite so every consumer gets a
-  // fully-populated series regardless of its range — a graph's 24 h span and
-  // a table row's 1 h sparkline window both read 48 points (a 24 h request
-  // keeps the historical 30-minute spacing exactly). An open-ended request
-  // falls back to that 30-minute spacing.
-  //
-  // The spacing is capped at that same 30 minutes, so a window far wider than
-  // the data is meant to cover cannot stretch the series past a day. A
-  // consumer may legitimately ask for "everything up to now" — the trend
-  // probes for its earliest available sample to fill the left edge of the
-  // plot — and spreading 48 points from the epoch to now put them ~14 months
-  // apart, leaving every point but the last outside any real view. The graph
-  // then drew nothing, with correct axes and a populated legend, so the empty
-  // plot looked like a rendering quirk rather than bad data. Capping keeps
-  // such a request answerable with the same 24 h series a bounded one gets.
-  scada::Duration interval = std::chrono::minutes{30};
-  if (!scada::IsNull(details.from) && details.from < now)
-    interval = std::min((now - details.from) / 48, interval);
-
   // No profile, no history. The service is backed by an explicit table of
   // per-node base values; a node absent from it is one the caller never
   // described, and synthesizing a series for it anyway (this used to fall back
@@ -201,28 +168,90 @@ HistoryReadRawResult LocalHistoryService::ReadRaw(
   if (profile == raw_profiles_.end())
     return HistoryReadRawResult{};
 
-  const double base_value = profile->second.base_value;
-  const std::optional<double> noise_stddev = profile->second.noise_stddev;
+  // Every read is a slice of ONE stored series, never a series shaped to the
+  // request. This used to synthesize 48 points spread across whatever window
+  // was asked for, so two overlapping reads disagreed about the same instants
+  // — and a client's timed-data cache merges reads per node, so a capture's
+  // sparkline depended on which other windows had read that node before it
+  // (backlog 949: `table.png` differed between a full pass and `--only`).
+  //
+  // The series ends at "now" and never past it, whatever `to` says: a
+  // historian holds nothing from the future, and the old window-anchored form
+  // happily returned samples up to a `to` an hour ahead. An unbounded `to`
+  // (null, or the Time::Max "current-only" sentinel) is simply no upper bound.
+  // It begins kRawSeriesSpan earlier, so a read reaching back to the epoch —
+  // the trend probes for its earliest sample that way — still gets a day of
+  // samples instead of points spread across the gap.
+  const scada::Time now = Now();
+  const scada::Time to =
+      (scada::IsNull(details.to) || details.to > now) ? now : details.to;
 
-  // Deterministic per-node noise: seed on the numeric id so output is stable
-  // across runs for a given node. The amplitude defaults to 5% of the mean,
-  // but a node may pin an absolute standard deviation (e.g. so a narrow-range
-  // frequency series stays inside its engineering-unit band).
-  auto seed = details.node_id.is_numeric() ? details.node_id.numeric_id() : 0u;
-  std::mt19937 rng{seed};
-  std::normal_distribution<double> dist(
-      base_value, noise_stddev.value_or(std::abs(base_value) * 0.05));
+  // Samples sit on a grid of absolute times (whole multiples of kRawSampleStep
+  // since the epoch), so the set of instants does not move with "now" either:
+  // a wall-clock-driven consumer reading twice gets the same values at the
+  // instants both reads cover.
+  const auto step = kRawSampleStep.count();
+  const auto now_us = now.time_since_epoch().count();
+  const std::int64_t last_index =
+      now_us >= 0 ? now_us / step : -((-now_us + step - 1) / step);
+  constexpr std::int64_t kSampleCount = kRawSeriesSpan / kRawSampleStep;
 
   std::vector<DataValue> values;
-  values.reserve(48);
-  for (int i = 0; i < 48; ++i) {
-    auto time = now - interval * (48 - i);
-    values.push_back(MakeValueAt(Variant{dist(rng)}, time));
+  for (std::int64_t index = last_index - kSampleCount + 1; index <= last_index;
+       ++index) {
+    const scada::Time time{scada::Duration{index * step}};
+    if (time >= now)
+      continue;  // History is what was stored BEFORE now.
+    if (!scada::IsNull(details.from) && time < details.from)
+      continue;
+    if (time > to)
+      break;
+    values.push_back(MakeValueAt(
+        Variant{SampleValue(details.node_id, profile->second, index)}, time));
   }
 
   return HistoryReadRawResult{
       .values = std::move(values),
   };
+}
+
+// static
+double LocalHistoryService::SampleValue(const NodeId& node_id,
+                                        const RawProfile& profile,
+                                        std::int64_t sample_index) {
+  // A sample is a pure function of (node, instant): linear between knots drawn
+  // every kRawKnotStep, plus a small per-sample jitter. The knots carry the
+  // shape a day-long trend shows; the jitter keeps an hour-long sparkline,
+  // which spans only two or three knots, from reading as a ruled line.
+  // Deterministic per node — seeded on the numeric id — so output is stable
+  // across runs. The amplitude defaults to 5% of the mean, but a node may pin
+  // an absolute standard deviation (e.g. so a narrow-range frequency series
+  // stays inside its engineering-unit band).
+  const std::uint32_t seed = node_id.is_numeric() ? node_id.numeric_id() : 0u;
+  const double stddev =
+      profile.noise_stddev.value_or(std::abs(profile.base_value) * 0.05);
+
+  auto draw = [seed](std::int64_t index, std::uint32_t stream) {
+    const auto u = static_cast<std::uint64_t>(index);
+    std::seed_seq seq{seed, stream, static_cast<std::uint32_t>(u),
+                      static_cast<std::uint32_t>(u >> 32)};
+    std::mt19937 rng{seq};
+    return std::normal_distribution<double>{0.0, 1.0}(rng);
+  };
+
+  constexpr std::int64_t kSamplesPerKnot = kRawKnotStep / kRawSampleStep;
+  // Floor division, so a knot boundary does not depend on the sign of index.
+  std::int64_t knot = sample_index / kSamplesPerKnot;
+  if (sample_index % kSamplesPerKnot < 0)
+    --knot;
+  const double frac =
+      static_cast<double>(sample_index - knot * kSamplesPerKnot) /
+      kSamplesPerKnot;
+  const double a = draw(knot, 0);
+  const double b = draw(knot + 1, 0);
+  const double shape = a + (b - a) * frac;
+  const double jitter = draw(sample_index, 1) * kRawJitterRatio;
+  return profile.base_value + stddev * (shape + jitter);
 }
 
 HistoryReadEventsResult LocalHistoryService::ReadEvents(
