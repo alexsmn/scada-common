@@ -111,10 +111,11 @@ class ClientMethodServiceAdapter : public scada::MethodService {
                                       Tracer& tracer = Tracer::None())
       : session_{std::move(s)}, tracer_{tracer} {}
 
-  scada::CoStatusOr<scada::CallResult> Call(scada::NodeId node_id,
-                       scada::NodeId method_id,
-                       std::vector<scada::Variant> arguments,
-                       scada::ServiceContext context) override;
+  scada::CoStatusOr<scada::CallResult> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> arguments,
+      scada::ServiceContext context) override;
 
  private:
   std::shared_ptr<opcua::ClientSession> session_;
@@ -295,11 +296,18 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 // redundant inter-tier clients (remote historian / aggregating proxy / remote
 // config) for ServiceLevel-aware failover. OPC UA Part 4 §6.6 Non-Transparent
 // Redundancy, https://reference.opcfoundation.org/Core/Part4/v105/docs/6.6
+//
+// `security` must be the link's own: the probe presents the link's
+// credentials, so a probe made over SecurityPolicy None sent the password of a
+// SignAndEncrypt link in clear text on every reconnect, and against a server
+// that refuses None sessions it failed every time, so the link never got past
+// "no endpoint reachable". Both until 2026-11-01.
 [[nodiscard]] scada::CoStatusOr<scada::UInt8> ProbeServiceLevel(
     AnyExecutor executor,
     transport::TransportFactory& transport_factory,
     std::string endpoint,
     scada::LocalizedText user_name,
-    scada::LocalizedText password);
+    scada::LocalizedText password,
+    scada::SessionSecuritySettings security);
 
 }  // namespace scada::opcua_bridge

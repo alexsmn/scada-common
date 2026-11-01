@@ -131,9 +131,9 @@ scada::CoStatusOr<scada::CallResult> ClientMethodServiceAdapter::Call(
   // The context carries the traceparent to the wire header. Identity is not
   // sent: it comes from the activated session, and the client has no rights
   // bitmask to hand the server anyway.
-  auto result = co_await session_->Call(ToOpcua(context), ToOpcua(node_id),
-                                        ToOpcua(method_id),
-                                        ToOpcuaVector(arguments));
+  auto result =
+      co_await session_->Call(ToOpcua(context), ToOpcua(node_id),
+                              ToOpcua(method_id), ToOpcuaVector(arguments));
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
@@ -173,8 +173,8 @@ ClientNodeManagementServiceAdapter::AddReferences(
   SetBatchAttributes(span, inputs, [](const scada::AddReferencesItem& input) {
     return input.source_node_id.ToString();
   });
-  auto result = co_await session_->AddReferences(ToOpcua(context),
-                                                 ToOpcuaVector(inputs));
+  auto result =
+      co_await session_->AddReferences(ToOpcua(context), ToOpcuaVector(inputs));
   co_return ToScada(result);
 }
 scada::CoStatusOr<std::vector<scada::StatusCode>>
@@ -425,14 +425,16 @@ scada::CoStatusOr<scada::UInt8> ProbeServiceLevel(
     transport::TransportFactory& transport_factory,
     std::string endpoint,
     scada::LocalizedText user_name,
-    scada::LocalizedText password) {
+    scada::LocalizedText password,
+    scada::SessionSecuritySettings security) {
   auto probe = std::make_shared<opcua::ClientSession>(std::move(executor),
                                                       transport_factory);
   auto services = CreateClientDataServices(probe);
   auto status = co_await services.session_service_->ConnectStatus(
       scada::SessionConnectParams{.connection_string = std::move(endpoint),
                                   .user_name = std::move(user_name),
-                                  .password = std::move(password)});
+                                  .password = std::move(password),
+                                  .security = std::move(security)});
   if (!status) {
     co_return status;
   }

@@ -129,9 +129,9 @@ scada::CoStatusOr<scada::UInt8> RemoteHistoryService::ReadServiceLevel() {
 
 scada::CoStatusOr<scada::UInt8> RemoteHistoryService::ProbeServiceLevel(
     std::string endpoint) {
-  return opcua_bridge::ProbeServiceLevel(executor_, transport_factory_,
-                                         std::move(endpoint), config_.user_name,
-                                         config_.password);
+  return opcua_bridge::ProbeServiceLevel(
+      executor_, transport_factory_, std::move(endpoint), config_.user_name,
+      config_.password, ToScada(config_.security));
 }
 
 scada::CoStatusOr<scada::HistoryReadRawResult>
