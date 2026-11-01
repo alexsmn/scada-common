@@ -348,7 +348,8 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   // Each edge is a config client (no local DB) running exactly one driver,
   // fetching config from the config tier as svc. Edges run NO history module
   // (ADR 0002): the historian pull-collects from them, and clients read
-  // history back through the proxy's history link to the historian.
+  // history back through the proxy's history link to the historian. Each edge
+  // has its own read-back link too, to restore its items' latest values.
   // The proxy aggregates the edges anonymously. Mirrors the GCP
   // configs/{iec104,modbus,iec61850}.json edges.
   //
@@ -428,16 +429,16 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
            << historian.opcua_port();
   }
 
-  auto make_edge_configure = [config_url, endpoint, enforce_permissions,
-                              single_owner_items,
+  auto make_edge_configure = [config_url, historian_url, endpoint,
+                              enforce_permissions, single_owner_items,
                               proxy_opcua_url = options.proxy_opcua_url](
                                  std::string_view keep_driver,
                                  bool dynamic_registration,
                                  std::string advertise_url) {
-    return [config_url, proxy_opcua_url, endpoint, enforce_permissions,
-            single_owner_items, keep_driver, dynamic_registration,
-            advertise_url =
-                std::move(advertise_url)](boost::json::object& json) {
+    return [config_url, historian_url, proxy_opcua_url, endpoint,
+            enforce_permissions, single_owner_items, keep_driver,
+            dynamic_registration, advertise_url = std::move(advertise_url)](
+               boost::json::object& json) {
       for (std::string_view driver : {"iec60870", "modbus", "iec61850"}) {
         if (driver != keep_driver)
           json.erase(driver);
@@ -457,6 +458,15 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       // Edge binaries link no history module (ADR 0002) — a "history" block
       // here would be dead config, so drop the template's.
       json.erase("history");
+      // ...but each reads its data items' latest archived values back from
+      // the historian when it starts, so a restarted edge does not show its
+      // objects bad until the devices report. A static link: the historian
+      // registers with the proxy, never with an edge. Mirrors the scada-setup
+      // edge templates.
+      json["historyLink"] =
+          boost::json::object{{"endpoint", historian_url},
+                              {"user", std::string{kSvcUser}},
+                              {"password", std::string{kSvcPassword}}};
       ConfigureTelemetry(json, "scada-e2e-" + std::string{keep_driver},
                          endpoint);
       ApplyPermissionEnforcement(json, enforce_permissions);
