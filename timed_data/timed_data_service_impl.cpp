@@ -10,6 +10,31 @@
 #include "timed_data/expression_timed_data.h"
 #include "timed_data/timed_data_impl.h"
 
+namespace {
+
+// `{name}` without its braces; any other name unchanged. Braces quote a name
+// the lexer would otherwise split, a channel path above all.
+std::string_view Unbrace(std::string_view name) {
+  if (name.size() >= 2 && name.front() == '{' && name.back() == '}')
+    return name.substr(1, name.size() - 2);
+  return name;
+}
+
+// An expression operand as the Server's name resolver reads it
+// (`GetFormulaSingleNodeId`, then the alias table): braces are dropped only
+// from an identifier -- `{IEC_DEV.1!5}`, `{TS.1379}` -- and `{u35_s1}` stays
+// as written, so it is no more an alias reference here than it is there.
+std::string_view UnbraceOperand(std::string_view name) {
+  std::string_view unbraced = Unbrace(name);
+  if (unbraced.size() != name.size() &&
+      !NodeIdFromScadaString(unbraced).is_null()) {
+    return unbraced;
+  }
+  return name;
+}
+
+}  // namespace
+
 template <class T>
 bool IsTimedCacheExpired(const T& value) {
   return value.use_count() <= 1;
@@ -54,16 +79,21 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
 
   std::string name;
   if (expression->IsSingleName(name)) {
-    std::string_view unbraced_name = name;
-    if (name.size() >= 2 && name[0] == '{' && name[name.size() - 1] == '}')
-      unbraced_name = unbraced_name.substr(1, unbraced_name.size() - 2);
-
-    return GetAliasTimedData(unbraced_name, aggregation);
+    return GetAliasTimedData(Unbrace(name), aggregation);
 
   } else {
+    // A braced identifier is unbraced here as it is in a whole formula. A
+    // channel reference such as `{IEC_DEV.1!5}` used to reach the alias
+    // resolver with its braces on inside an expression and resolve to nothing, so a Control
+    // condition `{IEC_DEV.1!5} = 1` stayed false in the Control window while
+    // the Server -- which unbraces every operand in its name resolver
+    // (`GetFormulaSingleNodeId`) -- evaluated it (backlog 958).
     std::vector<std::shared_ptr<TimedData>> operands(expression->items.size());
-    for (size_t i = 0; i < operands.size(); ++i)
-      operands[i] = GetAliasTimedData(expression->items[i].name, aggregation);
+    for (size_t i = 0; i < operands.size(); ++i) {
+      operands[i] =
+          GetAliasTimedData(UnbraceOperand(expression->items[i].name),
+                            aggregation);
+    }
     return std::make_shared<ExpressionTimedData>(std::move(expression),
                                                  std::move(operands));
   }

@@ -211,6 +211,24 @@ TEST_F(TimedDataTest, ExpressionVariableDeletes) {
   EXPECT_TRUE(spec.current().qualifier.good());
 }
 
+// Backlog 958: a braced name -- how a device-channel reference such as
+// `{IEC_DEV.1!5}` is written -- resolved as a whole formula but not as an
+// operand, so a Control condition built on one was never met in the Client.
+TEST_F(TimedDataTest, BracedOperandResolvesInsideAnExpression) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(1));
+
+  // The alias resolver is strict: reaching it would mean the braces were kept.
+  const auto formula =
+      std::format("{{{}}} = 1", NodeIdToScadaString(kDataItemId));
+
+  TimedDataSpec spec{service_, formula};
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_TRUE(spec.current().qualifier.good());
+  EXPECT_TRUE(spec.current().value.get_or(false));
+}
+
 TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
   const auto from = scada::Now();
   const auto to = from + std::chrono::seconds(10);
