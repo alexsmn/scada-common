@@ -784,10 +784,30 @@ void ConfigureProxyRole(boost::json::object& server_json,
   server_json.erase("filesystem");
   server_json.erase("history");
   server_json["dataItems"] = boost::json::object{{"enabled", false}};
+  // One configuration copy: the config tier's. The proxy authenticates every
+  // sign-in and serves the user-management methods, so with a database of its
+  // own an account or Role created through it landed in the config tier and
+  // was then unknown to the process that checks the password (backlog 937).
+  // The proxy keeps no root of its own either: root is checked by the config
+  // tier, like every other account.
+  if (!options.configuration_endpoint.empty()) {
+    server_json["configuration"] =
+        boost::json::object{{"endpoint", options.configuration_endpoint},
+                            {"user", std::string{kSvcUser}},
+                            {"password", std::string{kSvcPassword}}};
+    server_json.erase("security");
+  }
   // The block is written even with no static servers: its presence is what
   // makes a server aggregate the edges that RegisterServer with it (backlog
   // 851 — the config tier they also register with must not).
   boost::json::object aggregation;
+  // The account the proxy presents to every downstream that registers with it
+  // (the dynamically aggregated modbus edge here), mirroring the scada-setup
+  // proxy template since backlog 855. Without it that link is anonymous, and
+  // an anonymous caller may only browse and read: a rename of any object
+  // routed there came back Bad_UserAccessDenied even for root (backlog 937).
+  aggregation["registered_user"] = std::string{kSvcUser};
+  aggregation["registered_password"] = std::string{kSvcPassword};
   if (options.aggregation_servers) {
     aggregation["servers"] = *options.aggregation_servers;
   }

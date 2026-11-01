@@ -210,6 +210,12 @@ class ServerCluster {
 struct ProxyRoleOptions {
   // Typically ServerCluster::AggregationServers().
   boost::json::array* aggregation_servers = nullptr;
+  // The config tier's OPC UA URL. The proxy reads its configuration from
+  // there, as the edges and the historian do, instead of keeping a copy of its
+  // own: a copy is what made an account created through the proxy unknown to
+  // the proxy's own user management and sign-in (backlog 937). Every
+  // deployment template does the same.
+  std::string configuration_endpoint;
   std::string otlp_endpoint;
   std::string_view service_name = "scada-e2e-proxy";
   // See ClusterOptions::enforce_permissions.
