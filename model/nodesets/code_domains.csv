@@ -171,7 +171,6 @@ Iec61850DeviceType,devices
 Iec61850DeviceType_Host,devices
 Iec61850DeviceType_Model,devices
 Iec61850DeviceType_Port,devices
-Iec61850DeviceType_TransmissionItemPlaceholder,devices
 Iec61850LogicalNodeType,devices
 Iec61850RcbType,devices
 Iec61850TransmissionItemType,devices

@@ -36,14 +36,6 @@
       <Reference ReferenceType="HasSubtype" IsForward="false">ns=1;i=115</Reference>
     </References>
   </UAObjectType>
-  <UAObject NodeId="ns=1;i=372" BrowseName="&lt;TransmissionItem&gt;" SymbolicName="Iec61850DeviceType_TransmissionItemPlaceholder" ParentNodeId="ns=1;i=277">
-    <DisplayName>&lt;TransmissionItem&gt;</DisplayName>
-    <References>
-      <Reference ReferenceType="ns=1;i=339" IsForward="false">ns=1;i=277</Reference>
-      <Reference ReferenceType="HasTypeDefinition">ns=1;i=344</Reference>
-      <Reference ReferenceType="HasModellingRule">i=11508</Reference>
-    </References>
-  </UAObject>
   <UAVariable NodeId="ns=1;i=278" BrowseName="Host" SymbolicName="Iec61850DeviceType_Host" ParentNodeId="ns=1;i=277" DataType="String">
     <DisplayName Locale="ru">Хост</DisplayName>
     <DisplayName Locale="en">Host</DisplayName>

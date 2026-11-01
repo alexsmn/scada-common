@@ -161,9 +161,10 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(
       devices::id::ModbusDeviceType_TransmissionItemPlaceholder.numeric_id(),
       371u);
-  EXPECT_EQ(
-      devices::id::Iec61850DeviceType_TransmissionItemPlaceholder.numeric_id(),
-      372u);
+  // ns=1;i=372 (Iec61850DeviceType's <TransmissionItem>) is RETIRED but stays
+  // reserved — never reallocate it. The IEC 61850 process is only an MMS
+  // client and serves no retransmission, so the device type no longer offers
+  // a rule slot; Iec61850TransmissionItemType and its table stay, empty.
   EXPECT_EQ(devices::numeric_id::Iec60870DeviceType_InterrogationPeriodGroup1,
             200u);
 
