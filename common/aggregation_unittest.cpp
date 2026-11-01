@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <limits>
+#include <optional>
 #include <vector>
 
 using namespace std::chrono_literals;
@@ -118,9 +120,9 @@ TEST(AggregationTest, TimeAverageWeightsEachValueByHowLongItHeld) {
                                            values, /*forward=*/false)));
 }
 
-TEST(AggregationTest, TimeBeforeTheFirstSampleIsNotCovered) {
-  // The value in force before 30 min is unknown to the aggregator, so only the
-  // last half hour counts.
+TEST(AggregationTest, WithoutAStartBoundTimeBeforeTheFirstSampleIsNotCovered) {
+  // Fed no value from before the interval, the aggregator does not know what
+  // held before 30 min, so only the last half hour counts.
   std::vector<DataValue> values = {Sample(4, 30min)};
   EXPECT_DOUBLE_EQ(
       4.0, ValueOf(Aggregate(id::AggregateFunction_TimeAverage2, values)));
@@ -151,24 +153,189 @@ TEST(AggregationTest, AnIntervalWithoutGoodValuesYieldsNoData) {
   }
 }
 
-TEST(AggregationTest, AggregateStateSplitsRawValuesIntoIntervals) {
-  const AggregateFilter filter{
-      .start_time = kStart,
-      .interval = 30min,
-      .aggregate_type = NodeId{id::AggregateFunction_TimeAverage2}};
-  std::vector<DataValue> results;
-  AggregateState state{
-      .forward = true, .aggregation = filter, .data_values = results};
-  // A sample exactly on a boundary is counted in the earlier interval by
-  // AggregateState (UpperBound), so the second interval starts at 40 min.
+TEST(AggregationTest, AStartBoundCoversTheTimeBeforeTheFirstSample) {
+  // 7 was recorded before the interval and held until 4 replaced it at
+  // 30 min (Part 13 §3.1.9 simple bounding values).
+  const DataValue bound = Sample(7, -10min);
+  for (bool forward : {true, false}) {
+    for (NumericId aggregate :
+         {id::AggregateFunction_TimeAverage2, id::AggregateFunction_Total}) {
+      Aggregator aggregator = GetAggregator(NodeId{aggregate}, kHour, forward);
+      ASSERT_TRUE(aggregator);
+      DataValue inside = Sample(4, 30min);
+      DataValue result;
+      if (forward) {
+        aggregator(std::span{&bound, 1});
+        result = aggregator(std::span{&inside, 1});
+      } else {
+        aggregator(std::span{&inside, 1});
+        result = aggregator(std::span{&bound, 1});
+      }
+      const Double expected = aggregate == id::AggregateFunction_Total
+                                  ? 7.0 * 1800 + 4.0 * 1800
+                                  : 5.5;
+      EXPECT_DOUBLE_EQ(expected, ValueOf(result))
+          << aggregate << (forward ? " forward" : " backward");
+    }
+  }
+}
+
+TEST(AggregationTest, ABadStartBoundCoversNothing) {
+  // Part 13 Table 55: a Bad bound is "treated as any other Bad value".
+  const DataValue bound = Sample(1000, -10min, kBad);
+  Aggregator aggregator = GetAggregator(
+      NodeId{id::AggregateFunction_TimeAverage2}, kHour, /*forward=*/true);
+  aggregator(std::span{&bound, 1});
+  DataValue inside = Sample(4, 30min);
+  EXPECT_DOUBLE_EQ(4.0, ValueOf(aggregator(std::span{&inside, 1})));
+}
+
+TEST(AggregationTest, OnlyTheTimeWeightedAggregatesUseAStartBound) {
+  EXPECT_TRUE(UsesStartBound(NodeId{id::AggregateFunction_TimeAverage2}));
+  EXPECT_TRUE(UsesStartBound(NodeId{id::AggregateFunction_Total}));
+  EXPECT_TRUE(UsesStartBound(NodeId{id::AggregateFunction_Total2}));
+  for (NumericId aggregate :
+       {id::AggregateFunction_Average, id::AggregateFunction_Minimum,
+        id::AggregateFunction_Maximum, id::AggregateFunction_Count,
+        id::AggregateFunction_Start, id::AggregateFunction_End}) {
+    EXPECT_FALSE(UsesStartBound(NodeId{aggregate})) << aggregate;
+  }
+}
+
+// Runs AggregateState over |raw| (ascending) in the given direction, with
+// 30-minute intervals, and returns the results in ascending order.
+struct StateRun {
+  NumericId aggregate_type = id::AggregateFunction_TimeAverage2;
+  bool forward = true;
+  std::optional<DataValue> start_bound;
+  Time fill_from = kNullTime;
+  Time fill_until = kNullTime;
+  size_t max_count = std::numeric_limits<size_t>::max();
+
+  std::vector<DataValue> Run(std::vector<DataValue> raw) const {
+    const AggregateFilter filter{.start_time = kStart,
+                                 .interval = 30min,
+                                 .aggregate_type = NodeId{aggregate_type}};
+    std::vector<DataValue> results;
+    AggregateState state{.forward = forward,
+                         .aggregation = filter,
+                         .data_values = results,
+                         .start_bound = start_bound,
+                         .fill_from = fill_from,
+                         .fill_until = fill_until,
+                         .max_count = max_count};
+    if (!forward)
+      std::ranges::reverse(raw);
+    // One value per call, the way pages arrive from the archive.
+    for (const auto& value : raw)
+      state.Process(std::span{&value, 1});
+    state.Finish();
+    if (!forward)
+      std::ranges::reverse(results);
+    return results;
+  }
+};
+
+std::vector<Double> ValuesOf(const std::vector<DataValue>& data_values) {
+  std::vector<Double> result;
+  for (const auto& data_value : data_values)
+    result.push_back(ValueOf(data_value));
+  return result;
+}
+
+std::vector<Time> StartsOf(const std::vector<DataValue>& data_values) {
+  std::vector<Time> result;
+  for (const auto& data_value : data_values)
+    result.push_back(data_value.source_timestamp);
+  return result;
+}
+
+TEST(AggregationTest, AggregateStateCarriesTheValueIntoTheNextInterval) {
+  // 30 was recorded at 15 min and held until -6 replaced it at 40 min, so the
+  // second interval is 30 for 10 min and -6 for 20. It used to start at its
+  // first sample and report -6. (A sample exactly on a boundary is counted in
+  // the earlier interval by AggregateState's UpperBound.)
   std::vector<DataValue> raw = {Sample(10, 0min), Sample(30, 15min),
                                 Sample(-6, 40min)};
-  state.Process(raw);
-  state.Finish();
+  for (bool forward : {true, false}) {
+    auto results = StateRun{.forward = forward}.Run(raw);
+    ASSERT_EQ(2u, results.size()) << forward;
+    EXPECT_DOUBLE_EQ(20.0, ValueOf(results[0])) << forward;
+    EXPECT_DOUBLE_EQ((30.0 * 10 - 6.0 * 20) / 30, ValueOf(results[1]))
+        << forward;
+  }
+}
 
-  ASSERT_EQ(2u, results.size());
-  EXPECT_DOUBLE_EQ(20.0, ValueOf(results[0]));
-  EXPECT_DOUBLE_EQ(-6.0, ValueOf(results[1]));
+TEST(AggregationTest, AggregateStateProducesTheIntervalsAValueHeldThrough) {
+  // Nothing was recorded between 10 min and 100 min: 5 held through the
+  // 30-60 and 60-90 intervals, and into the 90-120 one.
+  std::vector<DataValue> raw = {Sample(5, 10min), Sample(9, 100min)};
+  for (bool forward : {true, false}) {
+    auto results = StateRun{.forward = forward}.Run(raw);
+    EXPECT_THAT(StartsOf(results),
+                testing::ElementsAre(kStart, kStart + 30min, kStart + 60min,
+                                     kStart + 90min))
+        << forward;
+    EXPECT_THAT(ValuesOf(results),
+                testing::ElementsAre(5.0, 5.0, 5.0, (5.0 * 10 + 9.0 * 20) / 30))
+        << forward;
+
+    auto totals = StateRun{.aggregate_type = id::AggregateFunction_Total,
+                           .forward = forward}
+                      .Run(raw);
+    EXPECT_THAT(ValuesOf(totals),
+                testing::ElementsAre(5.0 * 1200, 5.0 * 1800, 5.0 * 1800,
+                                     5.0 * 600 + 9.0 * 1200))
+        << forward;
+  }
+}
+
+TEST(AggregationTest, AggregateStateStartsFromTheValueBeforeTheRead) {
+  // 2 was recorded before the read starts; it held through the first interval
+  // and the first 10 minutes of the second.
+  auto results =
+      StateRun{.start_bound = Sample(2, -5min), .fill_from = kStart}.Run(
+          {Sample(8, 40min)});
+  EXPECT_THAT(StartsOf(results), testing::ElementsAre(kStart, kStart + 30min));
+  EXPECT_THAT(ValuesOf(results),
+              testing::ElementsAre(2.0, (2.0 * 10 + 8.0 * 20) / 30));
+}
+
+TEST(AggregationTest, AggregateStateExtendsTheLastValueToTheEndOfTheRead) {
+  auto results = StateRun{.fill_until = kStart + 80min}.Run({Sample(3, 10min)});
+  EXPECT_THAT(StartsOf(results),
+              testing::ElementsAre(kStart, kStart + 30min, kStart + 60min));
+  EXPECT_THAT(ValuesOf(results), testing::ElementsAre(3.0, 3.0, 3.0));
+
+  // Nothing recorded during the read at all: the value from before it holds.
+  auto quiet = StateRun{.start_bound = Sample(6, -1h),
+                        .fill_from = kStart,
+                        .fill_until = kStart + 60min}
+                   .Run({});
+  EXPECT_THAT(ValuesOf(quiet), testing::ElementsAre(6.0, 6.0));
+}
+
+TEST(AggregationTest, AggregateStateLeavesOtherAggregatesAlone) {
+  // Maximum looks only at values recorded inside an interval, so the empty
+  // intervals are not produced and nothing from before the read counts.
+  auto results = StateRun{.aggregate_type = id::AggregateFunction_Maximum,
+                          .start_bound = Sample(100, -5min),
+                          .fill_from = kStart,
+                          .fill_until = kStart + 3h}
+                     .Run({Sample(5, 10min), Sample(9, 100min)});
+  EXPECT_THAT(StartsOf(results), testing::ElementsAre(kStart, kStart + 90min));
+  EXPECT_THAT(ValuesOf(results), testing::ElementsAre(5.0, 9.0));
+}
+
+TEST(AggregationTest, AggregateStateStopsFillingAtMaxCount) {
+  // A long quiet stretch with short intervals must not grow the output
+  // without limit. The caller returns the first |max_count| values and pages
+  // on from the last of them, so what follows the cut is recomputed then.
+  auto results =
+      StateRun{.max_count = 3}.Run({Sample(1, 0min), Sample(2, 24h)});
+  EXPECT_THAT(StartsOf(results),
+              testing::ElementsAre(kStart, kStart + 30min, kStart + 60min,
+                                   kStart + 24h));
 }
 
 }  // namespace

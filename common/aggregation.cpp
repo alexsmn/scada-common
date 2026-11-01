@@ -60,10 +60,17 @@ Double ToSeconds(Duration duration) {
 // https://reference.opcfoundation.org/Core/Part13/v105/docs/5.4.3.7
 //
 // A Bad sample ends the preceding Good step and its own duration is left out,
-// as both sections require. The aggregator sees only the samples inside the
-// interval, never the value in force at its start, so the time before the
-// first sample is not covered — Part 13's "No Start Bound" treatment, which
-// counts it as Bad.
+// as both sections require.
+//
+// Both aggregates use Simple Bounding Values (Part 13 §3.1.9 simple bounding
+// values): with stepped interpolation the start bound is the first raw value
+// before the interval start, whatever its quality. The caller feeds it like
+// any other sample; its timestamp is clamped to the interval start, so it
+// covers the time up to the first sample inside. A Bad bound covers nothing.
+// Without one the time before the first sample is not covered — the "No Start
+// Bound" case of Tables 55 and 57, where the bound "is Bad_NoData and treated
+// as any other Bad value in the interval".
+// https://reference.opcfoundation.org/Core/Part13/v105/docs/3.1.9
 //
 // Samples arrive in chunks, ascending when |forward| and descending
 // otherwise, so the state is incremental in both directions.
@@ -299,14 +306,22 @@ Aggregator GetAggregator(const NodeId& aggregate_type,
   return factory ? factory(interval, forward) : nullptr;
 }
 
+bool UsesStartBound(const NodeId& aggregate_type) {
+  // The aggregates computed by SteppedIntegral. Part 13 Tables 55-57 give
+  // them "Use Bounds: Simple" (TimeAverage2, Total2) and "Interpolated"
+  // (Total); with a stepped line both reduce to the last value before the
+  // interval start.
+  return aggregate_type == id::AggregateFunction_TimeAverage2 ||
+         aggregate_type == id::AggregateFunction_Total ||
+         aggregate_type == id::AggregateFunction_Total2;
+}
+
 Time GetLocalAggregateStartTime() {
   base::Exploded exploded = {2000, 1, 0, 1};
   return base::FromLocalExploded(exploded).value_or(Time{});
 }
 
-TimeRange GetAggregateInterval(Time time,
-                                   Time origin_time,
-                                   Duration interval) {
+TimeRange GetAggregateInterval(Time time, Time origin_time, Duration interval) {
   // The interval comes from request/configuration data and |time| from stored
   // history values (external input); degrade instead of panicking.
   if (interval == Duration::zero())
@@ -329,26 +344,109 @@ void AggregateState::Process(std::span<const scada::DataValue> raw_span) {
     base::Check(count != 0);
 
     if (aggregator_interval != interval) {
-      if (!aggregated_value.is_null()) {
-        data_values.emplace_back(std::move(aggregated_value));
-        aggregated_value = {};
+      if (forward) {
+        // The value recorded last holds from the previous interval up to
+        // this one.
+        const auto& held = last_raw ? last_raw : start_bound;
+        if (aggregator)
+          AppendHeldIntervals(aggregator_interval.second, interval.first, held);
+        else if (!IsNull(fill_from))
+          AppendHeldIntervals(
+              GetAggregateInterval(fill_from, aggregation.start_time,
+                                   aggregation.interval)
+                  .first,
+              interval.first, held);
+        StartInterval(interval, held);
+      } else {
+        // Read backward, this value is the start bound of the interval read
+        // before it, and it holds through every interval in between.
+        if (aggregator && uses_start_bound())
+          aggregated_value = aggregator(raw_span.subspan(0, 1));
+        std::optional<DataValue> held{raw_span[0]};
+        if (aggregator)
+          AppendHeldIntervals(interval.second, aggregator_interval.first, held);
+        StartInterval(interval, std::nullopt);
       }
-
-      aggregator_interval = interval;
-      aggregator = GetAggregator(aggregation.aggregate_type,
-                                 aggregator_interval, forward);
       if (!aggregator)
         break;
     }
 
     aggregated_value = aggregator(raw_span.subspan(0, count));
+    last_raw = raw_span[count - 1];
     raw_span = raw_span.subspan(count);
   }
 }
 
 void AggregateState::Finish() {
+  if (forward && !IsNull(fill_until)) {
+    const auto& held = last_raw ? last_raw : start_bound;
+    if (aggregator) {
+      AppendHeldIntervals(aggregator_interval.second, fill_until, held);
+    } else if (!IsNull(fill_from)) {
+      // Nothing was recorded during the whole read.
+      AppendHeldIntervals(
+          GetAggregateInterval(fill_from, aggregation.start_time,
+                               aggregation.interval)
+              .first,
+          fill_until, held);
+    }
+  }
   if (!aggregated_value.is_null())
     data_values.emplace_back(std::move(aggregated_value));
+  aggregated_value = {};
+}
+
+void AggregateState::StartInterval(const scada::TimeRange& interval,
+                                   const std::optional<DataValue>& bound) {
+  if (!aggregated_value.is_null()) {
+    data_values.emplace_back(std::move(aggregated_value));
+    aggregated_value = {};
+  }
+
+  aggregator_interval = interval;
+  aggregator =
+      GetAggregator(aggregation.aggregate_type, aggregator_interval, forward);
+  if (aggregator && bound && uses_start_bound())
+    aggregated_value = aggregator(std::span{&*bound, 1});
+}
+
+void AggregateState::AppendHeldIntervals(scada::Time from,
+                                         scada::Time to,
+                                         const std::optional<DataValue>& held) {
+  // |from| and |to| are interval boundaries; the intervals between them saw
+  // no raw value, so |held| is their start bound and their only input.
+  if (!held || !uses_start_bound() || aggregation.interval <= Duration::zero())
+    return;
+
+  // Flush the interval in progress first, so the output stays in read order.
+  if (!aggregated_value.is_null()) {
+    data_values.emplace_back(std::move(aggregated_value));
+    aggregated_value = {};
+  }
+
+  const std::span<const DataValue> bound{&*held, 1};
+  if (forward) {
+    for (Time start = from; start < to && data_values.size() < max_count;
+         start += aggregation.interval) {
+      TimeRange interval{start, start + aggregation.interval};
+      if (auto held_aggregator =
+              GetAggregator(aggregation.aggregate_type, interval, forward))
+        data_values.emplace_back(held_aggregator(bound));
+    }
+  } else {
+    // Backward: |from| is the earlier boundary, and the output descends.
+    for (Time end = to; end > from && data_values.size() < max_count;
+         end -= aggregation.interval) {
+      TimeRange interval{end - aggregation.interval, end};
+      if (auto held_aggregator =
+              GetAggregator(aggregation.aggregate_type, interval, forward))
+        data_values.emplace_back(held_aggregator(bound));
+    }
+  }
+}
+
+bool AggregateState::uses_start_bound() const {
+  return UsesStartBound(aggregation.aggregate_type);
 }
 
 }  // namespace scada
