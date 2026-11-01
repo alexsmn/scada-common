@@ -101,6 +101,9 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(devices::id::LinkType.numeric_id(), 116u);
   EXPECT_EQ(devices::id::DeviceType_Online.numeric_id(), 248u);
   EXPECT_EQ(devices::id::LinkType_Transport.numeric_id(), 142u);
+  // Which computer serves a link (docs/server/partitioned-protocol-tiers.md).
+  EXPECT_EQ(devices::id::LinkType_Computer.numeric_id(), 15154u);
+  EXPECT_EQ(devices::id::Iec61850DeviceType_Computer.numeric_id(), 15155u);
   EXPECT_EQ(devices::id::ModbusDeviceType.numeric_id(), 118u);
   EXPECT_EQ(devices::id::Iec60870DeviceType.numeric_id(), 331u);
   EXPECT_EQ(devices::id::DeviceType_Interrogate.numeric_id(),

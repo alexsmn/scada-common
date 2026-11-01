@@ -168,6 +168,7 @@ Iec61850ConfigurableObjectType_Reference,devices
 Iec61850ControlObjectType,devices
 Iec61850DataVariableType,devices
 Iec61850DeviceType,devices
+Iec61850DeviceType_Computer,devices
 Iec61850DeviceType_Host,devices
 Iec61850DeviceType_Model,devices
 Iec61850DeviceType_Port,devices
@@ -178,6 +179,7 @@ ItemAlarmEventType,data_items
 LimitsPropertyCategory,data_items
 LinkType,devices
 LinkType_ActiveConnections,devices
+LinkType_Computer,devices
 LinkType_ConnectCount,devices
 LinkType_Transport,devices
 MetricType,scada

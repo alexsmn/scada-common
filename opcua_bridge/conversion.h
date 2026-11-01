@@ -110,14 +110,14 @@ namespace scada::opcua_bridge {
   MAP(Bad_NotSupported, Bad_NotSupported)                               \
   MAP(Bad_LicenseExpired, Bad_LicenseExpired)                           \
   MAP(Bad_WaitingForInitialData, Bad_WaitingForInitialData)             \
-  MAP(Bad_TooManySessions, Bad_TooManySessions) \
-  MAP(Bad_TooManySubscriptions, Bad_TooManySubscriptions) \
-  MAP(Bad_TooManyPublishRequests, Bad_TooManyPublishRequests) \
-  MAP(Bad_CertificateHostNameInvalid, Bad_CertificateHostNameInvalid) \
-  MAP(Bad_CertificateUriInvalid, Bad_CertificateUriInvalid) \
-  MAP(Bad_CertificateUntrusted, Bad_CertificateUntrusted) \
-  MAP(Bad_CertificateInvalid, Bad_CertificateInvalid) \
-  MAP(Bad_CertificateTimeInvalid, Bad_CertificateTimeInvalid) \
+  MAP(Bad_TooManySessions, Bad_TooManySessions)                         \
+  MAP(Bad_TooManySubscriptions, Bad_TooManySubscriptions)               \
+  MAP(Bad_TooManyPublishRequests, Bad_TooManyPublishRequests)           \
+  MAP(Bad_CertificateHostNameInvalid, Bad_CertificateHostNameInvalid)   \
+  MAP(Bad_CertificateUriInvalid, Bad_CertificateUriInvalid)             \
+  MAP(Bad_CertificateUntrusted, Bad_CertificateUntrusted)               \
+  MAP(Bad_CertificateInvalid, Bad_CertificateInvalid)                   \
+  MAP(Bad_CertificateTimeInvalid, Bad_CertificateTimeInvalid)           \
   MAP(Bad_SecurityModeInsufficient, Bad_SecurityModeInsufficient)
 
 // Core codes that share a wire code with an entry in the table above.
@@ -222,6 +222,10 @@ inline scada::StatusCode ToScada(opcua::StatusCode c) {
     // unrelated core enumerator.
     case opcua::StatusCode::Bad_ServiceUnsupported:
       return scada::StatusCode::Bad_NotSupported;
+    // A secured channel saw a replayed or out-of-order chunk and is being
+    // torn down (OPC UA Part 6 §6.7.2.4): to a caller the link is gone.
+    case opcua::StatusCode::Bad_SequenceNumberInvalid:
+      return scada::StatusCode::Bad_Disconnected;
   }
   // A wire code opcuapp does not name, e.g. a standard code from a peer.
   return static_cast<scada::StatusCode>(c);

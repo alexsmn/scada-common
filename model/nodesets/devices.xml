@@ -64,6 +64,21 @@
     </References>
     <Value><uax:String></uax:String></Value>
   </UAVariable>
+  <!-- The computer whose protocol process serves this link and every device
+       under it: compared with the process's own host name (devices.host).
+       Empty means the protocol's default process (devices.default), which is
+       every link on a site that runs the protocol on one computer. See
+       docs/server/partitioned-protocol-tiers.md. -->
+  <UAVariable NodeId="ns=1;i=15154" BrowseName="Computer" SymbolicName="LinkType_Computer" ParentNodeId="ns=1;i=116" DataType="String">
+    <DisplayName Locale="ru">Компьютер</DisplayName>
+    <DisplayName Locale="en">Computer</DisplayName>
+    <References>
+      <Reference ReferenceType="HasProperty" IsForward="false">ns=1;i=116</Reference>
+      <Reference ReferenceType="HasTypeDefinition">i=68</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+    <Value><uax:String></uax:String></Value>
+  </UAVariable>
   <UAObjectType NodeId="ns=1;i=15132" BrowseName="DeviceWatchEventType" SymbolicName="DeviceWatchEventType">
     <DisplayName>DeviceWatchEventType</DisplayName>
     <References>
