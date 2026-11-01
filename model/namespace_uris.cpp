@@ -95,6 +95,12 @@ std::vector<std::string> GetCanonicalNamespaceUris() {
       "http://telecontrol.ru/opcua/history/HistoricalDataConfigurationType";
   uris[NamespaceIndexes::USER_EXTENSION] =
       "http://telecontrol.ru/opcua/security/UserExtensionType";
+  // The OPC Foundation's GDS namespace: scada-config's CertificateManager
+  // serves its Directory object (OPC UA Part 12 §7.9 Information Model for
+  // Pull Certificate Management,
+  // https://reference.opcfoundation.org/Core/Part12/v105/docs/7.9), so its
+  // NodeIds are the standard ones and any GDS client can call them.
+  uris[NamespaceIndexes::GDS] = "http://opcfoundation.org/UA/GDS/";
   return uris;
 }
 

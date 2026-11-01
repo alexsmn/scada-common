@@ -34,3 +34,4 @@ index,const_name,db_name,row_type,config_group,group_kind
 32,CONFIGURATION,CONFIGURATION,ConfigurationType,security,dedicated
 33,HISTORICAL_CONFIG,HISTORICAL_CONFIG,HistoricalDataConfigurationType,history,dedicated
 34,USER_EXTENSION,USER_EXTENSION,UserExtensionType,security,dedicated
+35,GDS,GDS,,certificate_manager,module

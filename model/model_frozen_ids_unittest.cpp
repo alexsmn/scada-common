@@ -66,7 +66,8 @@ TEST(ModelFrozenIds, NamespaceShortNames) {
                                                    "ROLE_IDENTITY",
                                                    "CONFIGURATION",
                                                    "HISTORICAL_CONFIG",
-                                                   "USER_EXTENSION"};
+                                                   "USER_EXTENSION",
+                                                   "GDS"};
   ASSERT_EQ(std::size(kExpected), NamespaceIndexes::END);
   for (NamespaceIndex i = 0; i != NamespaceIndexes::END; ++i)
     EXPECT_EQ(GetNamespaceName(i), kExpected[i]) << "namespace index " << i;
@@ -85,7 +86,10 @@ TEST(ModelFrozenIds, NamespaceIndices) {
   EXPECT_EQ(NamespaceIndexes::CONFIGURATION, 32);
   EXPECT_EQ(NamespaceIndexes::HISTORICAL_CONFIG, 33);
   EXPECT_EQ(NamespaceIndexes::USER_EXTENSION, 34);
-  EXPECT_EQ(NamespaceIndexes::END, 35);
+  // The OPC Foundation's GDS namespace, served by scada-config's
+  // CertificateManager (docs/server/inter-tier-opcua-security.md).
+  EXPECT_EQ(NamespaceIndexes::GDS, 35);
+  EXPECT_EQ(NamespaceIndexes::END, 36);
 }
 
 // Representative node-id values spanning every domain. These are stored in
@@ -308,7 +312,7 @@ TEST(ModelFrozenIds, ConfigTableRegistry) {
 
   // Module namespaces (ADR 0003): tier-exclusive namespaces with no config
   // table. Frozen indexes, since they are persisted and drive tier routing.
-  ASSERT_EQ(std::size(model::kModuleNamespaces), 5u);
+  ASSERT_EQ(std::size(model::kModuleNamespaces), 6u);
   // FILESYSTEM (19) has no NamespaceIndexes:: constant (no C++ references it by
   // name); its index is frozen in namespaces.csv.
   expect_module(model::kModuleNamespaces[0], 19, "filesystem");
@@ -319,11 +323,14 @@ TEST(ModelFrozenIds, ConfigTableRegistry) {
                 "vidicon");
   expect_module(model::kModuleNamespaces[4], NamespaceIndexes::VIDICON_FILE,
                 "vidicon");
+  expect_module(model::kModuleNamespaces[5], NamespaceIndexes::GDS,
+                "certificate_manager");
 
-  ASSERT_EQ(std::size(model::kModuleNamespaceGroups), 3u);
+  ASSERT_EQ(std::size(model::kModuleNamespaceGroups), 4u);
   EXPECT_EQ(model::kModuleNamespaceGroups[0], "filesystem");
   EXPECT_EQ(model::kModuleNamespaceGroups[1], "opc");
   EXPECT_EQ(model::kModuleNamespaceGroups[2], "vidicon");
+  EXPECT_EQ(model::kModuleNamespaceGroups[3], "certificate_manager");
 }
 
 }  // namespace
