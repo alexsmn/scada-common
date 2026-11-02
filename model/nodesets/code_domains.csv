@@ -200,6 +200,7 @@ ModbusLinkType_RequestDelay,devices
 ModbusModeDataType,devices
 ModbusModeDataType_EnumStrings,devices
 ModbusTransmissionItemType,devices
+ModbusTransmissionItemType_Format,devices
 OPC,opc
 OperatorActionAuditEventType,data_items
 OperatorActionAuditEventType_AckedState,data_items

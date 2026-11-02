@@ -109,6 +109,9 @@ TEST(ModelFrozenIds, NodeIdValues) {
   EXPECT_EQ(devices::id::LinkType_Computer.numeric_id(), 15154u);
   EXPECT_EQ(devices::id::Iec61850DeviceType_Computer.numeric_id(), 15155u);
   EXPECT_EQ(devices::id::ModbusDeviceType.numeric_id(), 118u);
+  // How a MODBUS retransmission rule lays its value out in registers.
+  EXPECT_EQ(devices::id::ModbusTransmissionItemType_Format.numeric_id(),
+            15156u);
   EXPECT_EQ(devices::id::Iec60870DeviceType.numeric_id(), 331u);
   EXPECT_EQ(devices::id::DeviceType_Interrogate.numeric_id(),
             133u);  // runtime method
