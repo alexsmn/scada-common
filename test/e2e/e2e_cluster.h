@@ -157,6 +157,10 @@ struct ClusterOptions {
   // the config tier keeps serving every row for the edges' remote
   // configuration. Off by default so the client suite's topology is unchanged.
   bool single_owner = false;
+  // Appended to the config tier's SQL, which is the configuration every edge
+  // loads: how a test adds the objects, devices and transmission rules it
+  // drives.
+  std::string extra_config_sql;
 };
 
 // Owns the downstream tier processes of one cluster. Non-copyable and

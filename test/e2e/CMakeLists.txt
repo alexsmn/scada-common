@@ -29,6 +29,8 @@ target_sources(scada_e2e_harness INTERFACE
   # (backlog 801). The device is a binary now, at test/e2e/iec61850_device/, and
   # is handed over by path like the seven tier binaries beside it.
   "${CMAKE_CURRENT_LIST_DIR}/e2e_iec61850_device.cpp"
+  # A raw-APDU IEC 104 dispatch centre, for retransmission commands.
+  "${CMAKE_CURRENT_LIST_DIR}/e2e_iec104_master.cpp"
 )
 
 # Consumers include these as "test/e2e/e2e_cluster.h", so the include root is

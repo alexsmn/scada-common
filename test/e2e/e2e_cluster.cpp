@@ -286,6 +286,7 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   std::string config_sql{kSvcUserSql};
   if (options.historize_simulated_item)
     config_sql += std::string{kHistorizeSimulatedItemSql};
+  config_sql += options.extra_config_sql;
   config.Launch(ServerTier::Options{
       .configure =
           [endpoint, enforce_permissions,
@@ -421,12 +422,13 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
 
   auto make_edge_configure = [config_url, historian_url, endpoint,
                               enforce_permissions, single_owner_items,
+                              single_owner,
                               proxy_opcua_url = options.proxy_opcua_url](
                                  std::string_view keep_driver,
                                  bool dynamic_registration,
                                  std::string advertise_url) {
     return [config_url, historian_url, proxy_opcua_url, endpoint,
-            enforce_permissions, single_owner_items, keep_driver,
+            enforce_permissions, single_owner_items, single_owner, keep_driver,
             dynamic_registration, advertise_url = std::move(advertise_url)](
                boost::json::object& json) {
       for (std::string_view driver : {"iec60870", "modbus", "iec61850"}) {
@@ -437,6 +439,19 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
       // TIT.4 from it, and the proxy forwards its events.
       single_owner_items(json, /*owns_unassigned=*/keep_driver == "iec60870",
                          /*hide_unowned=*/true);
+      // With single-owner items an edge holds only what it produces, so it
+      // reads -- and commands -- the transmission sources it does not hold
+      // through the proxy, which routes each to its owner (ADR 0006 Phase 3).
+      // As svc: a dispatch centre's commands on that route are authorized as
+      // this account, which holds the Control right. Mirrors the scada-setup
+      // edge templates.
+      if (single_owner) {
+        json["transmission"] = boost::json::object{
+            {"sources",
+             boost::json::object{{"endpoint", proxy_opcua_url},
+                                 {"user", std::string{kSvcUser}},
+                                 {"password", std::string{kSvcPassword}}}}};
+      }
       // The filesystem tier exclusively owns the FileSystem subtree; an edge
       // running its own file store would merge a second tree into the proxy's
       // fan-out Browse.
