@@ -63,12 +63,12 @@ extern const std::string_view kStripDataItemRowsSql;
 // (e.g. the fixture's guest id 12).
 void ProvisionSvcPassword(boost::json::object& server_json);
 
-// Applies the SCADA_SERVER_LICENSE_FILE (and optional
-// SCADA_SERVER_LICENSE_REQUIRE_GCP_BINDING) environment license to a
-// server.json object. The path is resolved to an absolute one against the TEST
-// PROCESS's working directory: every tier is launched with its own temporary
-// workspace as its working directory, so a relative value would not resolve
-// there and the tier would start unlicensed.
+// Applies the SCADA_SERVER_LICENSE_FILE environment license to a server.json
+// object. Whether it binds to a host is the license's own business. The path is
+// resolved to an absolute one against the TEST PROCESS's working directory:
+// every tier is launched with its own temporary workspace as its working
+// directory, so a relative value would not resolve there and the tier would
+// start unlicensed.
 void ConfigureSignedLicenseFromEnv(boost::json::object& server_json);
 
 // Fails with an explanatory message when SCADA_SERVER_LICENSE_FILE is unset or

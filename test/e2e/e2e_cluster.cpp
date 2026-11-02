@@ -118,17 +118,7 @@ void ConfigureSignedLicenseFromEnv(boost::json::object& server_json) {
   if (license_path.empty())
     return;
 
-  boost::json::object license{{"file", license_path.string()}};
-
-  if (auto* require_gcp_binding =
-          std::getenv("SCADA_SERVER_LICENSE_REQUIRE_GCP_BINDING");
-      require_gcp_binding && *require_gcp_binding) {
-    license["require_gcp_binding"] =
-        std::string_view{require_gcp_binding} == "true" ||
-        std::string_view{require_gcp_binding} == "1";
-  }
-
-  server_json["license"] = std::move(license);
+  server_json["license"] = boost::json::object{{"file", license_path.string()}};
 }
 
 ::testing::AssertionResult ValidateSignedLicenseEnv() {
