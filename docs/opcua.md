@@ -1,7 +1,9 @@
 # OPC UA Module and Endpoint Design
 
 Status: Living reference
-Last verified against code: 2026-09-27 for `max_message_size` in the
+Last verified against code: 2026-11-03 for the framework's module
+integration suite (live again) under "Test strategy"; 2026-09-27 for
+`max_message_size` in the
 WebSocket options and for the `TestExecutor` timer note under "Test
 strategy"; 2026-08-31 (the "Test strategy" section's inventory
 of WebSocket suites only, re-read against `git ls-files` — two claims about
@@ -604,12 +606,14 @@ service request/response body field names are governed by the spec casing.
 - **Codec unit tests**
   (`third_party/opcuapp/opcua/transport/websocket/json_codec_unittest.cpp`)
   check PascalCase session field names explicitly.
-- **Server integration tests** used to live in
-  ~~`server/opcua/opcua_module_unittest.cpp`~~, sending raw PascalCase
-  `CreateSession` / `ActivateSession` JSON over a live websocket connection.
-  That file is currently parked as
-  `scada-server-framework/modules/opcua/opcua_module_unittest.cpp.cutover-disabled`
-  and does not build, so this layer has no live integration coverage.
+- **Server integration tests** live in
+  `scada-server-framework/modules/opcua/opcua_module_unittest.cpp` (until
+  2026-11-03 parked out of the build, and before that at
+  ~~`server/opcua/opcua_module_unittest.cpp`~~). They send hand-written
+  conformant UA-JSON — `CreateSession`, an `ActivateSession` carrying a
+  `UserNameIdentityToken` ExtensionObject, and every attribute, view, method
+  and node-management service under its spec field names — over a live
+  websocket connection.
 - **Envelope keys (`service`, `requestHandle`, `body`)** remain camelCase;
   they are module-defined framing keys, not UA StructureField names.
 
@@ -988,9 +992,10 @@ opens Beast WebSocket clients over both plain WS and TLS/WSS, validates the
 browser-facing handshake policy (`Origin`, `Sec-WebSocket-Protocol`), and
 drives the session + browse paging flow end-to-end. No browser and no server
 binary launch. This was the test that caught regressions in message dispatch
-and real websocket integration — while it stays excluded, that whole layer is
-uncovered, and the framework's own
-`opcua_module_unittest.cpp.cutover-disabled` does not cover it either.
+and real websocket integration — while it stays excluded, that layer is
+covered only from above, by the framework's
+`modules/opcua/opcua_module_unittest.cpp`, which drives the whole module
+rather than `opcua::ws::Server` alone.
 
 `transport/websocket/tls_context_unittest.cpp` **(live)**
 
