@@ -59,7 +59,7 @@ TEST_F(EventAckQueueTest, AckDispatchesMethodCallFromCoroutineTask) {
            ArgumentsContainEventIds(std::vector<scada::EventId>{11}),
            ContextHasUserId(user_id)))
       .WillOnce(
-          Invoke([](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); }));
+          [](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); });
 
   queue.Ack(11);
   DrainExecutor();
@@ -76,7 +76,7 @@ TEST_F(EventAckQueueTest, AckKeepsAtMostFiveRunningAndSchedulesRemainder) {
            ArgumentsContainEventIds(std::vector<scada::EventId>{1, 2, 3, 4, 5}),
            _))
       .WillOnce(
-          Invoke([](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); }));
+          [](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); });
 
   for (scada::EventId event_id = 1; event_id <= 6; ++event_id)
     queue.Ack(event_id);
@@ -88,7 +88,7 @@ TEST_F(EventAckQueueTest, AckKeepsAtMostFiveRunningAndSchedulesRemainder) {
       method_service_,
       Call(_, _, ArgumentsContainEventIds(std::vector<scada::EventId>{6}), _))
       .WillOnce(
-          Invoke([](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); }));
+          [](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); });
 
   queue.OnAcked(1);
   DrainExecutor();
@@ -103,7 +103,7 @@ TEST_F(EventAckQueueTest, DuplicateAckIsIgnoredWhilePending) {
       method_service_,
       Call(_, _, ArgumentsContainEventIds(std::vector<scada::EventId>{42}), _))
       .WillOnce(
-          Invoke([](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); }));
+          [](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); });
 
   queue.Ack(42);
   queue.Ack(42);
@@ -138,13 +138,12 @@ TEST_F(EventAckQueueTest, RefusedAckIsReportedAndCanBeRetried) {
   EXPECT_CALL(
       method_service_,
       Call(_, _, ArgumentsContainEventIds(std::vector<scada::EventId>{7}), _))
-      .WillOnce(Invoke([](auto, auto, auto, auto) {
+      .WillOnce([](auto, auto, auto, auto) {
         return scada::MakeMethodCallResult(
             scada::StatusCode::Bad_UserAccessDenied);
-      }))
-      .WillOnce(Invoke([](auto, auto, auto, auto) {
-        return scada::MakeMethodCallResult();
-      }));
+      })
+      .WillOnce(
+          [](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); });
 
   queue.Ack(7);
   DrainExecutor();

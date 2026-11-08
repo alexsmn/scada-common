@@ -11,7 +11,6 @@
 namespace {
 
 using testing::_;
-using testing::Invoke;
 using testing::StrictMock;
 
 class ChannelProxy {
@@ -46,10 +45,10 @@ TEST(SessionProxyNotifierTest,
       session_state_changed;
 
   EXPECT_CALL(session_service, SubscribeSessionStateChanged(_))
-      .WillOnce(Invoke([&](const scada::SessionService::
-                               SessionStateChangedCallback& callback) {
+      .WillOnce([&](const scada::SessionService::SessionStateChangedCallback&
+                        callback) {
         return session_state_changed.connect(callback);
-      }));
+      });
   EXPECT_CALL(session_service, IsConnected(_)).WillOnce(testing::Return(true));
   EXPECT_CALL(session_service, GetUserId())
       .WillOnce(testing::Return(scada::NodeId{1, 100}));
@@ -69,10 +68,10 @@ TEST(SessionProxyNotifierTest,
       session_state_changed;
 
   EXPECT_CALL(session_service, SubscribeSessionStateChanged(_))
-      .WillOnce(Invoke([&](const scada::SessionService::
-                               SessionStateChangedCallback& callback) {
+      .WillOnce([&](const scada::SessionService::SessionStateChangedCallback&
+                        callback) {
         return session_state_changed.connect(callback);
-      }));
+      });
   EXPECT_CALL(session_service, IsConnected(_)).WillOnce(testing::Return(false));
 
   SessionProxyNotifier notifier{proxy, session_service};

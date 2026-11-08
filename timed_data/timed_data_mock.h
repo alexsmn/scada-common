@@ -12,30 +12,28 @@ class MockTimedData : public TimedData {
   MockTimedData() {
     using namespace testing;
 
-    ON_CALL(*this, GetDataValue()).WillByDefault(Invoke([&] {
-      return data_value_;
-    }));
+    ON_CALL(*this, GetDataValue()).WillByDefault([&] { return data_value_; });
 
     ON_CALL(*this, AddObserver(_))
-        .WillByDefault(Invoke([this](TimedDataObserver& observer) {
+        .WillByDefault([this](TimedDataObserver& observer) {
           observers_.emplace_back(&observer);
-        }));
+        });
 
     ON_CALL(*this, RemoveObserver(_))
-        .WillByDefault(Invoke([this](TimedDataObserver& observer) {
+        .WillByDefault([this](TimedDataObserver& observer) {
           std::erase(observers_, &observer);
-        }));
+        });
 
     ON_CALL(*this, AddViewObserver(_, _))
-        .WillByDefault(Invoke([this](TimedDataViewObserver& observer,
-                                     const scada::TimeRange& range) {
+        .WillByDefault([this](TimedDataViewObserver& observer,
+                              const scada::TimeRange& range) {
           view_observers_.emplace_back(&observer);
-        }));
+        });
 
     ON_CALL(*this, RemoveViewObserver(_))
-        .WillByDefault(Invoke([this](TimedDataViewObserver& observer) {
+        .WillByDefault([this](TimedDataViewObserver& observer) {
           std::erase(view_observers_, &observer);
-        }));
+        });
   }
 
   MOCK_METHOD(bool, IsError, (), (const override));
