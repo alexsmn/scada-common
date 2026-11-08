@@ -12,6 +12,8 @@
 //    class; exporting both would make TUs importing scada.common and
 //    scada.remote together ill-formed. Include the header textually.
 
+// facade-omits: common/session_proxy_notifier.h -- SessionProxyNotifier collides with scada.remote's
+
 module;
 
 // ---- Global module fragment: headers stay the source of truth ----

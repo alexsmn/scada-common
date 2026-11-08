@@ -12,6 +12,8 @@
 // `constexpr` objects with INTERNAL linkage - ill-formed to export and
 // pure BMI bloat to include. Importing TUs #include those headers
 // textually (before the import), exactly like macros.
+//
+// facade-generated: model/namespaces.h -- written from the nodeset CSV by gen/
 
 module;
 
