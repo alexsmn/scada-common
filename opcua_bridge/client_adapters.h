@@ -276,8 +276,12 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 // own canonical array). The remote array is learned from the server, never
 // assumed: on every (re)connect the session's Server_NamespaceArray (i=2255) is
 // matched against `local_namespace_uris` by URI and the bidirectional remapper
-// rebuilt. This is deliberately model-agnostic — the caller supplies its local
-// array — so this boundary layer links no model or config-table vocabulary.
+// rebuilt. A server namespace absent from `local_namespace_uris` gets a fresh
+// client index past the end of that array, stable for the life of the returned
+// services; a client namespace the server does not publish reaches the wire as
+// an unknown namespace (NamespaceRemapper::BuildByUri). This is deliberately
+// model-agnostic — the caller supplies its local array — so this boundary
+// layer links no model or config-table vocabulary.
 //
 // Shared by every OPC UA client of a tier: the desktop client and the
 // historian's external history-collection client. OPC UA Part 3 §8.2.3 makes

@@ -4,6 +4,7 @@
 #include "opcua_bridge/vector_conversion.h"
 #include "scada/co_result.h"
 #include "scada/namespace_remapper.h"
+#include "scada/proxy_namespace_table.h"
 #include "scada/read_value_id.h"
 #include "scada/remapping_services.h"
 #include "scada/standard_node_ids.h"
@@ -341,13 +342,17 @@ namespace {
 //
 // The remapper is rebuilt on every (re)connect from the server's own
 // Server_NamespaceArray (read into the session during activation), matched by
-// URI against the client's local array — the remote indexes are learned, never
-// assumed. `remapper_` starts empty (identity), which is correct: nothing is
-// browsed or subscribed before the first connect populates it, and the state
-// callback fires when activation completes, before the client acts on the
-// session. The wrappers hold references to `remapper_` and to `inner_`, so both
-// must be declared before them and outlive them (this holder is kept alive by
-// the aliasing shared_ptrs handed back in AsDataServices).
+// URI against the client's local table — the remote indexes are learned, never
+// assumed. A server namespace the client does not know is appended to
+// `local_table_` and gets a fresh local index (backlog 1053); the table lives
+// as long as the holder, so that index survives a reconnect and NodeIds the
+// client cached before it still name the same namespace. `remapper_` starts
+// empty (identity), which is correct: nothing is browsed or subscribed before
+// the first connect populates it, and the state callback fires when activation
+// completes, before the client acts on the session. The wrappers hold
+// references to `remapper_` and to `inner_`, so both must be declared before
+// them and outlive them (this holder is kept alive by the aliasing shared_ptrs
+// handed back in AsDataServices).
 class RemappingClientServices
     : public std::enable_shared_from_this<RemappingClientServices> {
  public:
@@ -357,7 +362,7 @@ class RemappingClientServices
                           Tracer& tracer)
       : session_{std::move(session)},
         inner_{std::move(inner)},
-        local_uris_{std::move(local_uris)},
+        local_table_{std::move(local_uris)},
         view_{*inner_.view_service_, remapper_},
         attribute_{*inner_.attribute_service_, remapper_},
         method_{*inner_.method_service_, remapper_},
@@ -369,7 +374,7 @@ class RemappingClientServices
         [this](bool connected, const auto&) {
           if (connected) {
             remapper_ = scada::aggregation::NamespaceRemapper::BuildByUri(
-                local_uris_, session_->namespace_table().uris());
+                local_table_, session_->namespace_table().uris());
           }
         });
   }
@@ -395,7 +400,7 @@ class RemappingClientServices
  private:
   std::shared_ptr<opcua::ClientSession> session_;
   ::DataServices inner_;
-  std::vector<std::string> local_uris_;
+  scada::aggregation::ProxyNamespaceTable local_table_;
   scada::aggregation::NamespaceRemapper remapper_;
   scada::aggregation::RemappingViewService view_;
   scada::aggregation::RemappingAttributeService attribute_;
