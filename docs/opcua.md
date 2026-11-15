@@ -421,9 +421,14 @@ Everything semantic stays in the shared `opcua::` core under
 
 ## Transport choice: UA-JSON over WebSocket
 
-Subprotocol: `opcua+uajson`. This is the JSON WebSocket mapping defined in
-OPC UA Part 6 §5.4 (Reversible JSON Encoding) and §7.4 (WebSocket transport
-mapping).
+Subprotocol: `opcua+uajson`. The name and the body encoding come from
+OPC UA Part 6 §5.4 (JSON encoding) and §7.5.2 *Sub-Protocols*
+(<https://reference.opcfoundation.org/Core/Part6/v105/docs/7.5.2>; §7.4 is
+*OPC UA HTTPS*, which this section cited until 2026-11-15). **The framing is not
+the spec's**: §7.5.2 puts one JSON-encoded Message in each frame, while ours
+wraps the body in our own `{service, requestHandle, body}` envelope and skips
+Hello/OpenSecureChannel (see "Framing" below). A third-party `opcua+uajson`
+client or server therefore does not interoperate with this endpoint.
 
 Chosen over UA Binary over WS (`opcua+uacp`) because:
 
@@ -525,7 +530,7 @@ origin/TLS policy into one abstraction. The adapters meet at the canonical
 - TLS handles channel security, so we do **not** run UA `OpenSecureChannel`.
   The WebSocket upgrade is the secure-channel establishment.
 - One WebSocket **text** frame carries one UA request or response JSON object
-  (Part 6 §7.4 simple framing). In the common-side codec, that frame
+  (our own framing, modelled on Part 6 §7.5.2). In the common-side codec, that frame
   is represented as a transport-neutral envelope with `requestHandle`,
   `service`, and `body`. `requestHandle` correlates responses; `PublishResponse`
   messages are pushed by the server in response to
