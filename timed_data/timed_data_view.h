@@ -23,17 +23,24 @@ class BasicTimedDataView {
   explicit BasicTimedDataView(std::span<const T> samples SCADA_LIFETIME_BOUND)
       : samples_{samples} {}
 
+  // No accessor below is SCADA_LIFETIME_BOUND, deliberately: each result
+  // borrows the underlying storage, never this view object, so the annotation
+  // would tie it to the wrong lifetime. It made Clang report
+  // `buffer.view().slice(r)` as returning the address of a temporary
+  // (-Wreturn-stack-address) when the slice is exactly as valid as the
+  // buffer. The storage's own lifetime is checked where a view is made: the
+  // constructor's parameter and TimedDataBuffer::view() carry the annotation.
+
   // Slicing. All return sub-views over the same storage; nothing is copied.
 
   // The samples whose timestamp falls in `range` ([first, second], with a null
   // `second` meaning "to the end").
-  BasicTimedDataView slice(const scada::TimeRange& range) const
-      SCADA_LIFETIME_BOUND {
+  BasicTimedDataView slice(const scada::TimeRange& range) const {
     return from(range.first).until(range.second);
   }
 
   // The samples whose timestamp is >= `start` (no lower bound if `start` null).
-  BasicTimedDataView from(scada::Time start) const SCADA_LIFETIME_BOUND {
+  BasicTimedDataView from(scada::Time start) const {
     if (scada::IsNull(start))
       return *this;
     size_t i = LowerBound(samples_, start);
@@ -41,7 +48,7 @@ class BasicTimedDataView {
   }
 
   // The samples whose timestamp is <= `end` (no upper bound if `end` null).
-  BasicTimedDataView until(scada::Time end) const SCADA_LIFETIME_BOUND {
+  BasicTimedDataView until(scada::Time end) const {
     if (scada::IsNull(end))
       return *this;
     size_t i = UpperBound(samples_, end);
@@ -50,22 +57,20 @@ class BasicTimedDataView {
 
   // Sequential access.
 
-  std::span<const T> samples() const SCADA_LIFETIME_BOUND { return samples_; }
+  std::span<const T> samples() const { return samples_; }
   size_t size() const { return samples_.size(); }
   bool empty() const { return samples_.empty(); }
-  const T& operator[](size_t i) const SCADA_LIFETIME_BOUND {
-    return samples_[i];
-  }
-  const T& front() const SCADA_LIFETIME_BOUND { return samples_.front(); }
-  const T& back() const SCADA_LIFETIME_BOUND { return samples_.back(); }
-  auto begin() const SCADA_LIFETIME_BOUND { return samples_.begin(); }
-  auto end() const SCADA_LIFETIME_BOUND { return samples_.end(); }
+  const T& operator[](size_t i) const { return samples_[i]; }
+  const T& front() const { return samples_.front(); }
+  const T& back() const { return samples_.back(); }
+  auto begin() const { return samples_.begin(); }
+  auto end() const { return samples_.end(); }
 
   // Point lookup. Returns a pointer rather than an optional so a hit costs no
   // copy; null means "no such sample".
 
   // The sample whose timestamp equals `time` exactly, or null.
-  const T* value_at(scada::Time time) const SCADA_LIFETIME_BOUND {
+  const T* value_at(scada::Time time) const {
     size_t i = LowerBound(samples_, time);
     if (i != samples_.size() &&
         TimedDataTraits<T>::timestamp(samples_[i]) == time) {
@@ -77,8 +82,7 @@ class BasicTimedDataView {
   // The last sample whose timestamp is <= `time`, or null when `time` precedes
   // all samples. This is the honest name for the old GetValueAt lower-bound
   // behavior.
-  const T* sample_at_or_before(scada::Time time) const
-      SCADA_LIFETIME_BOUND {
+  const T* sample_at_or_before(scada::Time time) const {
     return GetValueAt(samples_, time);
   }
 
