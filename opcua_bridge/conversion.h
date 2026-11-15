@@ -205,6 +205,23 @@ inline opcua::StatusCode ToOpcua(scada::StatusCode c) {
   // fails): a value that arrived from outside, passed through unchanged.
   return static_cast<opcua::StatusCode>(c);
 }
+// True when `c` is one of core's named codes. Built from the same tables as
+// ToOpcua, whose exhaustive switch guarantees they name every core code.
+inline bool IsNamedScadaStatusCode(scada::StatusCode c) {
+  switch (c) {
+#define SAME(name) case scada::StatusCode::name:
+    SCADA_OPCUA_STATUS_CODE_SAME(SAME)
+#undef SAME
+#define MAP(scada_name, opcua_name) case scada::StatusCode::scada_name:
+    SCADA_OPCUA_STATUS_CODE_MAP(MAP)
+    SCADA_OPCUA_STATUS_CODE_MAP_TO_WIRE(MAP)
+#undef MAP
+    return true;
+    default:
+      return false;
+  }
+}
+
 inline scada::StatusCode ToScada(opcua::StatusCode c) {
   switch (c) {
 #define SAME(name)              \
@@ -227,8 +244,25 @@ inline scada::StatusCode ToScada(opcua::StatusCode c) {
     case opcua::StatusCode::Bad_SequenceNumberInvalid:
       return scada::StatusCode::Bad_Disconnected;
   }
-  // A wire code opcuapp does not name, e.g. a standard code from a peer.
-  return static_cast<scada::StatusCode>(c);
+  // A wire code opcuapp does not name, e.g. a standard code from a third-party
+  // peer. Core numbers its codes independently of the wire, so the raw value
+  // may coincide with an unrelated core enumerator: open62541's
+  // BadInvalidTimestamp (0x8023) is core's Bad_BrowseNameInvalid (Bad | 35),
+  // and was reported as that until 2026-11-15 (backlog 1052). Such a value
+  // keeps only its severity. One that names nothing in core passes through
+  // unchanged, so ToOpcua returns it to the wire intact -- which is how the
+  // aggregating proxy forwards a downstream's code it does not know.
+  const auto passed_through = static_cast<scada::StatusCode>(c);
+  if (!IsNamedScadaStatusCode(passed_through))
+    return passed_through;
+  switch (opcua::GetSeverity(c)) {
+    case opcua::StatusSeverity::Good:
+      return scada::StatusCode::Good;
+    case opcua::StatusSeverity::Uncertain:
+      return scada::StatusCode::Uncertain;
+    default:
+      return scada::StatusCode::Bad;
+  }
 }
 
 SCADA_STATUS_CODE_SWITCH_EXHAUSTIVE_END

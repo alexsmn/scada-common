@@ -345,6 +345,30 @@ TEST(ConversionTest, AllStatusCodesRoundTripAndAvoidStandardCollisions) {
   }
 }
 
+// A standard wire code opcuapp does not name must never come back as an
+// unrelated core code. open62541 answers a request with a null RequestHeader
+// timestamp with BadInvalidTimestamp (0x80230000), whose SubCode is core's
+// Bad_BrowseNameInvalid (Bad | 35); the client reported that until 2026-11-15
+// (backlog 1052).
+TEST(ConversionTest, UnnamedWireCodeCollidingWithACoreCodeKeepsOnlySeverity) {
+  const auto bad_invalid_timestamp = static_cast<opcua::StatusCode>(0x8023);
+  ASSERT_TRUE(IsNamedScadaStatusCode(
+      static_cast<scada::StatusCode>(bad_invalid_timestamp)))
+      << "the fixture no longer collides; pick another unnamed wire code";
+  EXPECT_EQ(ToScada(bad_invalid_timestamp), scada::StatusCode::Bad);
+  EXPECT_EQ(ToScada(opcua::Status::FromFullCode(0x80230000u)).code(),
+            scada::StatusCode::Bad);
+}
+
+// A wire code that names nothing on either side still crosses unchanged, both
+// ways, which is what lets the proxy forward a downstream's code it does not
+// know.
+TEST(ConversionTest, UnnamedWireCodeWithNoCoreTwinPassesThrough) {
+  const auto unnamed = static_cast<opcua::StatusCode>(0x80FF);
+  ASSERT_FALSE(IsNamedScadaStatusCode(static_cast<scada::StatusCode>(unnamed)));
+  EXPECT_EQ(ToOpcua(ToScada(unnamed)), unnamed);
+}
+
 TEST(ConversionTest, Time) {
   const auto scada_time = base::DecodeWireTime(123456789);
   EXPECT_EQ(ToOpcua(scada_time).ToInternalValue(), 1234567890);
