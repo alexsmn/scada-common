@@ -14,6 +14,10 @@ class MockTimedData : public TimedData {
 
     ON_CALL(*this, GetDataValue()).WillByDefault([&] { return data_value_; });
 
+    // A reference return has no gmock default, so an unstubbed call threw.
+    // Reports what the test set; empty means nothing has been delivered.
+    ON_CALL(*this, GetReadyRanges()).WillByDefault(ReturnRef(ready_ranges_));
+
     ON_CALL(*this, AddObserver(_))
         .WillByDefault([this](TimedDataObserver& observer) {
           observers_.emplace_back(&observer);
@@ -104,6 +108,9 @@ class MockTimedData : public TimedData {
   }
 
   scada::DataValue data_value_;
+
+  // What GetReadyRanges() answers unless a test stubs it.
+  std::vector<scada::TimeRange> ready_ranges_;
 
   std::vector<TimedDataObserver*> observers_;
   std::vector<TimedDataViewObserver*> view_observers_;

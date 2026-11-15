@@ -50,6 +50,12 @@ class EventAckQueue : private EventAckQueueContext {
     return !pending_ack_event_ids_.empty() || !running_ack_event_ids_.empty();
   }
 
+  // Called after IsAcking() changes value, from whichever call changed it.
+  // One handler; setting another replaces it, and an empty one clears it.
+  void SetAckingChangedHandler(std::function<void()> handler) {
+    acking_changed_handler_ = std::move(handler);
+  }
+
   void Ack(scada::EventId ack_id);
 
   // Acknowledge confirmation.
@@ -58,6 +64,7 @@ class EventAckQueue : private EventAckQueueContext {
   void Reset() {
     running_ack_event_ids_.clear();
     pending_ack_event_ids_.clear();
+    NotifyIfAckingChanged();
   }
 
  private:
@@ -68,6 +75,10 @@ class EventAckQueue : private EventAckQueueContext {
   void OnAckFailed(std::span<const scada::EventId> event_ids,
                    const scada::Status& status);
 
+  // Compares IsAcking() with the value last reported and calls the handler
+  // when they differ.
+  void NotifyIfAckingChanged();
+
   using EventIdQueue = std::deque<scada::EventId>;
   EventIdQueue pending_ack_event_ids_;
 
@@ -76,6 +87,9 @@ class EventAckQueue : private EventAckQueueContext {
   EventIdSet running_ack_event_ids_;
 
   bool ack_pending_ = false;
+
+  bool reported_acking_ = false;
+  std::function<void()> acking_changed_handler_;
 
   // Acknowledging user's service context (user id + rights), captured when the
   // channel opens.

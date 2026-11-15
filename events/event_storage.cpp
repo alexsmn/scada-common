@@ -69,6 +69,13 @@ EventStorage::EventContainer::node_type EventStorage::Remove(
   return node;
 }
 
+void EventStorage::NotifyAckingChanged() {
+  // Copied: an observer may remove itself from inside the notification.
+  const ObserverSet observers = observers_;
+  for (EventObserver* observer : observers)
+    observer->OnAckingChanged();
+}
+
 void EventStorage::Clear() {
   for (auto i = node_events_.begin(); i != node_events_.end();) {
     auto& node_id = i->first;

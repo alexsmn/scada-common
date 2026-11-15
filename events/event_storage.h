@@ -39,6 +39,10 @@ class EventStorage {
 
   bool alerting() const { return alerting_; }
 
+  // Tells every observer added with AddObserver that the acknowledging state
+  // changed. The storage does not track that state; the fetcher does.
+  void NotifyAckingChanged();
+
  private:
   // TODO: Use signals.
   using ObserverSet = std::set<EventObserver*>;

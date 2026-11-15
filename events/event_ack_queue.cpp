@@ -15,10 +15,20 @@ EventAckQueue::~EventAckQueue() {
   cancelation_.Cancel();
 }
 
+void EventAckQueue::NotifyIfAckingChanged() {
+  const bool acking = IsAcking();
+  if (acking == reported_acking_)
+    return;
+  reported_acking_ = acking;
+  if (acking_changed_handler_)
+    acking_changed_handler_();
+}
+
 void EventAckQueue::OnAcked(scada::EventId acknowledge_id) {
   if (running_ack_event_ids_.erase(acknowledge_id)) {
     LOG_INFO(*logger_) << std::format("Event {} acknowledged", acknowledge_id);
     PostAckPendingEvents();
+    NotifyIfAckingChanged();
   }
 }
 
@@ -92,6 +102,7 @@ void EventAckQueue::OnAckFailed(std::span<const scada::EventId> event_ids,
   }
 
   PostAckPendingEvents();
+  NotifyIfAckingChanged();
 }
 
 void EventAckQueue::Ack(scada::EventId ack_id) {
@@ -102,4 +113,5 @@ void EventAckQueue::Ack(scada::EventId ack_id) {
 
   pending_ack_event_ids_.push_back(ack_id);
   PostAckPendingEvents();
+  NotifyIfAckingChanged();
 }

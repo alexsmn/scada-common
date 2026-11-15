@@ -155,3 +155,70 @@ TEST_F(EventAckQueueTest, RefusedAckIsReportedAndCanBeRetried) {
   queue.Ack(7);
   DrainExecutor();
 }
+
+// The Qt client's journal shows "[Loading]" while it acknowledges, and since
+// task 155 nothing polls IsAcking() for it: a transition the queue does not
+// report stays on screen until the next one.
+TEST_F(EventAckQueueTest, ReportsAckingWhenItStartsAndWhenItFinishes) {
+  auto queue = MakeQueue();
+  queue.OnChannelOpened(
+      scada::ServiceContext{}.with_user_id(scada::NodeId{scada::id::Server}));
+
+  std::vector<bool> reported;
+  queue.SetAckingChangedHandler([&] { reported.push_back(queue.IsAcking()); });
+
+  EXPECT_CALL(method_service_, Call(_, _, _, _))
+      .WillOnce(
+          [](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); });
+
+  queue.Ack(7);
+  // A second Ack while already acking is not a change.
+  queue.Ack(8);
+  DrainExecutor();
+  EXPECT_THAT(reported, ElementsAre(true));
+
+  queue.OnAcked(7);
+  EXPECT_THAT(reported, ElementsAre(true));
+
+  queue.OnAcked(8);
+  EXPECT_THAT(reported, ElementsAre(true, false));
+}
+
+TEST_F(EventAckQueueTest, ReportsAckingFinishedWhenTheServerRefuses) {
+  auto queue = MakeQueue();
+  queue.OnChannelOpened(
+      scada::ServiceContext{}.with_user_id(scada::NodeId{scada::id::Server}));
+
+  std::vector<bool> reported;
+  queue.SetAckingChangedHandler([&] { reported.push_back(queue.IsAcking()); });
+
+  EXPECT_CALL(method_service_, Call(_, _, _, _))
+      .WillOnce([](auto, auto, auto, auto) {
+        return scada::MakeMethodCallResult(
+            scada::StatusCode::Bad_UserAccessDenied);
+      });
+
+  queue.Ack(7);
+  DrainExecutor();
+
+  EXPECT_THAT(reported, ElementsAre(true, false));
+}
+
+TEST_F(EventAckQueueTest, ResetReportsAckingFinished) {
+  auto queue = MakeQueue();
+  queue.OnChannelOpened(
+      scada::ServiceContext{}.with_user_id(scada::NodeId{scada::id::Server}));
+
+  std::vector<bool> reported;
+  queue.SetAckingChangedHandler([&] { reported.push_back(queue.IsAcking()); });
+
+  EXPECT_CALL(method_service_, Call(_, _, _, _))
+      .WillOnce(
+          [](auto, auto, auto, auto) { return scada::MakeMethodCallResult(); });
+
+  queue.Ack(7);
+  DrainExecutor();
+  queue.Reset();
+
+  EXPECT_THAT(reported, ElementsAre(true, false));
+}

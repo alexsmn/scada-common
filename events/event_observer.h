@@ -18,6 +18,9 @@ class EventObserver {
 
   virtual void OnEvents(std::span<const scada::Event* const> events) {}
   virtual void OnAllEventsAcknowledged() {}
+  // The provider started or finished acknowledging events; read
+  // NodeEventProvider::IsAcking() for the new state.
+  virtual void OnAckingChanged() {}
   virtual void OnItemEventsChanged(const scada::NodeId& item_id,
                                    const EventSet& events) {}
   // A device protocol frame. Defaulted to delivering just the base event, so an

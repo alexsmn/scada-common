@@ -68,6 +68,9 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
                   .of_type = {scada::id::SystemEventType}}})} {
   scada::base::Check(monitored_item_);
 
+  event_ack_queue_.SetAckingChangedHandler(
+      [this] { event_storage_.NotifyAckingChanged(); });
+
   monitored_item_->Subscribe(static_cast<scada::EventHandler>(
       [executor = executor_, cancelation = cancelation_.weak_ptr(), this](
           scada::Status status, std::any event) mutable {
@@ -91,6 +94,7 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
 }
 
 EventFetcher::~EventFetcher() {
+  event_ack_queue_.SetAckingChangedHandler(nullptr);
   cancelation_.Cancel();
 }
 
