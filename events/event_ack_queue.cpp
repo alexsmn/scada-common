@@ -59,7 +59,11 @@ void EventAckQueue::AckPendingEvents() {
     running_ack_event_ids_.insert(ack_id);
   }
 
-  if (!event_ids.empty()) {
+  if (!event_ids.empty() && foreign_ack_resolver_) {
+    for (scada::EventId event_id : event_ids) {
+      AckForeignEvent(event_id);
+    }
+  } else if (!event_ids.empty()) {
     LOG_INFO(*logger_) << std::format("Acknowledge events {}",
                                       scada::base::AsList(event_ids));
     CoSpawn(executor_, cancelation_,
@@ -80,6 +84,50 @@ void EventAckQueue::AckPendingEvents() {
   }
 
   PostAckPendingEvents();
+}
+
+void EventAckQueue::AckForeignEvent(scada::EventId event_id) {
+  std::optional<ForeignAckTarget> target = foreign_ack_resolver_(event_id);
+  if (!target || target->condition_id.is_null()) {
+    // A plain event, or one the fetcher has already dropped: nothing to call.
+    // Dispatched, so the handler never runs inside the operator's Ack.
+    Dispatch(executor_, cancelation_, [this, event_id] {
+      if (foreign_acked_handler_)
+        foreign_acked_handler_(event_id);
+      // The handler normally confirms through OnAcked; make sure the id is
+      // released even if it did not.
+      OnAcked(event_id);
+    });
+    return;
+  }
+
+  LOG_INFO(*logger_) << std::format("Acknowledge condition {} for event {}",
+                                    target->condition_id.ToString(), event_id);
+  CoSpawn(
+      executor_, cancelation_,
+      [this, event_id, target = std::move(*target),
+       context = service_context_]() mutable -> Awaitable<void> {
+        // Called on the Condition, never on `Server` and never on the
+        // AcknowledgeableConditionType node, with the EventId exactly as
+        // the server sent it and a Comment (OPC UA Part 9 §5.7.3
+        // Acknowledge Method,
+        // https://reference.opcfoundation.org/Core/Part9/v105/docs/5.7.3).
+        // The client has no comment field yet, so the Comment is empty.
+        auto result = co_await method_service_.Call(
+            target.condition_id,
+            scada::NodeId{scada::id::AcknowledgeableConditionType_Acknowledge},
+            {scada::Variant{std::move(target.event_id)},
+             scada::Variant{scada::LocalizedText{}}},
+            std::move(context));
+        if (!result.ok()) {
+          const scada::EventId ids[] = {event_id};
+          OnAckFailed(ids, result.status());
+          co_return;
+        }
+        if (foreign_acked_handler_)
+          foreign_acked_handler_(event_id);
+        OnAcked(event_id);
+      });
 }
 
 void EventAckQueue::OnAckFailed(std::span<const scada::EventId> event_ids,

@@ -49,15 +49,17 @@ class FakeMonitoredItemService final : public scada::MonitoredItemService {
                      scada::MonitoredItemSubscriptionOptions options) override {
     return scada::MakeItemFactorySubscription(
         [this](const scada::ReadValueId& /*value_id*/,
-               const scada::MonitoringParameters& /*params*/) {
+               const scada::MonitoringParameters& params) {
           auto item = std::make_shared<scada::TestMonitoredItem>();
           items.push_back(item);
+          this->params.push_back(params);
           return item;
         },
         options);
   }
 
   std::vector<std::shared_ptr<scada::TestMonitoredItem>> items;
+  std::vector<scada::MonitoringParameters> params;
 };
 
 // HistoryService that reports no unacked history. `EventFetcher` only reads
@@ -78,16 +80,25 @@ class FakeHistoryService final : public scada::HistoryService {
   }
 };
 
-// MethodService that accepts any call. The ack queue holds a reference to it,
-// but these tests never acknowledge, so `Call` is never invoked.
+// MethodService that accepts any call and records it.
 class FakeMethodService final : public scada::MethodService {
  public:
-  scada::CoStatusOr<scada::CallResult> Call(scada::NodeId /*node_id*/,
-                       scada::NodeId /*method_id*/,
-                       std::vector<scada::Variant> /*arguments*/,
-                       scada::ServiceContext /*context*/) override {
+  struct Call_ {
+    scada::NodeId node_id;
+    scada::NodeId method_id;
+    std::vector<scada::Variant> arguments;
+  };
+
+  scada::CoStatusOr<scada::CallResult> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> arguments,
+      scada::ServiceContext /*context*/) override {
+    calls.push_back({node_id, method_id, arguments});
     co_return scada::CallResult{};
   }
+
+  std::vector<Call_> calls;
 };
 
 scada::Event MakeEvent(scada::EventId event_id,
@@ -111,14 +122,15 @@ struct TestContext {
   // is established. `EventFetcher` subscribes lazily through the real
   // `CreateSubscription` path on the executor, so a drain is needed before the
   // fake item exists.
-  void StartFetcher(EventObserver& observer) {
+  void StartFetcher(EventObserver& observer, bool foreign_server = false) {
     fetcher.emplace(EventFetcherContext{
         .executor_ = executor,
         .monitored_item_service_ = monitored_item_service,
         .history_service_ = history_service,
         .logger_ = std::make_shared<BoostLogger>(LOG_NAME("Test")),
         .event_storage_ = event_storage,
-        .event_ack_queue_ = ack_queue});
+        .event_ack_queue_ = ack_queue,
+        .foreign_server_ = foreign_server});
     fetcher->AddObserver(observer);
     Drain(executor);
   }
@@ -265,4 +277,147 @@ TEST(EventFetcherTest, MonitoredItemEventWithBadStatusIsIgnored) {
   EXPECT_FALSE(observer.events_called);
   EXPECT_TRUE(context.event_storage.events().empty());
   EXPECT_FALSE(context.fetcher->IsAlerting(node_id));
+}
+
+namespace {
+
+const scada::EventFilter& SubscribedFilter(const TestContext& context,
+                                           std::size_t index) {
+  return std::get<scada::EventFilter>(
+      context.monitored_item_service.params.at(index).filter);
+}
+
+scada::Event MakeConditionEvent(scada::EventId event_id,
+                                const scada::NodeId& condition_id,
+                                bool acked) {
+  scada::Event event = MakeEvent(event_id, scada::NodeId{1, 100});
+  event.event_type_id = scada::NodeId{2001, 5};
+  event.condition_id = condition_id;
+  event.foreign_event_id = scada::ByteString(16, static_cast<char>(event_id));
+  event.acked = acked;
+  return event;
+}
+
+}  // namespace
+
+// Our server keeps its own request: OfType SystemEventType, no named fields.
+TEST(EventFetcherTest, OurServerSubscriptionIsUnchanged) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer);
+
+  const scada::EventFilter& filter = SubscribedFilter(context, 0);
+  EXPECT_EQ(filter.of_type, std::vector<scada::NodeId>{
+                                scada::NodeId{scada::id::SystemEventType}});
+  EXPECT_EQ(filter.fields, scada::EventFilter::Fields::kScada);
+}
+
+// A third-party server's alarms are ConditionType subtypes, not
+// SystemEventType ones, and it has no SCADA fields (backlog 1055).
+TEST(EventFetcherTest, ForeignServerSubscriptionAsksForStandardFields) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer, /*foreign_server=*/true);
+
+  const scada::EventFilter& filter = SubscribedFilter(context, 0);
+  EXPECT_TRUE(filter.of_type.empty());
+  EXPECT_EQ(filter.fields, scada::EventFilter::Fields::kStandardWithConditions);
+}
+
+// open62541 without A&C refuses the Condition fields outright; the fetcher
+// then asks again for the standard fields alone.
+TEST(EventFetcherTest, ForeignServerRefusingConditionFieldsFallsBack) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer, /*foreign_server=*/true);
+
+  context.system_events_item().NotifyEvent({},
+                                           scada::StatusCode::Bad_WrongNodeId);
+  Drain(context.executor);
+
+  ASSERT_EQ(context.monitored_item_service.items.size(), 2u);
+  EXPECT_EQ(SubscribedFilter(context, 1).fields,
+            scada::EventFilter::Fields::kStandard);
+
+  context.monitored_item_service.items.at(1)->NotifyEvent(
+      std::any{MakeEvent(42, scada::NodeId{1, 100})});
+  Drain(context.executor);
+  EXPECT_EQ(observer.event_count, 1u);
+}
+
+// Every state change of a Condition comes with a new EventId (OPC UA Part 9
+// §5.5.2); the journal holds one entry per Condition, and drops it when the
+// server reports it acknowledged.
+TEST(EventFetcherTest, ForeignConditionStatesShareOneJournalEntry) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer, /*foreign_server=*/true);
+  const scada::NodeId condition{scada::String{"HighTemperature"}, 5};
+
+  context.system_events_item().NotifyEvent(
+      std::any{MakeConditionEvent(1001, condition, false)});
+  context.system_events_item().NotifyEvent(
+      std::any{MakeConditionEvent(1002, condition, false)});
+  Drain(context.executor);
+
+  ASSERT_EQ(context.event_storage.events().size(), 1u);
+  const scada::Event& stored = context.event_storage.events().begin()->second;
+  EXPECT_EQ(stored.event_id, 1001u);
+  // The latest notification's EventId is the one to acknowledge.
+  EXPECT_EQ(stored.foreign_event_id,
+            scada::ByteString(16, static_cast<char>(1002)));
+
+  context.system_events_item().NotifyEvent(
+      std::any{MakeConditionEvent(1003, condition, true)});
+  Drain(context.executor);
+  EXPECT_TRUE(context.event_storage.events().empty());
+}
+
+// Acknowledge goes to the Condition with its latest EventId and a Comment
+// (OPC UA Part 9 §5.7.3), never as our batch call on Server.
+TEST(EventFetcherTest, ForeignConditionIsAcknowledgedOnTheCondition) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer, /*foreign_server=*/true);
+  const scada::NodeId condition{scada::String{"HighTemperature"}, 5};
+
+  context.system_events_item().NotifyEvent(
+      std::any{MakeConditionEvent(1001, condition, false)});
+  context.system_events_item().NotifyEvent(
+      std::any{MakeConditionEvent(1002, condition, false)});
+  Drain(context.executor);
+
+  context.fetcher->AcknowledgeEvent(1001);
+  Drain(context.executor);
+
+  ASSERT_EQ(context.method_service.calls.size(), 1u);
+  const auto& call = context.method_service.calls[0];
+  EXPECT_EQ(call.node_id, condition);
+  EXPECT_EQ(call.method_id,
+            scada::NodeId{scada::id::AcknowledgeableConditionType_Acknowledge});
+  ASSERT_EQ(call.arguments.size(), 2u);
+  EXPECT_EQ(call.arguments[0],
+            scada::Variant{scada::ByteString(16, static_cast<char>(1002))});
+  EXPECT_TRUE(call.arguments[1].get_if<scada::LocalizedText>());
+  EXPECT_TRUE(context.event_storage.events().empty());
+  EXPECT_FALSE(context.fetcher->IsAcking());
+}
+
+// A plain event has no Condition to call; it is acknowledged on this side.
+TEST(EventFetcherTest, PlainForeignEventIsAcknowledgedLocally) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer, /*foreign_server=*/true);
+
+  context.system_events_item().NotifyEvent(
+      std::any{MakeEvent(42, scada::NodeId{1, 100})});
+  Drain(context.executor);
+  ASSERT_EQ(context.event_storage.events().size(), 1u);
+
+  context.fetcher->AcknowledgeEvent(42);
+  Drain(context.executor);
+
+  EXPECT_TRUE(context.method_service.calls.empty());
+  EXPECT_TRUE(context.event_storage.events().empty());
+  EXPECT_FALSE(context.fetcher->IsAcking());
 }

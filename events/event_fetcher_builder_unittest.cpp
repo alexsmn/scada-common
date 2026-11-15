@@ -57,10 +57,11 @@ class TestHistoryService final : public scada::HistoryService {
 
 class TestMethodService final : public scada::MethodService {
  public:
-  scada::CoStatusOr<scada::CallResult> Call(scada::NodeId node_id,
-                       scada::NodeId method_id,
-                       std::vector<scada::Variant> arguments,
-                       scada::ServiceContext context) override {
+  scada::CoStatusOr<scada::CallResult> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> arguments,
+      scada::ServiceContext context) override {
     ++call_count;
     last_node_id = std::move(node_id);
     last_method_id = std::move(method_id);
@@ -260,6 +261,8 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
 
   ON_CALL(session_service, IsConnected(_)).WillByDefault(Return(true));
   ON_CALL(session_service, GetUserId()).WillByDefault(Return(user_id));
+  // Our server: the unacknowledged-events read below is its path alone.
+  ON_CALL(session_service, IsScada()).WillByDefault(Return(true));
 
   EXPECT_CALL(session_service, SubscribeSessionStateChanged(_));
   EXPECT_CALL(session_service, IsConnected(_));

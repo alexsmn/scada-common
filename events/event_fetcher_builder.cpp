@@ -94,7 +94,10 @@ struct EventFetcherHolder : EventFetcherHolderBase {
       .history_service_ = *services_.history_service_,
       .logger_ = nested_logger_,
       .event_storage_ = event_storage_,
-      .event_ack_queue_ = event_ack_queue_}};
+      .event_ack_queue_ = event_ack_queue_,
+      // Decided at sign-in (backlog 1054); in the Qt client the session is a
+      // ServerKindSessionService, which says "ours" until told otherwise.
+      .foreign_server_ = !services_.session_service_->IsScada()}};
 
   SessionProxyNotifier<EventFetcher> event_fetcher_notifier_{
       event_fetcher_, *services_.session_service_};

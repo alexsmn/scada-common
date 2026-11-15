@@ -526,6 +526,72 @@ TEST(ConversionTest, EventFieldListDefaultProjectionKeepsEventId) {
   EXPECT_EQ(event->severity, source.severity);
 }
 
+// A third-party server is asked for named fields; the field selection must
+// survive the bridge both ways (backlog 1055).
+TEST(ConversionTest, MonitoringFilterEventFieldsRoundTrip) {
+  for (const auto fields :
+       {scada::EventFilter::Fields::kStandard,
+        scada::EventFilter::Fields::kStandardWithConditions}) {
+    scada::MonitoringParameters params;
+    params.filter = scada::EventFilter{.fields = fields};
+    const scada::MonitoringFilter round = ToScada(ToOpcua(params)).filter;
+    ASSERT_TRUE(std::holds_alternative<scada::EventFilter>(round));
+    EXPECT_EQ(std::get<scada::EventFilter>(round).fields, fields);
+  }
+}
+
+// What reaches opcuapp is the explicit standard list, not the SCADA default
+// opcuapp substitutes for a filter that names nothing.
+TEST(ConversionTest, ForeignEventFilterNamesOnlyStandardFields) {
+  scada::MonitoringParameters params;
+  params.filter = scada::EventFilter{
+      .fields = scada::EventFilter::Fields::kStandardWithConditions};
+  const opcua::MonitoringParameters wire = ToOpcua(params);
+  ASSERT_TRUE(wire.filter.has_value());
+  const auto* json = std::get_if<boost::json::value>(&*wire.filter);
+  ASSERT_NE(json, nullptr);
+  EXPECT_EQ(opcua::ParseEventFilterFieldPaths(*json),
+            opcua::ConditionEventFieldPaths());
+
+  params.filter = scada::EventFilter{};
+  const opcua::MonitoringParameters ours = ToOpcua(params);
+  const auto* ours_json = std::get_if<boost::json::value>(&*ours.filter);
+  ASSERT_NE(ours_json, nullptr);
+  EXPECT_FALSE(ours_json->as_object().contains("Body"));
+}
+
+// open62541's events, as the Condition list brings them: a 16-byte EventId
+// and, from a Condition-capable server, a ConditionId and AckedState/Id. The
+// event used to be dropped as a phantom because its EventId was not 8 bytes.
+TEST(ConversionTest, ForeignConditionNotificationKeepsItsIdentity) {
+  const auto& paths = opcua::ConditionEventFieldPaths();
+  const opcua::ByteString foreign_id(16, '\x5a');
+  opcua::EventFieldList list;
+  list.client_handle = 3;
+  list.event_fields.resize(paths.size());
+  list.event_fields[0] = opcua::Variant{foreign_id};
+  list.event_fields[1] = opcua::Variant{opcua::NodeId{2001, 2}};
+  list.event_fields[6] = opcua::Variant{opcua::LocalizedText{u"Overheat"}};
+  list.event_fields[7] = opcua::Variant{static_cast<opcua::UInt16>(700)};
+  list.event_fields[8] =
+      opcua::Variant{opcua::NodeId{opcua::String{"Plant.HighTemperature"}, 2}};
+  list.event_fields[9] = opcua::Variant{false};
+
+  const scada::MonitoredItemNotification notification =
+      ToScada(opcua::ItemNotification{list});
+
+  const auto* notified = std::get_if<scada::EventNotification>(&notification);
+  ASSERT_NE(notified, nullptr);
+  const auto* event = std::any_cast<scada::Event>(&notified->event);
+  ASSERT_NE(event, nullptr) << "the foreign event was dropped";
+  EXPECT_NE(event->event_id, 0u);
+  EXPECT_EQ(event->foreign_event_id, scada::ByteString(16, '\x5a'));
+  EXPECT_EQ(event->condition_id,
+            (scada::NodeId{scada::String{"Plant.HighTemperature"}, 2}));
+  EXPECT_FALSE(event->acked);
+  EXPECT_EQ(event->severity, 700u);
+}
+
 // --- Locale negotiation across the bridge ---------------------------------
 //
 // The two ServiceContexts and the two SessionConnectParams are separate types

@@ -280,10 +280,26 @@ namespace {
 // filters use SCADA's own model (event-type/node selection; aggregate
 // type/interval) rather than the OPC UA SelectClauses shape, so the bridge
 // serializes them into a self-describing json object tagged with "_scada". Both
-// ends of the SCADA path are the bridge, and opcuapp transports the json
-// opaquely (ParseEventFilterFieldPaths finds no SelectClauses and yields no
-// field projection, which matches SCADA event semantics). An absent (monostate)
+// ends of the SCADA path are the bridge. An event filter for our server names
+// no SelectClauses, and opcuapp then selects its full SCADA list
+// (DefaultEventFieldPaths); one for a third-party server names the standard
+// list it was asked for (`scada::EventFilter::Fields`). An absent (monostate)
 // core filter maps to a missing wire filter.
+
+// The explicit select list a `scada::EventFilter::Fields` stands for; null for
+// kScada, which names none and lets our server project its own.
+const std::vector<std::vector<std::string>>* SelectFieldPaths(
+    scada::EventFilter::Fields fields) {
+  switch (fields) {
+    case scada::EventFilter::Fields::kScada:
+      return nullptr;
+    case scada::EventFilter::Fields::kStandard:
+      return &opcua::StandardEventFieldPaths();
+    case scada::EventFilter::Fields::kStandardWithConditions:
+      return &opcua::ConditionEventFieldPaths();
+  }
+  return nullptr;
+}
 
 boost::json::value EventFilterToJson(const scada::EventFilter& v) {
   boost::json::array of_type;
@@ -292,14 +308,30 @@ boost::json::value EventFilterToJson(const scada::EventFilter& v) {
   boost::json::array child_of;
   for (const auto& id : v.child_of)
     child_of.emplace_back(id.ToString());
-  return boost::json::object{{"_scada", "event"},
-                             {"types", v.types},
-                             {"of_type", std::move(of_type)},
-                             {"child_of", std::move(child_of)}};
+  boost::json::object json{{"_scada", "event"},
+                           {"types", v.types},
+                           {"of_type", std::move(of_type)},
+                           {"child_of", std::move(child_of)}};
+  // A third-party server gets real SelectClauses (OPC UA Part 4 §7.22.3
+  // EventFilter,
+  // https://reference.opcfoundation.org/Core/Part4/v105/docs/7.22.3); without
+  // them opcuapp would send DefaultEventFieldPaths, whose SCADA extensions a
+  // strict server rejects (backlog 1055).
+  if (const auto* paths = SelectFieldPaths(v.fields)) {
+    json["Body"] = opcua::BuildEventFilter(*paths).as_object().at("Body");
+  }
+  return json;
 }
 
 scada::EventFilter EventFilterFromJson(const boost::json::object& obj) {
   scada::EventFilter out;
+  if (obj.contains("Body")) {
+    const auto paths = opcua::ParseEventFilterFieldPaths(obj);
+    if (paths == opcua::StandardEventFieldPaths())
+      out.fields = scada::EventFilter::Fields::kStandard;
+    else if (paths == opcua::ConditionEventFieldPaths())
+      out.fields = scada::EventFilter::Fields::kStandardWithConditions;
+  }
   out.types = static_cast<unsigned>(obj.at("types").to_number<std::uint64_t>());
   for (const auto& id : obj.at("of_type").as_array())
     out.of_type.push_back(scada::NodeId::FromString(id.as_string().c_str()));
@@ -431,6 +463,8 @@ opcua::Event ToOpcua(const scada::Event& v, SourceNamePacking packing) {
   out.acked = v.acked;
   out.acknowledged_time = ToOpcua(v.acknowledged_time);
   out.acknowledged_user_id = ToOpcua(v.acknowledged_user_id);
+  out.foreign_event_id = v.foreign_event_id;
+  out.condition_id = ToOpcua(v.condition_id);
   return out;
 }
 scada::Event ToScada(const opcua::Event& v, SourceNamePacking packing) {
@@ -465,6 +499,8 @@ scada::Event ToScada(const opcua::Event& v, SourceNamePacking packing) {
   out.acked = v.acked;
   out.acknowledged_time = ToScada(v.acknowledged_time);
   out.acknowledged_user_id = ToScada(v.acknowledged_user_id);
+  out.foreign_event_id = v.foreign_event_id;
+  out.condition_id = ToScada(v.condition_id);
   return out;
 }
 
@@ -638,16 +674,21 @@ scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n,
           // payloads (GeneralModelChange / SemanticChange) cross as their
           // per-type DisassembleEvent layout, which AssembleEvent rebuilds by
           // the type id at field 0; a scada::Event payload crosses as the
-          // DEFAULT full-fidelity projection (the _scada event filter carries
-          // no SelectClauses, so the serving side projects
+          // DEFAULT full-fidelity projection (our server's event filter
+          // carries no SelectClauses, so the serving side projects
           // DefaultEventFieldPaths) and is rebuilt the same way the
-          // HistoryReadEvents decode rebuilds it. An unrecognized layout
-          // yields an empty payload.
+          // HistoryReadEvents decode rebuilds it. A third-party server
+          // answers one of the standard lists (backlog 1055). An unrecognized
+          // layout yields an empty payload.
           std::vector<scada::Variant> fields = ToScadaVector(x.event_fields);
           std::any event =
               fields.empty() ? std::any{} : scada::AssembleEvent(fields);
-          if (!event.has_value() &&
-              x.event_fields.size() == opcua::DefaultEventFieldPaths().size()) {
+          // The notification names no fields, so the select list it answers
+          // is told apart by length: our server's full SCADA list, or one of
+          // the standard lists a third-party server is asked for.
+          const auto* field_paths =
+              opcua::KnownEventFieldPathsForCount(x.event_fields.size());
+          if (!event.has_value() && field_paths) {
             // Reconstruction fills only the fields the peer actually sent, so a
             // notification carrying no event (a monitored item's initial status
             // report, or any peer that pads the select clauses with nulls)
@@ -658,10 +699,9 @@ scada::MonitoredItemNotification ToScada(const opcua::ItemNotification& n,
             // so a zero id means "there was no event here" — yield an empty
             // payload rather than a phantom one. These fields arrive from
             // outside the process and must degrade, never panic a consumer.
-            scada::Event reconstructed =
-                ToScada(opcua::ReconstructEventFromFields(
-                            opcua::DefaultEventFieldPaths(), x.event_fields),
-                        packing);
+            scada::Event reconstructed = ToScada(
+                opcua::ReconstructEventFromFields(*field_paths, x.event_fields),
+                packing);
             if (reconstructed.event_id != 0) {
               event = std::any{std::move(reconstructed)};
             }
