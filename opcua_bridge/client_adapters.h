@@ -284,9 +284,9 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 // layer links no model or config-table vocabulary.
 //
 // Shared by every OPC UA client of a tier: the desktop client and the
-// historian's external history-collection client. OPC UA Part 3 §8.2.3 makes
+// historian's external history-collection client. OPC UA Part 3 §8.2.2 makes
 // the URI the stable identity,
-// https://reference.opcfoundation.org/Core/Part3/v105/docs/8.2.3 .
+// https://reference.opcfoundation.org/Core/Part3/v105/docs/8.2.2 .
 //
 // `packing` as for `CreateClientDataServices`.
 ::DataServices CreateRemappingClientDataServices(
