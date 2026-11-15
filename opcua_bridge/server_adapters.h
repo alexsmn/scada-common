@@ -30,9 +30,11 @@
 #include "opcua/types/co_result.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <span>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -171,6 +173,19 @@ class HistoryUpdateServiceAdapter {
   Tracer& tracer_;
 };
 
+// Translates a message this bridge produces itself — today only the
+// EventQueueOverflowEventType notification — from its English source text
+// into every language the server can say it in, packed as one LocalizedText
+// (Part 3 §8.5.2.2 "mul"). The bridge resolves the result to each
+// subscription's own LocaleIds, exactly as `LocalizingMonitoredItemService`
+// resolves every other event message before it reaches the bridge.
+//
+// It is a seam rather than a call because the catalog lives in the server
+// framework (`scada::server::TranslateMessage`), which consumes `common` and so
+// cannot be reached from here. An empty translator leaves the English source.
+using MessageTranslator =
+    std::function<scada::LocalizedText(std::string_view english)>;
+
 // Wraps an inner core MonitoredItemSubscription as the opcua interface. Event
 // notifications cross the boundary as the standard wire `EventFieldList`; this
 // adapter projects each core event onto the monitored item's EventFilter select
@@ -183,17 +198,20 @@ class MonitoredItemSubscriptionAdapter
   // the client's), and `tracer` lets AddItems record where each item was
   // created. Item creation is where a monitored item's destination is decided,
   // so this span — not the subscription's — is the one that attributes an item
-  // to the tier that serves it.
+  // to the tier that serves it. `translate_message` localizes the overflow
+  // event's Message; see `MessageTranslator`.
   MonitoredItemSubscriptionAdapter(
       std::unique_ptr<scada::MonitoredItemSubscription> inner,
       opcua::ServiceContext context,
-      Tracer& tracer)
+      Tracer& tracer,
+      MessageTranslator translate_message = {})
       : inner_{std::move(inner)},
         context_{std::move(context)},
         source_name_packing_{scada::RequestsPackedStrings(context_.locale_ids())
                                  ? SourceNamePacking::kPacked
                                  : SourceNamePacking::kResolved},
-        tracer_{tracer} {}
+        tracer_{tracer},
+        translate_message_{std::move(translate_message)} {}
 
   opcua::Awaitable<std::vector<opcua::MonitoredItemCreateResult>> AddItems(
       std::vector<opcua::MonitoredItemCreateRequest> requests) override;
@@ -221,6 +239,7 @@ class MonitoredItemSubscriptionAdapter
   // with. See `SourceNamePacking`.
   const SourceNamePacking source_name_packing_;
   Tracer& tracer_;
+  const MessageTranslator translate_message_;
   // Event-field select-clause paths parsed from each item's wire filter, keyed
   // by client_handle. Populated in AddItems; consumed in ReadNext to project
   // events into EventFieldList.
@@ -235,10 +254,15 @@ class MonitoredItemSubscriptionAdapter
 
 class MonitoredItemServiceAdapter {
  public:
+  // `translate_message` is handed to every subscription this creates; see
+  // `MessageTranslator`.
   explicit MonitoredItemServiceAdapter(scada::MonitoredItemService& inner
                                            SCADA_LIFETIME_BOUND,
-                                       Tracer& tracer = Tracer::None())
-      : inner_{inner}, tracer_{tracer} {}
+                                       Tracer& tracer = Tracer::None(),
+                                       MessageTranslator translate_message = {})
+      : inner_{inner},
+        tracer_{tracer},
+        translate_message_{std::move(translate_message)} {}
 
   opcua::StatusOr<std::unique_ptr<opcua::MonitoredItemSubscription>>
   CreateSubscription(opcua::ServiceContext context,
@@ -247,6 +271,7 @@ class MonitoredItemServiceAdapter {
  private:
   scada::MonitoredItemService& inner_;
   Tracer& tracer_;
+  const MessageTranslator translate_message_;
 };
 
 // Presents a core authenticator as the opcua interface the server session
@@ -272,6 +297,8 @@ struct ServerServiceAdapters {
   // `tracer` (typically the core module's) makes every context-carrying
   // service call emit a SERVER span, continuing the caller's trace from the
   // request header traceparent that opcuapp placed in the ServiceContext.
+  // `translate_message` localizes the messages the bridge synthesises itself;
+  // see `MessageTranslator`.
   ServerServiceAdapters(
       scada::AttributeService& attribute SCADA_LIFETIME_BOUND,
       scada::ViewService& view SCADA_LIFETIME_BOUND,
@@ -280,14 +307,15 @@ struct ServerServiceAdapters {
       scada::HistoryService& history SCADA_LIFETIME_BOUND,
       scada::HistoryUpdateService& history_update SCADA_LIFETIME_BOUND,
       scada::MonitoredItemService& monitored_item SCADA_LIFETIME_BOUND,
-      Tracer& tracer = Tracer::None())
+      Tracer& tracer = Tracer::None(),
+      MessageTranslator translate_message = {})
       : attribute{attribute, tracer},
         view{view, tracer},
         method{method, tracer},
         node_management{node_management, tracer},
         history{history, tracer},
         history_update{history_update, tracer},
-        monitored_item{monitored_item, tracer},
+        monitored_item{monitored_item, tracer, std::move(translate_message)},
         callbacks_{MakeCallbacks()} {}
 
   const opcua::ServiceCallbacks& callbacks() const SCADA_LIFETIME_BOUND {

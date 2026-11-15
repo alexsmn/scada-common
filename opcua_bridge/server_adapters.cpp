@@ -501,8 +501,23 @@ opcua::ItemNotification MonitoredItemSubscriptionAdapter::ToItemNotification(
             overflow_event.severity = opcua::kSeverityCritical;
             overflow_event.source_node_id = opcua::NodeId{opcua::id::Server};
             overflow_event.source_name = "Server";
-            overflow_event.message =
-                u"Event queue overflowed; event notifications were lost";
+            // Translated like every other server-emitted message, then
+            // resolved to this subscription's LocaleIds: Message is a
+            // LocalizedText (Part 5 §6.4.2 BaseEventType,
+            // https://reference.opcfoundation.org/Core/Part5/v105/docs/6.4.2)
+            // chosen per session (Part 4 §5.4 Locale Negotiation,
+            // https://reference.opcfoundation.org/Core/Part4/v105/docs/5.4).
+            // Backlog 797.
+            constexpr std::string_view kOverflowMessage =
+                "Event queue overflowed; event notifications were lost";
+            const scada::LocalizedText message =
+                translate_message_
+                    ? translate_message_(kOverflowMessage)
+                    : scada::LocalizedText{
+                          u"Event queue overflowed; event notifications were "
+                          u"lost"};
+            overflow_event.message = ToOpcua(
+                scada::ResolveLocalizedText(message, context_.locale_ids()));
 
             std::vector<std::vector<std::string>> field_paths;
             if (const auto it =
@@ -587,8 +602,8 @@ MonitoredItemServiceAdapter::CreateSubscription(
   if (!result.ok())
     return ToOpcua(result.status());
   return std::unique_ptr<opcua::MonitoredItemSubscription>{
-      std::make_unique<MonitoredItemSubscriptionAdapter>(std::move(*result),
-                                                         context, tracer_)};
+      std::make_unique<MonitoredItemSubscriptionAdapter>(
+          std::move(*result), context, tracer_, translate_message_)};
 }
 
 // --- Authenticator ------------------------------------------------------

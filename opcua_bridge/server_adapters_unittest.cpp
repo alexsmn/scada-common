@@ -383,6 +383,95 @@ TEST(ServerAdapterTest, LiveEventSourceNameIsFlattenedForAnyOtherSubscriber) {
   EXPECT_EQ(scada::DecodeMultiLanguage(received.source_name).size(), 1u);
 }
 
+// Overflows an event subscription created under `locale_ids` with
+// `translate_message`, and returns the Message the wire notification carries.
+opcua::LocalizedText ReadOverflowMessage(std::vector<std::string> locale_ids,
+                                         MessageTranslator translate_message) {
+  auto fake = std::make_unique<FakeMonitoredItemSubscription>();
+  fake->next = scada::OverflowNotification{};
+  MonitoredItemSubscriptionAdapter adapter{
+      std::move(fake),
+      opcua::ServiceContext{}.with_locale_ids(std::move(locale_ids)),
+      Tracer::None(), std::move(translate_message)};
+
+  opcua::MonitoredItemCreateRequest request;
+  request.item_to_monitor = {.node_id = opcua::NodeId{2253u},
+                             .attribute_id = opcua::AttributeId::EventNotifier};
+  request.requested_parameters.client_handle = 55;
+  request.requested_parameters.filter =
+      opcua::MonitoringFilter{opcua::BuildEventFilter(
+          std::vector<std::vector<std::string>>{{"Message"}})};
+
+  boost::asio::io_context io;
+  std::optional<opcua::StatusOr<std::vector<opcua::ItemNotification>>>
+      read_result;
+  boost::asio::co_spawn(
+      io,
+      [&]() -> opcua::Awaitable<void> {
+        std::vector<opcua::MonitoredItemCreateRequest> requests;
+        requests.push_back(request);
+        co_await adapter.AddItems(std::move(requests));
+        read_result = co_await adapter.ReadNext(10);
+      },
+      boost::asio::detached);
+  io.run();
+
+  EXPECT_TRUE(read_result.has_value() && read_result->ok() &&
+              (*read_result)->size() == 1u);
+  if (!read_result.has_value() || !read_result->ok() ||
+      (*read_result)->size() != 1u) {
+    return {};
+  }
+  const auto* fields = std::get_if<opcua::EventFieldList>(&(**read_result)[0]);
+  EXPECT_NE(fields, nullptr);
+  if (!fields || fields->event_fields.size() != 1u)
+    return {};
+  EXPECT_EQ(fields->client_handle, 55u);
+  return fields->event_fields[0].get<opcua::LocalizedText>();
+}
+
+// Stands in for the framework's catalog: the English key plus one
+// translation, packed the way `scada::server::TranslateMessage` packs them.
+scada::LocalizedText TranslateIntoTwoLanguages(std::string_view english) {
+  const std::u16string source = scada::ToLocalizedText(english).text;
+  const scada::LocalizedText translations[] = {{"xx", u"translated: " + source},
+                                               {"en", source}};
+  return scada::EncodeMultiLanguage(translations);
+}
+
+// The overflow event is the one event message the bridge writes itself, so it
+// never passed through the localizing service. It now goes through the
+// translator it is handed and comes out in the subscriber's language — and
+// never as the packed form, which would render as JSON in a journal.
+// Backlog 797.
+TEST(ServerAdapterTest, OverflowEventMessageFollowsTheSubscriberLanguage) {
+  const opcua::LocalizedText translated =
+      ReadOverflowMessage({"xx"}, &TranslateIntoTwoLanguages);
+  EXPECT_EQ(translated.locale, "xx");
+  EXPECT_EQ(translated.text,
+            u"translated: Event queue overflowed; event notifications were "
+            u"lost");
+
+  const opcua::LocalizedText english =
+      ReadOverflowMessage({"en"}, &TranslateIntoTwoLanguages);
+  EXPECT_EQ(english.locale, "en");
+  EXPECT_EQ(english.text,
+            u"Event queue overflowed; event notifications were lost");
+
+  const opcua::LocalizedText unspecified =
+      ReadOverflowMessage({}, &TranslateIntoTwoLanguages);
+  EXPECT_NE(unspecified.locale, std::string{scada::kMultiLanguageLocale});
+  EXPECT_EQ(unspecified.text.find(u"{\"t\":"), std::u16string::npos);
+}
+
+// Without a translator — a bridge built outside the server framework — the
+// overflow message is the English source text, as it always was.
+TEST(ServerAdapterTest, OverflowEventMessageIsEnglishWithoutATranslator) {
+  const opcua::LocalizedText message = ReadOverflowMessage({"xx"}, {});
+  EXPECT_EQ(message.text,
+            u"Event queue overflowed; event notifications were lost");
+}
+
 // A core AttributeService returning caller-supplied Read results, so the
 // adapter's outbound status projection can be observed.
 class FakeAttributeService : public scada::AttributeService {
