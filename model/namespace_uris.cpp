@@ -2,6 +2,8 @@
 
 #include "model/namespaces.h"
 
+#include <algorithm>
+
 namespace scada::model {
 
 namespace {
@@ -55,7 +57,7 @@ std::vector<std::string> GetCanonicalNamespaceUris() {
       "http://telecontrol.ru/opcua/devices/Iec61850DeviceType";
   uris[NamespaceIndexes::IEC61850_RCB] =
       "http://telecontrol.ru/opcua/devices/Iec61850RcbType";
-  uris[NamespaceIndexes::SCADA] = "http://telecontrol.ru/opcua/scada";
+  uris[NamespaceIndexes::SCADA] = std::string{kScadaNamespaceUri};
   // Required for aggregating the filesystem tier: file/directory instance
   // nodes live in this namespace, and ProxyNamespaceTable::GetOrAdd merges
   // equal URIs — with the historical empty URI every empty-URI namespace
@@ -70,13 +72,13 @@ std::vector<std::string> GetCanonicalNamespaceUris() {
       "http://telecontrol.ru/opcua/security/IdentityMappingRuleType";
   uris[NamespaceIndexes::CONFIGURATION] =
       "http://telecontrol.ru/opcua/security/ConfigurationType";
-  // Every canonical index must carry a real, unique URI. OPC UA Part 3 §8.2.3
-  // defines NamespaceArray entries as namespace URIs (index 0 = OPC UA, the
-  // rest identified by URI), and ProxyNamespaceTable::GetOrAdd merges by URI
-  // equality — with more than one empty entry, an Aggregating Server merging a
-  // downstream's NamespaceArray would collapse ALL empty-URI namespaces onto
-  // the first empty index and silently mis-remap every NodeId in them.
-  // https://reference.opcfoundation.org/Core/Part3/v105/docs/8.2.3
+  // Every canonical index must carry a real, unique URI. OPC UA Part 3 §8.2.2
+  // NamespaceIndex defines NamespaceArray entries as namespace URIs (index 0 =
+  // OPC UA, the rest identified by URI), and ProxyNamespaceTable::GetOrAdd
+  // merges by URI equality — with more than one empty entry, an Aggregating
+  // Server merging a downstream's NamespaceArray would collapse ALL empty-URI
+  // namespaces onto the first empty index and silently mis-remap every NodeId
+  // in them. https://reference.opcfoundation.org/Core/Part3/v105/docs/8.2.2
   uris[kHistoryNamespace] = "http://telecontrol.ru/opcua/history";
   uris[kDevicesNamespace] = "http://telecontrol.ru/opcua/devices";
   uris[NamespaceIndexes::SERVER_PARAMS] =
@@ -102,6 +104,13 @@ std::vector<std::string> GetCanonicalNamespaceUris() {
   // NodeIds are the standard ones and any GDS client can call them.
   uris[NamespaceIndexes::GDS] = "http://opcfoundation.org/UA/GDS/";
   return uris;
+}
+
+ServerKind ClassifyServer(std::span<const std::string> server_namespace_uris) {
+  return std::ranges::find(server_namespace_uris, kScadaNamespaceUri) !=
+                 server_namespace_uris.end()
+             ? ServerKind::kOurs
+             : ServerKind::kForeign;
 }
 
 }  // namespace scada::model
