@@ -21,6 +21,8 @@ NodeId WithNamespace(const NodeId& node_id, NamespaceIndex namespace_index) {
       return NodeId{node_id.string_id(), namespace_index};
     case NodeIdType::Opaque:
       return NodeId{node_id.opaque_id(), namespace_index};
+    case NodeIdType::Guid:
+      return NodeId{node_id.guid_id(), namespace_index};
     default:
       return {};
   }

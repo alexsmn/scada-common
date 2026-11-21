@@ -13,6 +13,7 @@
 #include "scada/data_value.h"
 #include "scada/expanded_node_id.h"
 #include "scada/extension_object.h"
+#include "scada/guid.h"
 #include "scada/localized_text.h"
 #include "scada/node_id.h"
 #include "scada/qualified_name.h"
@@ -23,6 +24,7 @@
 #include "opcua/types/data_value.h"
 #include "opcua/types/expanded_node_id.h"
 #include "opcua/types/extension_object.h"
+#include "opcua/types/guid.h"
 #include "opcua/types/node_id.h"
 #include "opcua/types/qualified_name.h"
 #include "opcua/types/qualifier.h"
@@ -325,6 +327,17 @@ inline opcua::LocalizedText ToOpcua(const scada::LocalizedText& t) {
 }
 inline scada::LocalizedText ToScada(const opcua::LocalizedText& t) {
   return scada::LocalizedText{t.locale, t.text};
+}
+
+// --- Guid ---------------------------------------------------------------
+// Mirror structs with identical `{data1, data2, data3, data4}` fields.
+inline opcua::Guid ToOpcua(const scada::Guid& g) {
+  return opcua::Guid{
+      .data1 = g.data1, .data2 = g.data2, .data3 = g.data3, .data4 = g.data4};
+}
+inline scada::Guid ToScada(const opcua::Guid& g) {
+  return scada::Guid{
+      .data1 = g.data1, .data2 = g.data2, .data3 = g.data3, .data4 = g.data4};
 }
 
 // --- class types --------------------------------------------------------

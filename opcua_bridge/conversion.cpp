@@ -1,8 +1,6 @@
 #include "opcua_bridge/conversion.h"
 
 #include "opcua_bridge/vector_conversion.h"
-#include "base/boost_log.h"
-#include "base/no_destructor.h"
 #include "scada/authorization.h"
 #include "scada/identity_mapping_rule_encoding.h"
 #include "scada/range_encoding.h"
@@ -20,11 +18,6 @@
 namespace scada::opcua_bridge {
 
 namespace {
-
-BoostLogger& Logger() {
-  static scada::base::NoDestructor<BoostLogger> logger{LOG_NAME("OpcUaBridge")};
-  return *logger;
-}
 
 // Serializes a GENERATED OPC UA structure into an ExtensionObject body, tagged
 // with that type's own DefaultBinary encoding id. Both the field order and the
@@ -105,6 +98,8 @@ opcua::NodeId ToOpcua(const scada::NodeId& n) {
       return opcua::NodeId{n.string_id(), n.namespace_index()};
     case scada::NodeIdType::Opaque:
       return opcua::NodeId{n.opaque_id(), n.namespace_index()};
+    case scada::NodeIdType::Guid:
+      return opcua::NodeId{ToOpcua(n.guid_id()), n.namespace_index()};
   }
   return {};
 }
@@ -118,15 +113,7 @@ scada::NodeId ToScada(const opcua::NodeId& n) {
     case opcua::NodeIdType::Opaque:
       return scada::NodeId{n.opaque_id(), n.namespace_index()};
     case opcua::NodeIdType::Guid:
-      // scada::NodeIdType has no Guid form (OPC UA Part 3 §8.2.3 IdType,
-      // https://reference.opcfoundation.org/Core/Part3/v105/docs/8.2.3),
-      // so the id cannot be carried and becomes null. Our own tiers never mint
-      // one; a third-party server can. Say so rather than drop it silently:
-      // which representation to adopt is backlog 826.
-      LOG_WARNING(Logger())
-          << "Guid NodeId has no scada::NodeId form and is dropped"
-          << LOG_TAG("NodeId", n.ToString());
-      return {};
+      return scada::NodeId{ToScada(n.guid_id()), n.namespace_index()};
   }
   return {};
 }
