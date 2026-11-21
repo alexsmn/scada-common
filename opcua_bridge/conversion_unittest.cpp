@@ -13,9 +13,15 @@
 
 #include <any>
 #include <cstdint>
+#include <sstream>
 #include <string>
 #include <vector>
 
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
+#include <boost/make_shared.hpp>
 #include <gtest/gtest.h>
 
 namespace scada::opcua_bridge {
@@ -35,6 +41,36 @@ TEST(ConversionTest, NodeId) {
   ExpectRoundTrip(scada::NodeId{scada::String{"the.node"}, 2});
   ExpectRoundTrip(scada::NodeId{scada::ByteString{'a', 'b', 'c'}, 1});
   ExpectRoundTrip(scada::NodeId{});
+}
+
+// scada::NodeId has no Guid form, so a Guid id from a third-party server
+// becomes null (backlog 826 holds the representation decision). The drop must
+// be logged with the id, never silent: capture the record through a real sink.
+TEST(ConversionTest, GuidNodeIdIsDroppedWithAWarning) {
+  using OstreamSink = boost::log::sinks::synchronous_sink<
+      boost::log::sinks::text_ostream_backend>;
+  std::ostringstream output;
+  boost::shared_ptr<OstreamSink> sink = boost::make_shared<OstreamSink>();
+  sink->locked_backend()->add_stream(
+      boost::shared_ptr<std::ostream>(&output, [](std::ostream*) {}));
+  sink->set_formatter(boost::log::expressions::stream
+                      << boost::log::expressions::attr<std::string>("NodeId")
+                      << " " << boost::log::expressions::smessage);
+  boost::log::core::get()->add_sink(sink);
+
+  const opcua::Guid guid =
+      *opcua::Guid::FromString("C496578A-0DFE-4B8F-870A-745238C6AEAE");
+  const scada::NodeId converted = ToScada(opcua::NodeId{guid, 2});
+
+  sink->flush();
+  boost::log::core::get()->remove_sink(sink);
+
+  EXPECT_TRUE(converted.is_null());
+  const std::string text = output.str();
+  EXPECT_NE(text.find("Guid NodeId"), std::string::npos) << "actual: " << text;
+  EXPECT_NE(text.find("C496578A-0DFE-4B8F-870A-745238C6AEAE"),
+            std::string::npos)
+      << "actual: " << text;
 }
 
 TEST(ConversionTest, RolePermissionTypeExtensionObjectEncodesBinaryBody) {
