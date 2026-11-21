@@ -178,14 +178,21 @@ server agree on the namespace. `ScadaNodesetNamespaceUri.
 MatchesServerNamespaceArray` guards against drift between the two.
 
 Runtime discovery already exists: `NamespaceMetadataManager`
-(`server/modules/core`) serves the standard `NamespaceMetadataType` objects
-under `Server.Namespaces` (Part 5 §6.3.12), so the SCADA namespace + URI are
-already discoverable by clients — no new work needed there.
+(`scada-server-framework/modules/core`) serves the standard
+`NamespaceMetadataType` objects under `Server.Namespaces` (Part 5 §6.3.13
+*NamespaceMetadataType*), with `NamespaceUri` and `IsNamespaceSubset`, so the
+SCADA namespace + URI are already discoverable by clients — no new work needed
+there.
 
 Deliberately **not** done (optional, higher cost, lower value here):
 - Publishing per-namespace `NamespaceVersion` / `NamespacePublicationDate` from
   the `Model` metadata — only the SCADA namespace has a nodeset, so the data is
-  sparse; would extend `NamespaceMetadataManager`.
+  sparse; would extend `NamespaceMetadataManager`. Both are Mandatory on
+  `NamespaceMetadataType`, as are `StaticNodeIdTypes`,
+  `StaticNumericNodeIdRange` and `StaticStringNodeIdPattern`, none of which is
+  served either (Part 5 §6.3.13, Table 22,
+  <https://reference.opcfoundation.org/Core/Part5/v105/docs/6.3.13>, verified
+  2026-11-21).
 - Swapping the repo's curated `opcua_base.xml` for the official
   `Opc.Ua.NodeSet2.xml` — the subset is intentionally minimal; the full nodeset
   would enlarge the runtime address space. `opcua_base.xml` stays custom.

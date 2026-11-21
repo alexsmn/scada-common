@@ -179,8 +179,8 @@
   </Node>
   <!-- Server.Namespaces: one NamespaceMetadata object per NamespaceArray
        entry, served dynamically by the core module's
-       NamespaceMetadataManager (OPC UA Part 5 §6.3.12/§6.3.13,
-       https://reference.opcfoundation.org/Core/Part5/v105/docs/6.3.12). Only
+       NamespaceMetadataManager (OPC UA Part 5 §6.3.13 NamespaceMetadataType,
+       https://reference.opcfoundation.org/Core/Part5/v105/docs/6.3.13). Only
        the container object and the metadata ObjectType are static; ids per
        the official 1.05 NodeIds.csv. -->
   <Node id="NS0.11616" class="ObjectType" parent="NS0.58" parentReference="NS0.45" supertype="NS0.58" browseName="NamespaceMetadataType" displayName="NamespaceMetadataType" />
