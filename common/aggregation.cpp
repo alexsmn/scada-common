@@ -339,7 +339,14 @@ void AggregateState::Process(std::span<const scada::DataValue> raw_span) {
                                                 aggregation.start_time,
                                                 aggregation.interval);
 
-    auto count = forward ? UpperBound(raw_span, interval.second)
+    // An interval holds its start and not its end (OPC UA Part 13 §5.4.2.2
+    // Generating intervals, Table 49: "[Start, End)",
+    // https://reference.opcfoundation.org/Core/Part13/v105/docs/5.4.2.2), so a
+    // value on the boundary opens the next interval. It used to be counted in
+    // the earlier one when it shared a chunk with that interval's values, and
+    // in the later one when it started a chunk, so the result depended on how
+    // the archive paged.
+    auto count = forward ? LowerBound(raw_span, interval.second)
                          : ReverseUpperBound(raw_span, interval.first);
     base::Check(count != 0);
 
@@ -379,21 +386,30 @@ void AggregateState::Process(std::span<const scada::DataValue> raw_span) {
 
 void AggregateState::Finish() {
   if (forward && !IsNull(fill_until)) {
-    const auto& held = last_raw ? last_raw : start_bound;
     if (aggregator) {
-      AppendHeldIntervals(aggregator_interval.second, fill_until, held);
+      ExtendLastValue(aggregator_interval.second);
     } else if (!IsNull(fill_from)) {
       // Nothing was recorded during the whole read.
-      AppendHeldIntervals(
-          GetAggregateInterval(fill_from, aggregation.start_time,
-                               aggregation.interval)
-              .first,
-          fill_until, held);
+      ExtendLastValue(GetAggregateInterval(fill_from, aggregation.start_time,
+                                           aggregation.interval)
+                          .first);
     }
   }
   if (!aggregated_value.is_null())
     data_values.emplace_back(std::move(aggregated_value));
   aggregated_value = {};
+}
+
+void AggregateState::ExtendLastValue(scada::Time from) {
+  finish_held_ = last_raw ? last_raw : start_bound;
+  finish_resume_from_ = AppendHeldIntervals(from, fill_until, finish_held_);
+}
+
+void AggregateState::ResumeFinish() {
+  if (finish_pending()) {
+    finish_resume_from_ =
+        AppendHeldIntervals(finish_resume_from_, fill_until, finish_held_);
+  }
 }
 
 void AggregateState::StartInterval(const scada::TimeRange& interval,
@@ -410,13 +426,14 @@ void AggregateState::StartInterval(const scada::TimeRange& interval,
     aggregated_value = aggregator(std::span{&*bound, 1});
 }
 
-void AggregateState::AppendHeldIntervals(scada::Time from,
-                                         scada::Time to,
-                                         const std::optional<DataValue>& held) {
+scada::Time AggregateState::AppendHeldIntervals(
+    scada::Time from,
+    scada::Time to,
+    const std::optional<DataValue>& held) {
   // |from| and |to| are interval boundaries; the intervals between them saw
   // no raw value, so |held| is their start bound and their only input.
   if (!held || !uses_start_bound() || aggregation.interval <= Duration::zero())
-    return;
+    return kNullTime;
 
   // Flush the interval in progress first, so the output stays in read order.
   if (!aggregated_value.is_null()) {
@@ -426,13 +443,15 @@ void AggregateState::AppendHeldIntervals(scada::Time from,
 
   const std::span<const DataValue> bound{&*held, 1};
   if (forward) {
-    for (Time start = from; start < to && data_values.size() < max_count;
+    Time start = from;
+    for (; start < to && data_values.size() < max_count;
          start += aggregation.interval) {
       TimeRange interval{start, start + aggregation.interval};
       if (auto held_aggregator =
               GetAggregator(aggregation.aggregate_type, interval, forward))
         data_values.emplace_back(held_aggregator(bound));
     }
+    return start < to ? start : kNullTime;
   } else {
     // Backward: |from| is the earlier boundary, and the output descends.
     for (Time end = to; end > from && data_values.size() < max_count;
@@ -442,6 +461,9 @@ void AggregateState::AppendHeldIntervals(scada::Time from,
               GetAggregator(aggregation.aggregate_type, interval, forward))
         data_values.emplace_back(held_aggregator(bound));
     }
+    // A backward read is filled only between raw values, never by Finish(),
+    // and is paged by its caller from the last value it returned.
+    return kNullTime;
   }
 }
 

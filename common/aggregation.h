@@ -43,6 +43,13 @@ struct AggregateState {
   // Ends the read and appends the last interval(s).
   void Finish();
 
+  // Whether Finish() stopped extending the value recorded last because
+  // |data_values| reached |max_count|. ResumeFinish() appends the next of
+  // those intervals once the caller has taken the ones it has; the read is
+  // complete only when this is false.
+  bool finish_pending() const { return !IsNull(finish_resume_from_); }
+  void ResumeFinish();
+
   bool forward = true;
   const scada::AggregateFilter& aggregation;
   std::vector<scada::DataValue>& data_values;
@@ -68,12 +75,19 @@ struct AggregateState {
   // The raw value processed last, in read order.
   std::optional<scada::DataValue> last_raw;
 
+  // Where Finish() stopped, and the value it was extending. Read through
+  // finish_pending(); public only so that the struct stays an aggregate.
+  scada::Time finish_resume_from_ = scada::kNullTime;
+  std::optional<scada::DataValue> finish_held_;
+
  private:
   void StartInterval(const scada::TimeRange& interval,
                      const std::optional<scada::DataValue>& bound);
-  void AppendHeldIntervals(scada::Time from,
-                           scada::Time to,
-                           const std::optional<scada::DataValue>& held);
+  // Returns where it stopped when |max_count| cut it short, else null.
+  scada::Time AppendHeldIntervals(scada::Time from,
+                                  scada::Time to,
+                                  const std::optional<scada::DataValue>& held);
+  void ExtendLastValue(scada::Time from);
   bool uses_start_bound() const;
 };
 

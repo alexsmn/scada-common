@@ -253,8 +253,7 @@ std::vector<Time> StartsOf(const std::vector<DataValue>& data_values) {
 TEST(AggregationTest, AggregateStateCarriesTheValueIntoTheNextInterval) {
   // 30 was recorded at 15 min and held until -6 replaced it at 40 min, so the
   // second interval is 30 for 10 min and -6 for 20. It used to start at its
-  // first sample and report -6. (A sample exactly on a boundary is counted in
-  // the earlier interval by AggregateState's UpperBound.)
+  // first sample and report -6.
   std::vector<DataValue> raw = {Sample(10, 0min), Sample(30, 15min),
                                 Sample(-6, 40min)};
   for (bool forward : {true, false}) {
@@ -263,6 +262,33 @@ TEST(AggregationTest, AggregateStateCarriesTheValueIntoTheNextInterval) {
     EXPECT_DOUBLE_EQ(20.0, ValueOf(results[0])) << forward;
     EXPECT_DOUBLE_EQ((30.0 * 10 - 6.0 * 20) / 30, ValueOf(results[1]))
         << forward;
+  }
+}
+
+TEST(AggregationTest, AValueOnABoundaryOpensTheNextIntervalHoweverItArrives) {
+  // 30 min is the end of the first interval and the start of the second
+  // (Part 13 §5.4.2.2 Generating intervals: "[Start, End)").
+  const std::vector<DataValue> raw = {Sample(1, 0min), Sample(2, 10min),
+                                      Sample(100, 30min), Sample(3, 40min)};
+  const AggregateFilter filter{
+      .start_time = kStart,
+      .interval = 30min,
+      .aggregate_type = NodeId{id::AggregateFunction_Average}};
+  // Once in one chunk, as a page from the archive arrives, and once a value
+  // at a time.
+  for (bool one_chunk : {true, false}) {
+    std::vector<DataValue> results;
+    AggregateState state{.aggregation = filter, .data_values = results};
+    if (one_chunk) {
+      state.Process(raw);
+    } else {
+      for (const auto& value : raw)
+        state.Process(std::span{&value, 1});
+    }
+    state.Finish();
+    ASSERT_EQ(2u, results.size()) << one_chunk;
+    EXPECT_DOUBLE_EQ(1.5, ValueOf(results[0])) << one_chunk;
+    EXPECT_DOUBLE_EQ(51.5, ValueOf(results[1])) << one_chunk;
   }
 }
 
@@ -325,6 +351,37 @@ TEST(AggregationTest, AggregateStateLeavesOtherAggregatesAlone) {
                      .Run({Sample(5, 10min), Sample(9, 100min)});
   EXPECT_THAT(StartsOf(results), testing::ElementsAre(kStart, kStart + 90min));
   EXPECT_THAT(ValuesOf(results), testing::ElementsAre(5.0, 9.0));
+}
+
+TEST(AggregationTest, FinishResumesWhereMaxCountStoppedIt) {
+  // 5 holds from 10 min to the end of the read at 3 h: six intervals, taken
+  // two at a time.
+  const AggregateFilter filter{
+      .start_time = kStart,
+      .interval = 30min,
+      .aggregate_type = NodeId{id::AggregateFunction_TimeAverage2}};
+  std::vector<DataValue> results;
+  AggregateState state{.aggregation = filter,
+                       .data_values = results,
+                       .fill_from = kStart,
+                       .fill_until = kStart + 3h,
+                       .max_count = 2};
+  const DataValue raw = Sample(5, 10min);
+  state.Process(std::span{&raw, 1});
+  state.Finish();
+
+  std::vector<Time> starts;
+  for (int page = 0; page < 10; ++page) {
+    for (const auto& value : results)
+      starts.push_back(value.source_timestamp);
+    results.clear();
+    if (!state.finish_pending())
+      break;
+    state.ResumeFinish();
+  }
+  EXPECT_THAT(starts, testing::ElementsAre(kStart, kStart + 30min,
+                                           kStart + 60min, kStart + 90min,
+                                           kStart + 120min, kStart + 150min));
 }
 
 TEST(AggregationTest, AggregateStateStopsFillingAtMaxCount) {
