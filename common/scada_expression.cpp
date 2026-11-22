@@ -10,6 +10,7 @@
 #include "express/strings.h"
 #pragma warning(pop)
 
+#include <cstddef>
 #include <exception>
 #include <string>
 
@@ -129,7 +130,7 @@ class BoolToken : public expression::Token {
 
 class ItemToken : public expression::Token {
  public:
-  ItemToken(const ScadaExpression& expression, int index)
+  ItemToken(const ScadaExpression& expression, std::size_t index)
       : expression_{expression}, index_{index} {}
 
   virtual expression::Value Calculate(void* data) const override {
@@ -150,7 +151,7 @@ class ItemToken : public expression::Token {
 
  private:
   const ScadaExpression& expression_;
-  const int index_;
+  const std::size_t index_;
 };
 
 struct ParserDelegate
