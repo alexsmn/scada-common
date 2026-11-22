@@ -137,6 +137,23 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
           .display_name = u"Инверсия",
           .data_type = {scada::id::Boolean, scada::NamespaceIndexes::NS0}}});
 
+  // The control type a 2.6 Server publishes. Nothing here instantiates it, but
+  // its presence is what tells the client it talks to a 2.6 Server rather than
+  // a 2.5.7 one (`LegacySeverityProbe`,
+  // client/services/legacy_event_severity.h): without it a client over these
+  // services rescaled every event severity by ten and the screenshot gallery's
+  // journal read «Критично 1000» on every row.
+  nodes.push_back(scada::NodeState{
+      .node_id = di::DataItemControlType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::BaseObjectType, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{.browse_name = "DataItemControlType",
+                                          .display_name = u"Управление"},
+      .supertype_id = {scada::id::BaseObjectType,
+                       scada::NamespaceIndexes::NS0}});
+
   // Format type and the format-link reference type used by timed-data tests.
   nodes.push_back(scada::NodeState{
       .node_id = di::TsFormatType,
@@ -918,6 +935,12 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
         *this, scada::id::Organizes,
         scada::NodeId{scada::id::ModellingRules, scada::NamespaceIndexes::NS0},
         kOptionalPlaceholder);
+    // data_items.xml i=421 and i=422: a group holds nested groups as well as
+    // data items. Without the <DataGroup> one a group's «Создать» submenu
+    // offered no «Группа», which the manual tells the reader to use.
+    AddCreatablePlaceholder(scada::data_items::id::DataGroupType,
+                            scada::data_items::id::DataGroupType,
+                            "<DataGroup>");
     AddCreatablePlaceholder(scada::data_items::id::DataGroupType,
                             scada::data_items::id::DataItemType, "<DataItem>");
     AddCreatablePlaceholder(scada::devices::id::ModbusLinkType,

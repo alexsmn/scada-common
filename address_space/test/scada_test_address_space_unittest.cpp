@@ -75,6 +75,39 @@ TEST(ScadaTestAddressSpaceTest, TheHardwareRootOffersLinksAndIec61850Devices) {
                              dev::Iec60870DeviceType)));
 }
 
+// A group holds nested groups as well as data items (data_items.xml i=421,
+// i=422). The fixture declared only <DataItem> until 2026-11-22, so a group's
+// «Создать» submenu in menu-create-object.png offered no «Группа» while
+// dev/data-items.md tells the reader to create groups with it.
+TEST(ScadaTestAddressSpaceTest, AGroupOffersNestedGroupsAndDataItems) {
+  ScadaTestAddressSpace address_space;
+  namespace di = scada::data_items::id;
+
+  const scada::Node* group_type = address_space.GetNode(di::DataGroupType);
+  ASSERT_THAT(group_type, NotNull());
+  const std::vector<scada::CreatableChildType> creatable =
+      scada::GetCreatableChildTypes(*group_type);
+  EXPECT_THAT(creatable,
+              Contains(Field(&scada::CreatableChildType::type_definition_id,
+                             di::DataGroupType)));
+  EXPECT_THAT(creatable,
+              Contains(Field(&scada::CreatableChildType::type_definition_id,
+                             di::DataItemType)));
+}
+
+// The control type is what the client's LegacySeverityProbe reads to tell a
+// 2.6 Server from a 2.5.7 one. Missing here, every client over these services
+// took itself to be on a 2.5.7 Server and multiplied each event severity by
+// ten, so the screenshot journal rendered «Критично 1000» on every row.
+TEST(ScadaTestAddressSpaceTest, PublishesTheControlTypeOfA26Server) {
+  ScadaTestAddressSpace address_space;
+
+  const scada::Node* control_type =
+      address_space.GetNode(scada::data_items::id::DataItemControlType);
+  ASSERT_THAT(control_type, NotNull());
+  EXPECT_EQ(control_type->GetNodeClass(), scada::NodeClass::ObjectType);
+}
+
 }  // namespace
 
 }  // namespace scada_test
