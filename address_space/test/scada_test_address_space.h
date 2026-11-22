@@ -216,13 +216,27 @@ inline void AddScadaDataItemsTestTypes(AddressSpaceImpl& address_space) {
           .display_name = u"Цвет 1",
           .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
 
+  // The folder type of "Форматы ТС" (data_items.xml i=401). Its <TsFormat>
+  // placeholder is what makes TsFormatType creatable there, and the Formats
+  // admin table takes its columns from the creatable types: typed with plain
+  // FolderType, the table had only its name columns.
+  nodes.push_back(scada::NodeState{
+      .node_id = di::TsFormatsFolderType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::FolderType, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{.browse_name = "TsFormatsFolderType",
+                                .display_name = u"TsFormatsFolderType"},
+      .supertype_id = {scada::id::FolderType, scada::NamespaceIndexes::NS0}});
+
   // The "Форматы ТС" folder that owns format instances (the Formats admin
   // table). Mirrors the SimulationSignals / Users admin folders.
   nodes.push_back(scada::NodeState{
       .node_id = di::TsFormats,
       .node_class = scada::NodeClass::Object,
-      .type_definition_id = {scada::id::FolderType,
-                             scada::NamespaceIndexes::NS0},
+      .type_definition_id = di::TsFormatsFolderType,
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
       .attributes = scada::NodeAttributes{.browse_name = "TsFormats",
@@ -656,12 +670,10 @@ inline void AddScadaSecurityTestTypes(AddressSpaceImpl& address_space) {
   }
 }
 
-// Adds the simulation-signal test types: the SimulationSignals folder and the
-// SimulationSignalType with the property declarations the Simulation admin
-// table renders (Function / Period / Phase / UpdateInterval). Function is typed
-// Int32 here, whereas the production nodeset types it as the
-// SimulationFunctionType enumeration — the table renders the raw value, which
-// is all the docs screenshot exercises. Display names mirror
+// Adds the simulation-signal test types: the SimulationSignals folder (with its
+// folder type), the signal-form enumeration, and the SimulationSignalType with
+// the property declarations the Simulation admin table renders (Type / Period /
+// Phase / UpdateInterval). Browse and display names mirror
 // `model/nodesets/data_items.xml`.
 inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
   GenericNodeFactory factory{address_space};
@@ -670,12 +682,52 @@ inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
 
   std::vector<scada::NodeState> nodes;
 
+  // The folder type of "Сигналы имитации" (data_items.xml i=402), carrying
+  // the <SimulationSignal> placeholder; see TsFormatsFolderType.
+  nodes.push_back(scada::NodeState{
+      .node_id = di::SimulationSignalsFolderType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::FolderType, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{.browse_name = "SimulationSignalsFolderType",
+                                .display_name = u"SimulationSignalsFolderType"},
+      .supertype_id = {scada::id::FolderType, scada::NamespaceIndexes::NS0}});
+
+  // The signal-form enumeration (data_items.xml i=326) and its EnumStrings,
+  // so the «Тип» column renders the form's name rather than its number.
+  nodes.push_back(scada::NodeState{
+      .node_id = di::SimulationFunctionDataType,
+      .node_class = scada::NodeClass::DataType,
+      .parent_id = {scada::id::Enumeration, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{.browse_name = "SimulationSignalTypeEnum",
+                                .display_name = u"Тип эмуляции"},
+      .supertype_id = {scada::id::Enumeration, scada::NamespaceIndexes::NS0}});
+  nodes.push_back(scada::NodeState{
+      .node_id = di::SimulationFunctionDataType_EnumStrings,
+      .node_class = scada::NodeClass::Variable,
+      .type_definition_id = {scada::id::PropertyType,
+                             scada::NamespaceIndexes::NS0},
+      .parent_id = di::SimulationFunctionDataType,
+      .reference_type_id = {scada::id::HasProperty,
+                            scada::NamespaceIndexes::NS0},
+      .attributes = scada::NodeAttributes{
+          .browse_name = "EnumStrings",
+          .display_name = u"EnumStrings",
+          .data_type = {scada::id::LocalizedText, scada::NamespaceIndexes::NS0},
+          .value = scada::Variant{std::vector<scada::LocalizedText>{
+              u"Случайный", u"Пилообразный", u"Скачкообразный", u"Синус",
+              u"Косинус"}}}});
+
   // The "Сигналы имитации" folder that owns simulation-signal instances.
   nodes.push_back(scada::NodeState{
       .node_id = di::SimulationSignals,
       .node_class = scada::NodeClass::Object,
-      .type_definition_id = {scada::id::FolderType,
-                             scada::NamespaceIndexes::NS0},
+      .type_definition_id = di::SimulationSignalsFolderType,
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
       .attributes =
@@ -693,29 +745,32 @@ inline void AddScadaSimulationTestTypes(AddressSpaceImpl& address_space) {
       .supertype_id = {scada::id::BaseObjectType,
                        scada::NamespaceIndexes::NS0}});
 
-  // The four operator-facing property declarations, all rendered as Int32
-  // columns in the Simulation table.
-  const auto add_property = [&nodes](const scada::NodeId& property_id,
-                                     const char* browse_name,
-                                     std::u16string display_name) {
-    nodes.push_back(scada::NodeState{
-        .node_id = property_id,
-        .node_class = scada::NodeClass::Variable,
-        .type_definition_id = {scada::id::PropertyType,
-                               scada::NamespaceIndexes::NS0},
-        .parent_id = di::SimulationSignalType,
-        .reference_type_id = {scada::id::HasProperty,
-                              scada::NamespaceIndexes::NS0},
-        .attributes = scada::NodeAttributes{
-            .browse_name = browse_name,
-            .display_name = std::move(display_name),
-            .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
-  };
-  add_property(di::SimulationSignalType_Function, "Function", u"Функция");
-  add_property(di::SimulationSignalType_Period, "Period", u"Период");
-  add_property(di::SimulationSignalType_Phase, "Phase", u"Фаза");
+  // The four operator-facing property declarations. Function is the
+  // enumeration above; the rest are Int32 columns.
+  const auto add_property =
+      [&nodes](const scada::NodeId& property_id, const char* browse_name,
+               std::u16string display_name,
+               scada::NodeId data_type = {scada::id::Int32,
+                                          scada::NamespaceIndexes::NS0}) {
+        nodes.push_back(scada::NodeState{
+            .node_id = property_id,
+            .node_class = scada::NodeClass::Variable,
+            .type_definition_id = {scada::id::PropertyType,
+                                   scada::NamespaceIndexes::NS0},
+            .parent_id = di::SimulationSignalType,
+            .reference_type_id = {scada::id::HasProperty,
+                                  scada::NamespaceIndexes::NS0},
+            .attributes =
+                scada::NodeAttributes{.browse_name = browse_name,
+                                      .display_name = std::move(display_name),
+                                      .data_type = std::move(data_type)}});
+      };
+  add_property(di::SimulationSignalType_Function, "Type", u"Тип",
+               di::SimulationFunctionDataType);
+  add_property(di::SimulationSignalType_Period, "Period", u"Период, мс");
+  add_property(di::SimulationSignalType_Phase, "Phase", u"Фаза, мс");
   add_property(di::SimulationSignalType_UpdateInterval, "UpdateInterval",
-               u"Интервал");
+               u"Обновление, мс");
 
   for (const auto& node : nodes) {
     [[maybe_unused]] const auto result = factory.CreateNode(node);
@@ -737,12 +792,25 @@ inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
 
   std::vector<scada::NodeState> nodes;
 
+  // The folder type of "Базы данных истории" (history.xml i=406), carrying
+  // the <HistoricalDatabase> placeholder; see TsFormatsFolderType.
+  nodes.push_back(scada::NodeState{
+      .node_id = hi::HistoricalDatabasesFolderType,
+      .node_class = scada::NodeClass::ObjectType,
+      .parent_id = {scada::id::FolderType, scada::NamespaceIndexes::NS0},
+      .reference_type_id = {scada::id::HasSubtype,
+                            scada::NamespaceIndexes::NS0},
+      .attributes =
+          scada::NodeAttributes{
+              .browse_name = "HistoricalDatabasesFolderType",
+              .display_name = u"HistoricalDatabasesFolderType"},
+      .supertype_id = {scada::id::FolderType, scada::NamespaceIndexes::NS0}});
+
   // The "Базы данных истории" folder that owns historical-database instances.
   nodes.push_back(scada::NodeState{
       .node_id = hi::HistoricalDatabases,
       .node_class = scada::NodeClass::Object,
-      .type_definition_id = {scada::id::FolderType,
-                             scada::NamespaceIndexes::NS0},
+      .type_definition_id = hi::HistoricalDatabasesFolderType,
       .parent_id = {scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
       .reference_type_id = {scada::id::Organizes, scada::NamespaceIndexes::NS0},
       .attributes =
@@ -777,12 +845,14 @@ inline void AddScadaHistoryTestTypes(AddressSpaceImpl& address_space) {
             .display_name = std::move(display_name),
             .data_type = {scada::id::Int32, scada::NamespaceIndexes::NS0}}});
   };
-  add_property(hi::HistoricalDatabaseType_Depth, "Depth", u"Глубина");
-  add_property(hi::HistoricalDatabaseType_ItemCount, "ItemCount", u"Элементов");
+  // Display names mirror history.xml.
+  add_property(hi::HistoricalDatabaseType_Depth, "Depth", u"Глубина, дн");
+  add_property(hi::HistoricalDatabaseType_ItemCount, "ItemCount",
+               u"Количество измерений");
   add_property(hi::HistoricalDatabaseType_WriteValueCount, "WriteValueCount",
-               u"Записано");
+               u"Количество записанных измерений");
   add_property(hi::HistoricalDatabaseType_PendingTaskCount, "PendingTaskCount",
-               u"В очереди");
+               u"Очередь записи измерений");
 
   for (const auto& node : nodes) {
     [[maybe_unused]] const auto result = factory.CreateNode(node);
@@ -961,6 +1031,17 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
                             "<Iec61850Device>");
     AddCreatablePlaceholder(scada::devices::id::Iec60870LinkType,
                             scada::devices::id::Iec60870DeviceType, "<Device>");
+    // The admin folders' placeholders (data_items.xml i=411 and i=412,
+    // history.xml i=417). The Formats, Simulated Signals and Databases tables
+    // take their property columns from these.
+    AddCreatablePlaceholder(scada::data_items::id::TsFormatsFolderType,
+                            scada::data_items::id::TsFormatType, "<TsFormat>");
+    AddCreatablePlaceholder(scada::data_items::id::SimulationSignalsFolderType,
+                            scada::data_items::id::SimulationSignalType,
+                            "<SimulationSignal>");
+    AddCreatablePlaceholder(scada::history::id::HistoricalDatabasesFolderType,
+                            scada::history::id::HistoricalDatabaseType,
+                            "<HistoricalDatabase>");
   }
 
   ~ScadaTestAddressSpace() { Clear(); }
