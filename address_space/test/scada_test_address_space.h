@@ -918,6 +918,8 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
     // property declared above — the HasTransmissionSource reference type is
     // retired (transmission OPC UA alignment, phase 4).
 
+    AddPropertyCategories(kHasSubtype, kNonHierarchical);
+
     // OptionalPlaceholder InstanceDeclarations — the standard-modelling
     // replacement for the removed Creates edges. Tests resolve creatable child
     // types (GetCreatableChildTypes) through these. Mirrors the SCADA nodeset.
@@ -964,6 +966,99 @@ class ScadaTestAddressSpace : public AddressSpaceImpl {
   ~ScadaTestAddressSpace() { Clear(); }
 
  private:
+  // Adds the property categories and the HasPropertyCategory edges from each
+  // declaration above to its category, mirroring scada_core.xml (the
+  // reference type, the PropertyCategories folder, General), data_items.xml
+  // and history.xml. The client's Properties window groups a type's
+  // declarations into one tab per category (NodePropertyModel::Update), so
+  // without these every declaration fell into the «Прочее» (Misc) tab.
+  void AddPropertyCategories(const scada::NodeId& has_subtype,
+                             const scada::NodeId& non_hierarchical) {
+    namespace di = scada::data_items::id;
+
+    AddStaticNode<scada::ReferenceType>(scada::id::HasPropertyCategory,
+                                        "HasPropertyCategory");
+    scada::AddReference(*this, has_subtype, non_hierarchical,
+                        scada::id::HasPropertyCategory);
+
+    AddStaticNode<scada::GenericObject>(
+        scada::id::PropertyCategories, "PropertyCategories",
+        scada::LocalizedText{u"Категории свойств"});
+    scada::AddReference(
+        *this, scada::NodeId{scada::id::HasTypeDefinition},
+        scada::id::PropertyCategories,
+        scada::NodeId{scada::id::FolderType, scada::NamespaceIndexes::NS0});
+    scada::AddReference(
+        *this, scada::id::Organizes,
+        scada::NodeId{scada::id::ObjectsFolder, scada::NamespaceIndexes::NS0},
+        scada::id::PropertyCategories);
+
+    struct Category {
+      scada::NodeId id;
+      const char* browse_name;
+      std::u16string_view display_name;
+    };
+    const Category kCategories[] = {
+        {scada::id::GeneralPropertyCategory, "General", u"Общие"},
+        {di::ChannelsPropertyCategory, "Channels", u"Каналы"},
+        {di::ConversionPropertyCategory, "Conversion", u"Преобразование"},
+        {di::FilteringPropertyCategory, "Filtering", u"Фильтрация"},
+        {di::DisplayPropertyCategory, "Display", u"Отображение"},
+        {scada::history::id::HistoryPropertyCategory, "History",
+         u"Архивирование"},
+        {di::SimulationPropertyCategory, "Simulation", u"Эмуляция"},
+        {di::LimitsPropertyCategory, "Limits", u"Уставки"},
+    };
+    for (const auto& category : kCategories) {
+      AddStaticNode<scada::GenericObject>(
+          category.id, category.browse_name,
+          scada::LocalizedText{category.display_name});
+      scada::AddReference(*this, scada::NodeId{scada::id::HasTypeDefinition},
+                          category.id,
+                          scada::NodeId{scada::id::BaseObjectType,
+                                        scada::NamespaceIndexes::NS0});
+      scada::AddReference(*this, scada::id::Organizes,
+                          scada::id::PropertyCategories, category.id);
+    }
+
+    // Declaration -> category, as the nodesets have it. Alias and Severity
+    // carry no category there, so they stay in Misc.
+    const std::pair<scada::NodeId, scada::NodeId> kDeclarations[] = {
+        {di::DataItemType_Simulated, di::SimulationPropertyCategory},
+        {di::DataItemType_Input1, di::ChannelsPropertyCategory},
+        {di::DataItemType_Input2, di::ChannelsPropertyCategory},
+        {di::DataItemType_Output, di::ChannelsPropertyCategory},
+        {di::DataItemType_OutputCondition, di::ChannelsPropertyCategory},
+        {di::DataItemType_StalePeriod, di::ChannelsPropertyCategory},
+        {di::DataItemType_Locked, di::ChannelsPropertyCategory},
+        {di::DataItemType_OutputTwoStaged, di::ChannelsPropertyCategory},
+        {di::HasSimulationSignal, di::SimulationPropertyCategory},
+        {di::HasTsFormat, di::DisplayPropertyCategory},
+        {di::HasDevice, di::ChannelsPropertyCategory},
+        {di::DiscreteItemType_Inversion, di::ConversionPropertyCategory},
+        {di::AnalogItemType_DisplayFormat, di::DisplayPropertyCategory},
+        {di::AnalogItemType_Conversion, di::ConversionPropertyCategory},
+        {di::AnalogItemType_Clamping, di::FilteringPropertyCategory},
+        {di::AnalogItemType_EuLo, di::ConversionPropertyCategory},
+        {di::AnalogItemType_EuHi, di::ConversionPropertyCategory},
+        {di::AnalogItemType_IrLo, di::ConversionPropertyCategory},
+        {di::AnalogItemType_IrHi, di::ConversionPropertyCategory},
+        {di::AnalogItemType_LimitLo, di::LimitsPropertyCategory},
+        {di::AnalogItemType_LimitHi, di::LimitsPropertyCategory},
+        {di::AnalogItemType_LimitLoLo, di::LimitsPropertyCategory},
+        {di::AnalogItemType_LimitHiHi, di::LimitsPropertyCategory},
+        {di::AnalogItemType_EngineeringUnits, di::DisplayPropertyCategory},
+        {di::AnalogItemType_Aperture, di::FilteringPropertyCategory},
+        {di::AnalogItemType_Deadband, di::FilteringPropertyCategory},
+        {scada::history::id::HasHistoricalDatabase,
+         scada::history::id::HistoryPropertyCategory},
+    };
+    for (const auto& [declaration, category] : kDeclarations) {
+      scada::AddReference(*this, scada::id::HasPropertyCategory, declaration,
+                          category);
+    }
+  }
+
   // Adds an OptionalPlaceholder <name> child of |parent_type| typed
   // |createable_type| (attached via Organizes, matching how config instances
   // are parented) — the standard-modelling replacement for a Creates edge.
