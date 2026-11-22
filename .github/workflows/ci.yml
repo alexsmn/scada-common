@@ -174,7 +174,7 @@ jobs:
         cppcheck --enable=warning,performance,portability \
           --suppressions-list=.cppcheck-suppressions \
           --inline-suppr \
-          --std=c++20 \
+          --std=c++23 \
           -j2 \
           -I . \
           --output-file=cppcheck-report.txt \
