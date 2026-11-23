@@ -235,6 +235,8 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x80140000u);  // BadCertificateTimeInvalid
   EXPECT_EQ(wire(scada::StatusCode::Bad_SecurityModeInsufficient),
             0x80E60000u);  // BadSecurityModeInsufficient
+  EXPECT_EQ(wire(scada::StatusCode::Bad_IdentityChangeNotSupported),
+            0x80C60000u);  // BadIdentityChangeNotSupported
   EXPECT_EQ(wire(scada::StatusCode::Bad_Disconnected),
             0x80310000u);  // BadNoCommunication
   EXPECT_EQ(wire(scada::StatusCode::Bad_SessionForcedLogoff),

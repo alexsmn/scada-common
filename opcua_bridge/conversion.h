@@ -120,7 +120,8 @@ namespace scada::opcua_bridge {
   MAP(Bad_CertificateUntrusted, Bad_CertificateUntrusted)               \
   MAP(Bad_CertificateInvalid, Bad_CertificateInvalid)                   \
   MAP(Bad_CertificateTimeInvalid, Bad_CertificateTimeInvalid)           \
-  MAP(Bad_SecurityModeInsufficient, Bad_SecurityModeInsufficient)
+  MAP(Bad_SecurityModeInsufficient, Bad_SecurityModeInsufficient)       \
+  MAP(Bad_IdentityChangeNotSupported, Bad_IdentityChangeNotSupported)
 
 // Core codes that share a wire code with an entry in the table above.
 //
