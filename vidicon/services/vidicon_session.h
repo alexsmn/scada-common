@@ -50,6 +50,7 @@ class VidiconSession final : public scada::SessionService,
 
   // scada::HistoryService
   virtual scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext context,
       scada::HistoryReadRawDetails details) override;
   virtual scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::ServiceContext context,
@@ -72,10 +73,11 @@ class VidiconSession final : public scada::SessionService,
       std::vector<scada::WriteValue> inputs) override;
 
   // scada::MethodService
-  virtual scada::CoStatusOr<scada::CallResult> Call(scada::NodeId node_id,
-                               scada::NodeId method_id,
-                               std::vector<scada::Variant> arguments,
-                               scada::ServiceContext context) override;
+  virtual scada::CoStatusOr<scada::CallResult> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> arguments,
+      scada::ServiceContext context) override;
 
   // scada::NodeManagementService
   virtual scada::CoStatusOr<std::vector<scada::AddNodesResult>> AddNodes(
@@ -96,7 +98,8 @@ class VidiconSession final : public scada::SessionService,
       scada::ServiceContext context,
       std::vector<scada::BrowseDescription> inputs) override;
   virtual scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
-  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
+  TranslateBrowsePaths(scada::ServiceContext context,
+                       std::vector<scada::BrowsePath> inputs) override;
 
  private:
   AddressSpaceImpl address_space_;

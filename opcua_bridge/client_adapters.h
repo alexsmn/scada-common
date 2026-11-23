@@ -79,6 +79,7 @@ class ClientViewServiceAdapter : public scada::ViewService {
       scada::ServiceContext context,
       std::vector<scada::BrowseDescription> inputs) override;
   scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      scada::ServiceContext context,
       std::vector<scada::BrowsePath> inputs) override;
 
  private:
@@ -232,6 +233,7 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
 
   // scada::HistoryService
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext context,
       scada::HistoryReadRawDetails details) override;
   scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::ServiceContext context,

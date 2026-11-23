@@ -44,7 +44,8 @@ class Audit final : private AuditContext,
   Browse(scada::ServiceContext context,
          std::vector<scada::BrowseDescription> inputs) override;
   [[nodiscard]] virtual scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
-  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
+  TranslateBrowsePaths(scada::ServiceContext context,
+                       std::vector<scada::BrowsePath> inputs) override;
 
  private:
   explicit Audit(AuditContext&& context);

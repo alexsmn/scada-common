@@ -175,10 +175,12 @@ scada::CoStatusOr<std::vector<scada::BrowseResult>> Audit::Browse(
 }
 
 scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
-Audit::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
+Audit::TranslateBrowsePaths(scada::ServiceContext context,
+                            std::vector<scada::BrowsePath> inputs) {
   auto* service = view_service_;
   if (service)
-    co_return co_await service->TranslateBrowsePaths(std::move(inputs));
+    co_return co_await service->TranslateBrowsePaths(std::move(context),
+                                                     std::move(inputs));
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }

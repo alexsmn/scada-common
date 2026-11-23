@@ -98,6 +98,7 @@ class RemoteHistoryService : public scada::HistoryService,
 
   // scada::HistoryService
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext context,
       scada::HistoryReadRawDetails details) override;
   scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
       scada::ServiceContext context,

@@ -67,6 +67,7 @@ class FakeMonitoredItemService final : public scada::MonitoredItemService {
 class FakeHistoryService final : public scada::HistoryService {
  public:
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext,
       scada::HistoryReadRawDetails /*details*/) override {
     co_return scada::HistoryReadRawResult{};
   }

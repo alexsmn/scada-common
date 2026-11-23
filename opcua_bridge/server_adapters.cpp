@@ -106,8 +106,10 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
             return view.Browse(std::move(context), std::move(inputs));
           },
       .translate_browse_paths =
-          [this](std::vector<opcua::BrowsePath> inputs) {
-            return view.TranslateBrowsePaths(std::move(inputs));
+          [this](opcua::ServiceContext context,
+                 std::vector<opcua::BrowsePath> inputs) {
+            return view.TranslateBrowsePaths(std::move(context),
+                                             std::move(inputs));
           },
       .call =
           [this](opcua::NodeId node_id, opcua::NodeId method_id,
@@ -117,8 +119,10 @@ opcua::ServiceCallbacks ServerServiceAdapters::MakeCallbacks() {
                                std::move(arguments), std::move(context));
           },
       .history_read_raw =
-          [this](opcua::HistoryReadRawDetails details) {
-            return history.HistoryReadRaw(std::move(details));
+          [this](opcua::ServiceContext context,
+                 opcua::HistoryReadRawDetails details) {
+            return history.HistoryReadRaw(std::move(context),
+                                          std::move(details));
           },
       .history_read_events =
           [this](opcua::ServiceContext context, opcua::NodeId node_id,
@@ -220,15 +224,19 @@ opcua::CoStatusOr<std::vector<opcua::BrowseResult>> ViewServiceAdapter::Browse(
 
 opcua::CoStatusOr<std::vector<opcua::BrowsePathResult>>
 ViewServiceAdapter::TranslateBrowsePaths(
+    opcua::ServiceContext context,
     std::vector<opcua::BrowsePath> inputs) {
-  // The translate callback carries no ServiceContext (see tracing.md), so the
-  // request-header traceparent cannot reach this seam yet: a root SERVER span.
-  auto span = tracer_.StartSpan("opcua.server/TranslateBrowsePaths",
-                                TraceSpanKind::kServer, {});
+  // The session's caller travels with the translation, so the server resolves
+  // no path through a namespace the caller may not browse (OPC UA Part 3
+  // §8.55 PermissionType bit 0 Browse,
+  // https://reference.opcfoundation.org/Core/Part3/v105/docs/8.55).
+  auto span =
+      StartServerSpan(tracer_, "opcua.server/TranslateBrowsePaths", context);
   SetBatchAttributes(span, inputs, [](const opcua::BrowsePath& input) {
     return input.node_id.ToString();
   });
-  auto result = co_await inner_.TranslateBrowsePaths(ToScadaVector(inputs));
+  auto result = co_await inner_.TranslateBrowsePaths(ToScada(context),
+                                                     ToScadaVector(inputs));
   co_return ToOpcua(result);
 }
 
@@ -310,15 +318,15 @@ NodeManagementServiceAdapter::DeleteReferences(
 
 // --- HistoryService -----------------------------------------------------
 opcua::CoStatusOr<opcua::HistoryReadRawResult>
-HistoryServiceAdapter::HistoryReadRaw(opcua::HistoryReadRawDetails details) {
-  // HistoryService carries no ServiceContext downstream (see tracing.md);
-  // this SERVER span still anchors the historian-side work in the caller's
-  // trace when the request header carried a traceparent -- which opcuapp
-  // cannot deliver here yet, so today it is a root span.
-  auto span = tracer_.StartSpan("opcua.server/HistoryReadRaw",
-                                TraceSpanKind::kServer, {});
+HistoryServiceAdapter::HistoryReadRaw(opcua::ServiceContext context,
+                                      opcua::HistoryReadRawDetails details) {
+  // The session's caller travels with the read, so the server can require
+  // ReadHistory (OPC UA Part 3 §8.55 PermissionType bit 7 ReadHistory,
+  // https://reference.opcfoundation.org/Core/Part3/v105/docs/8.55).
+  auto span = StartServerSpan(tracer_, "opcua.server/HistoryReadRaw", context);
   span.SetAttribute("scada.node_id", details.node_id.ToString());
-  auto result = co_await inner_.HistoryReadRaw(ToScada(details));
+  auto result =
+      co_await inner_.HistoryReadRaw(ToScada(context), ToScada(details));
   if (!result.ok()) {
     co_return ToOpcua(result.status());
   }

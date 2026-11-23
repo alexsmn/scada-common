@@ -40,6 +40,7 @@ DataServices MakeTimedDataServices(scada::HistoryService& history_service) {
 class TestHistoryService final : public scada::HistoryService {
  public:
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext context,
       scada::HistoryReadRawDetails details) override {
     ++raw_read_count;
     last_raw_details = std::move(details);
@@ -237,8 +238,8 @@ TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {
   // The action is a lazy coroutine: it must take `details` by value so the
   // copy lives in the coroutine frame. A `const&` parameter would bind to
   // gMock's argument tuple, which is destroyed before the awaitable runs.
-  EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce([&](scada::HistoryReadRawDetails details)
+  EXPECT_CALL(history_service_, HistoryReadRaw(testing::_, _))
+      .WillOnce([&](scada::ServiceContext, scada::HistoryReadRawDetails details)
                     -> scada::CoStatusOr<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, kDataItemId);
         EXPECT_EQ(details.from, from);
@@ -267,8 +268,8 @@ TEST_F(TimedDataTest, DataServicesHistoryCallbackUsesCoroutineAdapter) {
       .node_event_provider_ = node_event_provider_});
 
   // By-value `details` for the same coroutine-lifetime reason as above.
-  EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce([&](scada::HistoryReadRawDetails details)
+  EXPECT_CALL(history_service_, HistoryReadRaw(testing::_, _))
+      .WillOnce([&](scada::ServiceContext, scada::HistoryReadRawDetails details)
                     -> scada::CoStatusOr<scada::HistoryReadRawResult> {
         EXPECT_EQ(details.node_id, kDataItemId);
         EXPECT_EQ(details.from, from);
@@ -345,8 +346,8 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
   };
   const scada::ByteString continuation_point{'c', 'p'};
 
-  EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce([&](scada::HistoryReadRawDetails cleanup)
+  EXPECT_CALL(history_service_, HistoryReadRaw(testing::_, _))
+      .WillOnce([&](scada::ServiceContext, scada::HistoryReadRawDetails cleanup)
                     -> scada::CoStatusOr<scada::HistoryReadRawResult> {
         EXPECT_EQ(cleanup.node_id, details.node_id);
         EXPECT_EQ(cleanup.from, details.from);
@@ -358,7 +359,8 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleasesThroughCoroutineCleanup) {
       });
 
   ScopedContinuationPoint scoped_continuation_point{
-      executor_, history_service_, details, continuation_point};
+      executor_, history_service_, scada::ServiceContext{}, details,
+      continuation_point};
   scoped_continuation_point.reset();
 
   Drain(executor_);
@@ -373,8 +375,8 @@ TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
   };
   const scada::ByteString continuation_point{'c', 'p'};
 
-  EXPECT_CALL(history_service_, HistoryReadRaw(_))
-      .WillOnce([&](scada::HistoryReadRawDetails cleanup)
+  EXPECT_CALL(history_service_, HistoryReadRaw(testing::_, _))
+      .WillOnce([&](scada::ServiceContext, scada::HistoryReadRawDetails cleanup)
                     -> scada::CoStatusOr<scada::HistoryReadRawResult> {
         EXPECT_EQ(cleanup.node_id, details.node_id);
         EXPECT_TRUE(cleanup.release_continuation_point);
@@ -383,7 +385,8 @@ TEST_F(TimedDataTest, ScopedContinuationPointMovePreservesCleanup) {
       });
 
   ScopedContinuationPoint scoped_continuation_point{
-      executor_, history_service_, details, continuation_point};
+      executor_, history_service_, scada::ServiceContext{}, details,
+      continuation_point};
   ScopedContinuationPoint moved_continuation_point{
       std::move(scoped_continuation_point)};
   scoped_continuation_point.reset();
@@ -401,10 +404,11 @@ TEST_F(TimedDataTest, ScopedContinuationPointReleaseSkipsCleanup) {
   };
   const scada::ByteString continuation_point{'c', 'p'};
 
-  EXPECT_CALL(history_service_, HistoryReadRaw(_)).Times(0);
+  EXPECT_CALL(history_service_, HistoryReadRaw(testing::_, _)).Times(0);
 
   ScopedContinuationPoint scoped_continuation_point{
-      executor_, history_service_, details, continuation_point};
+      executor_, history_service_, scada::ServiceContext{}, details,
+      continuation_point};
   EXPECT_EQ(scoped_continuation_point.release(), continuation_point);
   scoped_continuation_point.reset();
 

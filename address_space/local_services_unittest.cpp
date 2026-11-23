@@ -254,11 +254,13 @@ TEST(LocalHistoryService, CoroutineHistoryReadRawReturnsGeneratedProfile) {
   const NodeId node_id{7, 2};
   service.SetRawProfile(node_id, 42.0);
 
-  auto result =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = node_id,
-                                  .from = scada::Now() - std::chrono::hours(1),
-                                  .to = scada::Now()}));
+  auto result = WaitAwaitable(
+      executor,
+      service.HistoryReadRaw(
+          scada::ServiceContext{},
+          HistoryReadRawDetails{.node_id = node_id,
+                                .from = scada::Now() - std::chrono::hours(1),
+                                .to = scada::Now()}));
 
   ASSERT_TRUE(result.ok()) << result.status();
   ASSERT_FALSE(result->values.empty());
@@ -276,9 +278,11 @@ TEST(LocalHistoryService, ReadReturnsTheSeriesSamplesInsideTheWindow) {
 
   const auto to = scada::Now();
   const auto from = to - std::chrono::hours(1);
-  auto result =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = node_id, .from = from, .to = to}));
+  auto result = WaitAwaitable(
+      executor,
+      service.HistoryReadRaw(
+          scada::ServiceContext{},
+          HistoryReadRawDetails{.node_id = node_id, .from = from, .to = to}));
 
   ASSERT_TRUE(result.ok()) << result.status();
   ASSERT_GE(result->values.size(), 11u);
@@ -307,8 +311,11 @@ TEST(LocalHistoryService, UnboundedEndAnchorsToNow) {
 
   const auto from = scada::Now() - std::chrono::hours(1);
   auto result = WaitAwaitable(
-      executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                    .node_id = node_id, .from = from, .to = scada::kMaxTime}));
+      executor,
+      service.HistoryReadRaw(
+          scada::ServiceContext{},
+          HistoryReadRawDetails{
+              .node_id = node_id, .from = from, .to = scada::kMaxTime}));
 
   ASSERT_TRUE(result.ok()) << result.status();
   ASSERT_FALSE(result->values.empty());
@@ -333,8 +340,10 @@ TEST(LocalHistoryService, VeryWideRangeStillYieldsADayOfSamples) {
 
   const auto to = scada::Now();
   auto result = WaitAwaitable(
-      executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                    .node_id = node_id, .from = scada::Time{}, .to = to}));
+      executor, service.HistoryReadRaw(
+                    scada::ServiceContext{},
+                    HistoryReadRawDetails{
+                        .node_id = node_id, .from = scada::Time{}, .to = to}));
 
   ASSERT_TRUE(result.ok()) << result.status();
   // A day at five-minute spacing, ending just before `to`.
@@ -359,16 +368,18 @@ TEST(LocalHistoryService, OverlappingReadsAgreeAtEveryInstant) {
                    std::chrono::hours(15) + std::chrono::minutes(2);
   service.SetNowOverride(now);
 
-  auto narrow =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = node_id,
-                                  .from = now - std::chrono::hours(1),
-                                  .to = scada::kMaxTime}));
-  auto wide =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = node_id,
-                                  .from = now - std::chrono::hours(15),
-                                  .to = now + std::chrono::hours(1)}));
+  auto narrow = WaitAwaitable(
+      executor, service.HistoryReadRaw(
+                    scada::ServiceContext{},
+                    HistoryReadRawDetails{.node_id = node_id,
+                                          .from = now - std::chrono::hours(1),
+                                          .to = scada::kMaxTime}));
+  auto wide = WaitAwaitable(
+      executor, service.HistoryReadRaw(
+                    scada::ServiceContext{},
+                    HistoryReadRawDetails{.node_id = node_id,
+                                          .from = now - std::chrono::hours(15),
+                                          .to = now + std::chrono::hours(1)}));
   ASSERT_TRUE(narrow.ok()) << narrow.status();
   ASSERT_TRUE(wide.ok()) << wide.status();
   ASSERT_FALSE(narrow->values.empty());
@@ -395,11 +406,12 @@ TEST(LocalHistoryService, ReadEndingInTheFutureStopsAtNow) {
   const auto now = scada::Now();
   service.SetNowOverride(now);
 
-  auto result =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = node_id,
-                                  .from = now - std::chrono::hours(16),
-                                  .to = now + std::chrono::hours(1)}));
+  auto result = WaitAwaitable(
+      executor, service.HistoryReadRaw(
+                    scada::ServiceContext{},
+                    HistoryReadRawDetails{.node_id = node_id,
+                                          .from = now - std::chrono::hours(16),
+                                          .to = now + std::chrono::hours(1)}));
 
   ASSERT_TRUE(result.ok()) << result.status();
   ASSERT_FALSE(result->values.empty());
@@ -416,11 +428,13 @@ TEST(LocalHistoryService, UnknownNodeHasNoHistory) {
   LocalHistoryService service;
   service.SetRawProfile(NodeId{7, 2}, 42.0);
 
-  auto result =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = NodeId{9, 2},
-                                  .from = scada::Now() - std::chrono::hours(1),
-                                  .to = scada::Now()}));
+  auto result = WaitAwaitable(
+      executor,
+      service.HistoryReadRaw(
+          scada::ServiceContext{},
+          HistoryReadRawDetails{.node_id = NodeId{9, 2},
+                                .from = scada::Now() - std::chrono::hours(1),
+                                .to = scada::Now()}));
 
   ASSERT_TRUE(result.ok()) << result.status();
   EXPECT_THAT(result->values, testing::IsEmpty());
@@ -454,15 +468,19 @@ TEST(LocalHistoryService, LoadFromJsonSkipsNodesTheCallerDoesNotHave) {
   const auto to = *base::TimeFromString("2026-04-16 15:02:00",
                                         /*is_local=*/true);
   const auto from = to - std::chrono::hours(1);
-  auto kept =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = present, .from = from, .to = to}));
+  auto kept = WaitAwaitable(
+      executor,
+      service.HistoryReadRaw(
+          scada::ServiceContext{},
+          HistoryReadRawDetails{.node_id = present, .from = from, .to = to}));
   ASSERT_TRUE(kept.ok()) << kept.status();
   EXPECT_FALSE(kept->values.empty());
 
-  auto skipped =
-      WaitAwaitable(executor, service.HistoryReadRaw(HistoryReadRawDetails{
-                                  .node_id = orphan, .from = from, .to = to}));
+  auto skipped = WaitAwaitable(
+      executor,
+      service.HistoryReadRaw(
+          scada::ServiceContext{},
+          HistoryReadRawDetails{.node_id = orphan, .from = from, .to = to}));
   ASSERT_TRUE(skipped.ok()) << skipped.status();
   EXPECT_THAT(skipped->values, testing::IsEmpty());
 }

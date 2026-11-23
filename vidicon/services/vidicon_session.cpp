@@ -85,6 +85,7 @@ boost::signals2::scoped_connection VidiconSession::SubscribeSessionStateChanged(
 }
 
 scada::CoStatusOr<scada::HistoryReadRawResult> VidiconSession::HistoryReadRaw(
+    scada::ServiceContext context,
     scada::HistoryReadRawDetails details) {
   co_return scada::StatusCode::Bad;
 }
@@ -145,10 +146,11 @@ scada::CoStatusOr<std::vector<scada::StatusCode>> VidiconSession::Write(
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
-scada::CoStatusOr<scada::CallResult> VidiconSession::Call(scada::NodeId node_id,
-                                     scada::NodeId method_id,
-                                     std::vector<scada::Variant> arguments,
-                                     scada::ServiceContext context) {
+scada::CoStatusOr<scada::CallResult> VidiconSession::Call(
+    scada::NodeId node_id,
+    scada::NodeId method_id,
+    std::vector<scada::Variant> arguments,
+    scada::ServiceContext context) {
   co_return scada::Status{scada::StatusCode::Bad};
 }
 
@@ -185,8 +187,10 @@ scada::CoStatusOr<std::vector<scada::BrowseResult>> VidiconSession::Browse(
 }
 
 scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
-VidiconSession::TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) {
-  co_return co_await view_service_.TranslateBrowsePaths(std::move(inputs));
+VidiconSession::TranslateBrowsePaths(scada::ServiceContext context,
+                                     std::vector<scada::BrowsePath> inputs) {
+  co_return co_await view_service_.TranslateBrowsePaths(std::move(context),
+                                                        std::move(inputs));
 }
 
 scada::SessionDebugger* VidiconSession::GetSessionDebugger() {

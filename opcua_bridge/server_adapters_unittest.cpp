@@ -34,6 +34,7 @@ class FakeViewService : public scada::ViewService {
     co_return std::vector<scada::BrowseResult>{std::move(result)};
   }
   scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      scada::ServiceContext,
       std::vector<scada::BrowsePath>) override {
     co_return std::vector<scada::BrowsePathResult>{};
   }
@@ -708,6 +709,7 @@ TEST(ServerAdapterTest, DataChangeNotificationOfDeliveredValueStaysGood) {
 class TwoLanguageHistoryService : public scada::HistoryService {
  public:
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext,
       scada::HistoryReadRawDetails) override {
     co_return scada::HistoryReadRawResult{};
   }

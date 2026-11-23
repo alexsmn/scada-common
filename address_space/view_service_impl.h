@@ -48,7 +48,8 @@ class ViewServiceImpl : public scada::ViewService {
       scada::ServiceContext context,
       std::vector<scada::BrowseDescription> descriptions) override;
   virtual scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
-  TranslateBrowsePaths(std::vector<scada::BrowsePath> browse_paths) override;
+  TranslateBrowsePaths(scada::ServiceContext context,
+                       std::vector<scada::BrowsePath> browse_paths) override;
 
  private:
   SyncViewService& sync_view_service_;

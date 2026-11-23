@@ -97,15 +97,17 @@ class TestCoroutineDataServices final : public scada::SessionService,
   }
 
   scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      scada::ServiceContext context,
       std::vector<scada::BrowsePath> inputs) override {
     ++translate_count;
     co_return std::vector<scada::BrowsePathResult>(inputs.size());
   }
 
-  scada::CoStatusOr<scada::CallResult> Call(scada::NodeId node_id,
-                       scada::NodeId method_id,
-                       std::vector<scada::Variant> /*arguments*/,
-                       scada::ServiceContext context) override {
+  scada::CoStatusOr<scada::CallResult> Call(
+      scada::NodeId node_id,
+      scada::NodeId method_id,
+      std::vector<scada::Variant> /*arguments*/,
+      scada::ServiceContext context) override {
     ++call_count;
     last_call_node_id = std::move(node_id);
     last_call_method_id = std::move(method_id);
@@ -114,6 +116,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
   }
 
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext context,
       scada::HistoryReadRawDetails details) override {
     ++history_raw_count;
     last_history_raw_details = std::move(details);
@@ -441,7 +444,8 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
             (scada::NodeId{106}));
 
   auto translate_result = WaitAwaitable(
-      executor, services.TranslateBrowsePaths({scada::BrowsePath{}}));
+      executor, services.TranslateBrowsePaths(scada::ServiceContext{},
+                                              {scada::BrowsePath{}}));
 
   ASSERT_THAT(translate_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(direct_services->translate_count, 1);
@@ -494,8 +498,9 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
 
   const scada::HistoryReadRawDetails history_details{
       .node_id = scada::NodeId{105}, .max_count = 3};
-  auto history_result =
-      WaitAwaitable(executor, services.HistoryReadRaw(history_details));
+  auto history_result = WaitAwaitable(
+      executor,
+      services.HistoryReadRaw(scada::ServiceContext{}, history_details));
   ASSERT_TRUE(history_result.ok()) << history_result.status();
   ASSERT_EQ(history_result->values.size(), 1u);
   EXPECT_EQ(history_result->values[0], direct_services->read_value);

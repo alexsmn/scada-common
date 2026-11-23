@@ -56,6 +56,7 @@ class VirtualObject : public scada::GenericObject,
   }
 
   scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      scada::ServiceContext context,
       std::vector<scada::BrowsePath> browse_paths) override {
     co_return scada::Status{scada::StatusCode::Bad};
   }
@@ -377,6 +378,7 @@ TEST(ViewServiceImpl, CoroutineTranslateBrowsePathsReturnsSyncResults) {
       WaitAwaitable(
           executor,
           address_space.view_service_impl.TranslateBrowsePaths(
+              scada::ServiceContext{},
               {{.node_id = scada::id::RootFolder,
                 .relative_path = {
                     {.reference_type_id = scada::id::HierarchicalReferences,

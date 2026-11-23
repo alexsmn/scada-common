@@ -342,10 +342,12 @@ scada::CoStatusOr<std::vector<scada::BrowseResult>> MasterDataServices::Browse(
 
 scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
 MasterDataServices::TranslateBrowsePaths(
+    scada::ServiceContext context,
     std::vector<scada::BrowsePath> inputs) {
   auto* service = view_service_;
   if (service)
-    co_return co_await service->TranslateBrowsePaths(std::move(inputs));
+    co_return co_await service->TranslateBrowsePaths(std::move(context),
+                                                     std::move(inputs));
 
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
@@ -370,10 +372,11 @@ scada::CoStatusOr<std::vector<scada::StatusCode>> MasterDataServices::Write(
   co_return scada::Status{scada::StatusCode::Bad_Disconnected};
 }
 
-scada::CoStatusOr<scada::CallResult> MasterDataServices::Call(scada::NodeId node_id,
-                                         scada::NodeId method_id,
-                                         std::vector<scada::Variant> arguments,
-                                         scada::ServiceContext context) {
+scada::CoStatusOr<scada::CallResult> MasterDataServices::Call(
+    scada::NodeId node_id,
+    scada::NodeId method_id,
+    std::vector<scada::Variant> arguments,
+    scada::ServiceContext context) {
   auto* service = method_service_;
   if (service)
     co_return co_await service->Call(std::move(node_id), std::move(method_id),
@@ -383,10 +386,12 @@ scada::CoStatusOr<scada::CallResult> MasterDataServices::Call(scada::NodeId node
 }
 
 scada::CoStatusOr<scada::HistoryReadRawResult>
-MasterDataServices::HistoryReadRaw(scada::HistoryReadRawDetails details) {
+MasterDataServices::HistoryReadRaw(scada::ServiceContext context,
+                                   scada::HistoryReadRawDetails details) {
   auto* service = history_service_;
   if (service)
-    co_return co_await service->HistoryReadRaw(std::move(details));
+    co_return co_await service->HistoryReadRaw(std::move(context),
+                                               std::move(details));
 
   co_return scada::StatusCode::Bad_Disconnected;
 }

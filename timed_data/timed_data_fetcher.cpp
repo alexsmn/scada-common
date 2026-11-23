@@ -63,10 +63,13 @@ void TimedDataFetcher::FetchNextGap() {
                                        aggregate_filter_};
   CoSpawn(executor_, weak_from_this(),
           [details](std::shared_ptr<TimedDataFetcher> self) -> Awaitable<void> {
-            auto parts = SplitRawResult(
-                co_await self->history_service_.HistoryReadRaw(details));
+            auto parts =
+                SplitRawResult(co_await self->history_service_.HistoryReadRaw(
+                    // Client-side: the session carries the identity.
+                    scada::ServiceContext{}, details));
             ScopedContinuationPoint scoped_continuation_point{
-                self->executor_, self->history_service_, details,
+                self->executor_, self->history_service_,
+                scada::ServiceContext{}, details,
                 std::move(parts.continuation_point)};
             self->OnHistoryReadRawComplete(
                 std::move(parts.values), std::move(scoped_continuation_point));
@@ -111,10 +114,13 @@ void TimedDataFetcher::FetchMore(ScopedContinuationPoint continuation_point) {
                                        continuation_point.release()};
   CoSpawn(executor_, weak_from_this(),
           [details](std::shared_ptr<TimedDataFetcher> self) -> Awaitable<void> {
-            auto parts = SplitRawResult(
-                co_await self->history_service_.HistoryReadRaw(details));
+            auto parts =
+                SplitRawResult(co_await self->history_service_.HistoryReadRaw(
+                    // Client-side: the session carries the identity.
+                    scada::ServiceContext{}, details));
             ScopedContinuationPoint scoped_continuation_point{
-                self->executor_, self->history_service_, details,
+                self->executor_, self->history_service_,
+                scada::ServiceContext{}, details,
                 std::move(parts.continuation_point)};
             self->OnHistoryReadRawComplete(
                 std::move(parts.values), std::move(scoped_continuation_point));

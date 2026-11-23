@@ -71,6 +71,7 @@ class ViewServiceAdapter {
       std::vector<opcua::BrowseDescription> inputs);
 
   opcua::CoStatusOr<std::vector<opcua::BrowsePathResult>> TranslateBrowsePaths(
+      opcua::ServiceContext context,
       std::vector<opcua::BrowsePath> inputs);
 
  private:
@@ -132,6 +133,7 @@ class HistoryServiceAdapter {
       : inner_{inner}, tracer_{tracer} {}
 
   opcua::CoStatusOr<opcua::HistoryReadRawResult> HistoryReadRaw(
+      opcua::ServiceContext context,
       opcua::HistoryReadRawDetails details);
 
   // Takes the session's context so a stored event Message comes back in that

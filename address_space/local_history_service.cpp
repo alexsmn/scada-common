@@ -143,6 +143,7 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root,
 }
 
 CoStatusOr<HistoryReadRawResult> LocalHistoryService::HistoryReadRaw(
+    scada::ServiceContext context,
     HistoryReadRawDetails details) {
   co_return ReadRaw(std::move(details));
 }

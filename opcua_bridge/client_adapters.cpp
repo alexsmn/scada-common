@@ -78,11 +78,12 @@ ClientViewServiceAdapter::Browse(scada::ServiceContext context,
 
 scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
 ClientViewServiceAdapter::TranslateBrowsePaths(
+    scada::ServiceContext context,
     std::vector<scada::BrowsePath> inputs) {
-  // No ServiceContext on this service (see tracing.md): a root CLIENT span
-  // whose traceparent still links the remote side.
-  auto span = tracer_.StartSpan("opcua.client/TranslateBrowsePaths",
-                                TraceSpanKind::kClient, {});
+  // The caller's trace continues here; the remote session carries the
+  // identity, so the context goes no further than the span.
+  auto span =
+      StartClientSpan(tracer_, "opcua.client/TranslateBrowsePaths", context);
   SetBatchAttributes(span, inputs, [](const scada::BrowsePath& input) {
     return input.node_id.ToString();
   });
@@ -248,11 +249,11 @@ ClientMonitoredItemServiceAdapter::CreateSubscription(
 // --- HistoryService / HistoryUpdateService -----------------------------
 scada::CoStatusOr<scada::HistoryReadRawResult>
 ClientHistoryServiceAdapter::HistoryReadRaw(
+    scada::ServiceContext context,
     scada::HistoryReadRawDetails details) {
-  // HistoryService carries no ServiceContext (see tracing.md), so this CLIENT
-  // span is a new root; its traceparent still links the historian-side spans.
-  auto span = tracer_.StartSpan("opcua.client/HistoryReadRaw",
-                                TraceSpanKind::kClient, {});
+  // The caller's trace continues here; the remote session carries the
+  // identity, so the context goes no further than the span.
+  auto span = StartClientSpan(tracer_, "opcua.client/HistoryReadRaw", context);
   span.SetAttribute("scada.node_id", details.node_id.ToString());
   auto result =
       co_await session_->HistoryReadRaw(ToOpcua(details), span.traceparent());

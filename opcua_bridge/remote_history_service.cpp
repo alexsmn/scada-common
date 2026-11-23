@@ -109,6 +109,7 @@ scada::CoStatus RemoteHistoryService::Probe() {
   // non-connectivity Bad; a dead transport returns
   // Bad_Disconnected/Bad_Timeout.
   auto result = co_await adapter_.HistoryReadRaw(
+      scada::ServiceContext{},
       scada::HistoryReadRawDetails{.node_id = scada::NodeId{2258}});
   co_return result.status();
 }
@@ -135,8 +136,9 @@ scada::CoStatusOr<scada::UInt8> RemoteHistoryService::ProbeServiceLevel(
 }
 
 scada::CoStatusOr<scada::HistoryReadRawResult>
-RemoteHistoryService::HistoryReadRaw(scada::HistoryReadRawDetails details) {
-  return adapter_.HistoryReadRaw(std::move(details));
+RemoteHistoryService::HistoryReadRaw(scada::ServiceContext context,
+                                     scada::HistoryReadRawDetails details) {
+  return adapter_.HistoryReadRaw(std::move(context), std::move(details));
 }
 
 scada::CoStatusOr<scada::HistoryReadEventsResult>

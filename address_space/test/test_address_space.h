@@ -94,9 +94,11 @@ inline TestAddressSpace::TestAddressSpace() {
         return view_service_impl.Browse(std::move(context), std::move(inputs));
       });
 
-  ON_CALL(*this, TranslateBrowsePaths(_))
-      .WillByDefault([this](std::vector<scada::BrowsePath> inputs) {
-        return view_service_impl.TranslateBrowsePaths(std::move(inputs));
+  ON_CALL(*this, TranslateBrowsePaths(testing::_, _))
+      .WillByDefault([this](scada::ServiceContext context,
+                            std::vector<scada::BrowsePath> inputs) {
+        return view_service_impl.TranslateBrowsePaths(std::move(context),
+                                                      std::move(inputs));
       });
 
   GenericNodeFactory node_factory{*this};

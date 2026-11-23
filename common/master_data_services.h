@@ -79,7 +79,8 @@ class MasterDataServices final : public scada::AttributeService,
          std::vector<scada::BrowseDescription> inputs) override;
   [[nodiscard]] virtual Awaitable<
       scada::StatusOr<std::vector<scada::BrowsePathResult>>>
-  TranslateBrowsePaths(std::vector<scada::BrowsePath> inputs) override;
+  TranslateBrowsePaths(scada::ServiceContext context,
+                       std::vector<scada::BrowsePath> inputs) override;
 
   // scada::AttributeService
   [[nodiscard]] virtual Awaitable<
@@ -100,7 +101,8 @@ class MasterDataServices final : public scada::AttributeService,
 
   // scada::HistoryService
   [[nodiscard]] virtual scada::CoStatusOr<scada::HistoryReadRawResult>
-  HistoryReadRaw(scada::HistoryReadRawDetails details) override;
+  HistoryReadRaw(scada::ServiceContext context,
+                 scada::HistoryReadRawDetails details) override;
   [[nodiscard]] virtual Awaitable<
       scada::StatusOr<scada::HistoryReadEventsResult>>
   HistoryReadEvents(scada::ServiceContext context,

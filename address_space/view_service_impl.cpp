@@ -229,6 +229,7 @@ scada::CoStatusOr<std::vector<scada::BrowseResult>> ViewServiceImpl::Browse(
 
 scada::CoStatusOr<std::vector<scada::BrowsePathResult>>
 ViewServiceImpl::TranslateBrowsePaths(
+    scada::ServiceContext context,
     std::vector<scada::BrowsePath> browse_paths) {
   auto results = sync_view_service_.TranslateBrowsePaths(browse_paths);
   co_return results;

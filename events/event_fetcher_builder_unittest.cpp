@@ -36,6 +36,7 @@ void DrainExecutor(TestExecutor& executor) {
 class TestHistoryService final : public scada::HistoryService {
  public:
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext context,
       scada::HistoryReadRawDetails details) override {
     co_return scada::StatusCode::Bad;
   }

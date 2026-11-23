@@ -49,6 +49,7 @@ class TestCoroutineAuditServices final : public scada::AttributeService,
   }
 
   scada::CoStatusOr<std::vector<scada::BrowsePathResult>> TranslateBrowsePaths(
+      scada::ServiceContext context,
       std::vector<scada::BrowsePath> inputs) override {
     ++translate_count;
     co_return std::vector<scada::BrowsePathResult>(inputs.size());
@@ -197,7 +198,7 @@ TEST(AuditTest, AuditDataServicesWrapsDirectCoroutineSlots) {
 
   auto translate_result = WaitAwaitable(
       executor, audited_services->view_service_->TranslateBrowsePaths(
-                    {scada::BrowsePath{}}));
+                    scada::ServiceContext{}, {scada::BrowsePath{}}));
 
   ASSERT_THAT(translate_result, scada::test::IsOkAndHolds(testing::SizeIs(1)));
   EXPECT_EQ(source_services->translate_count, 1);

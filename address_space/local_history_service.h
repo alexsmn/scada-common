@@ -80,6 +80,7 @@ class LocalHistoryService : public HistoryService {
 
   // HistoryService
   CoStatusOr<HistoryReadRawResult> HistoryReadRaw(
+      scada::ServiceContext context,
       HistoryReadRawDetails details) override;
   CoStatusOr<HistoryReadEventsResult> HistoryReadEvents(
       ServiceContext context,
