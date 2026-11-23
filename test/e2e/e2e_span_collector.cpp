@@ -228,21 +228,6 @@ std::set<std::string> SpanCollector::ServicesEmitting(
   return services;
 }
 
-std::vector<CollectedSpan> SpanCollector::SpansByAttribute(
-    std::string_view span_name,
-    std::string_view attribute_key,
-    std::string_view attribute_value) const {
-  std::vector<CollectedSpan> matches;
-  for (CollectedSpan& span : impl_->Spans()) {
-    if (span.name != span_name)
-      continue;
-    if (span.Attribute(attribute_key) != attribute_value)
-      continue;
-    matches.push_back(std::move(span));
-  }
-  return matches;
-}
-
 std::size_t SpanCollector::Count() const {
   return impl_->Count();
 }

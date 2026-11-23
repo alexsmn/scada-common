@@ -79,17 +79,6 @@ class SpanCollector {
   std::set<std::string> ServicesEmitting(std::string_view trace_id,
                                          std::string_view span_name) const;
 
-  // Spans named `span_name`, from `service_name`, carrying `attribute_value`
-  // under `attribute_key`. The fallback matcher for the two services whose
-  // spans cannot always be trace-correlated: HistoryReadRaw carries no
-  // ServiceContext, so a proxy->historian raw read starts a new trace root
-  // (scada-server-framework/docs/tracing.md, "Known gaps"). A probe with a
-  // unique node id is still attributable through `scada.node_id`.
-  std::vector<CollectedSpan> SpansByAttribute(
-      std::string_view span_name,
-      std::string_view attribute_key,
-      std::string_view attribute_value) const;
-
   // Total spans received; useful to detect "nothing was exported at all"
   // (a misconfigured endpoint) as distinct from "the request went elsewhere".
   std::size_t Count() const;
