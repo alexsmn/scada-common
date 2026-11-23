@@ -545,12 +545,43 @@ TEST(ConversionTest, EventFieldListDefaultProjectionKeepsEventId) {
   EXPECT_EQ(event->severity, source.severity);
 }
 
+// Our server's limit Condition crosses the live notification path with its
+// ConditionId and ActiveState intact, decoded by count from the named list the
+// client asked for (backlog 1117).
+TEST(ConversionTest, ScadaConditionNotificationKeepsItsState) {
+  opcua::Event source;
+  source.event_id = 0x0123456789abcdefull;
+  source.event_type_id = opcua::NodeId{opcua::id::SystemEventType};
+  source.time = opcua::DateTime::Now();
+  source.receive_time = source.time;
+  source.severity = 800;
+  source.source_node_id = opcua::NodeId{7, 1};
+  source.condition_id = source.source_node_id;
+  source.active = true;
+
+  opcua::EventFieldList list;
+  list.client_handle = 9;
+  list.event_fields = opcua::ProjectEventFields(
+      opcua::ScadaConditionEventFieldPaths(), std::any{source});
+
+  const scada::MonitoredItemNotification notification =
+      ToScada(opcua::ItemNotification{list});
+
+  const auto* notified = std::get_if<scada::EventNotification>(&notification);
+  ASSERT_NE(notified, nullptr);
+  const auto* event = std::any_cast<scada::Event>(&notified->event);
+  ASSERT_NE(event, nullptr);
+  EXPECT_EQ(event->condition_id, (scada::NodeId{7, 1}));
+  EXPECT_TRUE(event->active);
+  EXPECT_TRUE(scada::IsRetained(*event));
+}
+
 // A third-party server is asked for named fields; the field selection must
 // survive the bridge both ways (backlog 1055).
 TEST(ConversionTest, MonitoringFilterEventFieldsRoundTrip) {
-  for (const auto fields :
-       {scada::EventFilter::Fields::kStandard,
-        scada::EventFilter::Fields::kStandardWithConditions}) {
+  for (const auto fields : {scada::EventFilter::Fields::kStandard,
+                            scada::EventFilter::Fields::kStandardWithConditions,
+                            scada::EventFilter::Fields::kScadaWithConditions}) {
     scada::MonitoringParameters params;
     params.filter = scada::EventFilter{.fields = fields};
     const scada::MonitoringFilter round = ToScada(ToOpcua(params)).filter;

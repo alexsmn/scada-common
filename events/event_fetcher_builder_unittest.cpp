@@ -263,7 +263,7 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
 
   ON_CALL(session_service, IsConnected(_)).WillByDefault(Return(true));
   ON_CALL(session_service, GetUserId()).WillByDefault(Return(user_id));
-  // Our server: the unacknowledged-events read below is its path alone.
+  // Our server: the retained-events read below is its path alone.
   ON_CALL(session_service, IsScada()).WillByDefault(Return(true));
 
   EXPECT_CALL(session_service, SubscribeSessionStateChanged(_));
@@ -277,7 +277,10 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
                     -> scada::CoStatusOr<scada::HistoryReadEventsResult> {
         EXPECT_EQ(read_node_id, scada::id::Server);
         EXPECT_LE(from, to);
-        EXPECT_EQ(filter, scada::EventFilter{scada::EventFilter::UNACKED});
+        // RETAINED adds the acknowledged Conditions still standing (backlog
+        // 1117); UNACKED rides with it for a server that predates it.
+        EXPECT_EQ(filter, scada::EventFilter{scada::EventFilter::UNACKED |
+                                             scada::EventFilter::RETAINED});
         co_return scada::HistoryReadEventsResult{
             .events = {MakeEvent(15, node_id)}};
       });

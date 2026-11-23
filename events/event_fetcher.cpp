@@ -72,14 +72,15 @@ EventFetcher::EventFetcher(EventFetcherContext&& context)
         [this](scada::EventId event_id) { OnForeignAcked(event_id); });
   }
 
-  // Our server projects its own SCADA field list when the filter names none. A
-  // third-party server is asked for the standard fields and the Condition
-  // fields by name; one that does not know AcknowledgeableConditionType may
-  // reject that whole filter, and is then asked for the standard fields alone
-  // (OnEventNotification).
+  // Our server is asked for its SCADA field list plus its Condition fields by
+  // name (backlog 1117); a server built before them projects those as null,
+  // which reads back as plain events. A third-party server is asked for the
+  // standard fields and the Condition fields by name; one that does not know
+  // AcknowledgeableConditionType may reject that whole filter, and is then
+  // asked for the standard fields alone (OnEventNotification).
   Subscribe(foreign_server_
                 ? scada::EventFilter::Fields::kStandardWithConditions
-                : scada::EventFilter::Fields::kScada);
+                : scada::EventFilter::Fields::kScadaWithConditions);
 }
 
 void EventFetcher::Subscribe(scada::EventFilter::Fields fields) {
@@ -141,32 +142,32 @@ void EventFetcher::OnEventNotification(scada::Status status, std::any event) {
   if (auto* system_event = std::any_cast<scada::Event>(&event)) {
     received_event_ = true;
     if (foreign_server_) {
-      const scada::Event correlated =
-          CorrelateForeignCondition(std::move(*system_event));
-      OnSystemEvents({&correlated, 1});
+      const scada::Event prepared =
+          PrepareForeignCondition(std::move(*system_event));
+      OnSystemEvents({&prepared, 1});
     } else {
       OnSystemEvents({system_event, 1});
     }
   }
 }
 
-scada::Event EventFetcher::CorrelateForeignCondition(scada::Event event) {
+scada::Event EventFetcher::PrepareForeignCondition(scada::Event event) {
   if (event.condition_id.is_null())
     return event;
 
   // The Acknowledge needs the EventId as it came off the wire. An id in our
   // own 8-byte layout was decoded rather than kept; put its bytes back before
-  // the local id replaces it.
+  // the folder gives the row its local id.
   if (event.foreign_event_id.empty())
     event.foreign_event_id = scada::EncodeEventIdByteString(event.event_id);
 
-  auto [i, inserted] =
-      condition_event_ids_.try_emplace(event.condition_id, event.event_id);
-  event.event_id = i->second;
-  // Acknowledged: it leaves the unacknowledged set, and a later activation of
-  // the same Condition is a new entry.
-  if (event.acked)
-    condition_event_ids_.erase(i);
+  // A third-party server is not asked for ActiveState (its select list stops
+  // at AcknowledgeableConditionType, which a server without AlarmConditionType
+  // may still know), so its alarm state is unknown here. It is taken as
+  // standing until acknowledged — what the alarm list did for every event
+  // before backlog 1117 — so an acknowledged Condition leaves the list rather
+  // than staying forever as "active, acknowledged".
+  event.active = !event.acked;
   return event;
 }
 
@@ -185,12 +186,17 @@ void EventFetcher::OnForeignAcked(scada::EventId event_id) {
   auto i = events.find(event_id);
   if (i == events.end())
     return;
+  if (auto current =
+          condition_folder_.AcknowledgeLocally(event_id, scada::Now())) {
+    // Known only as standing-until-acknowledged (PrepareForeignCondition).
+    current->active = false;
+    StoreCurrentEvents({&*current, 1});
+    return;
+  }
   scada::Event acked = i->second;
   acked.acked = true;
   acked.acknowledged_time = scada::Now();
-  if (!acked.condition_id.is_null())
-    condition_event_ids_.erase(acked.condition_id);
-  OnSystemEvents({&acked, 1});
+  StoreCurrentEvents({&acked, 1});
 }
 
 EventFetcher::~EventFetcher() {
@@ -198,7 +204,7 @@ EventFetcher::~EventFetcher() {
   cancelation_.Cancel();
 }
 
-const EventFetcher::EventContainer& EventFetcher::unacked_events() const {
+const EventFetcher::EventContainer& EventFetcher::current_events() const {
   return event_storage_.events();
 }
 
@@ -242,18 +248,26 @@ void EventFetcher::SetSeverityMin(scada::EventSeverity severity) {
   event_ack_queue_.Reset();
 
   event_storage_.Clear();
-  condition_event_ids_.clear();
+  condition_folder_.Clear();
 
   Update();
 }
 
 void EventFetcher::OnSystemEvents(std::span<const scada::Event> events) {
+  std::vector<scada::Event> current_events;
+  current_events.reserve(events.size());
   for (const auto& event : events) {
+    // The ack queue tracks the wire ids it sent, so it hears of each
+    // notification before the folder renames a Condition's to its row id.
     if (event.acked) {
       event_ack_queue_.OnAcked(event.event_id);
     }
+    current_events.push_back(condition_folder_.Fold(event));
   }
+  StoreCurrentEvents(current_events);
+}
 
+void EventFetcher::StoreCurrentEvents(std::span<const scada::Event> events) {
   auto filtered_events =
       events |
       std::views::filter(
@@ -276,24 +290,45 @@ void EventFetcher::AcknowledgeItemEvents(const scada::NodeId& node_id) {
   if (!events)
     return;
 
-  for (auto* event : *events) {
-    AcknowledgeEvent(event->event_id);
-  }
+  // Copied: an acknowledgement may change the set while it is walked.
+  std::vector<scada::EventId> event_ids;
+  for (auto* event : *events)
+    event_ids.push_back(event->event_id);
+  for (scada::EventId event_id : event_ids)
+    AcknowledgeEvent(event_id);
 }
 
 void EventFetcher::AcknowledgeEvent(scada::EventId ack_id) {
-  event_ack_queue_.Ack(ack_id);
+  // A third-party server acknowledges a Condition by its row (its latest
+  // EventId and ConditionId, ResolveForeignAckTarget). Our server acknowledges
+  // notifications, so a Condition's row acknowledges every one of its
+  // notifications still unacknowledged — a return to normal does not
+  // acknowledge the activation that came before it.
+  if (foreign_server_) {
+    event_ack_queue_.Ack(ack_id);
+    return;
+  }
+  for (scada::EventId event_id : condition_folder_.UnackedNotifications(ack_id))
+    event_ack_queue_.Ack(event_id);
 }
 
 void EventFetcher::AcknowledgeAllEvents() {
+  std::vector<scada::EventId> event_ids;
   for (const auto& event : event_storage_.events() | std::views::values) {
-    AcknowledgeEvent(event.event_id);
+    // An acknowledged Condition still standing has nothing left to acknowledge.
+    if (!event.acked)
+      event_ids.push_back(event.event_id);
   }
+  for (scada::EventId event_id : event_ids)
+    AcknowledgeEvent(event_id);
 }
 
 void EventFetcher::Update() {
-  // The unacknowledged-events read is our server's: the filter it sends names
-  // SCADA fields and an ACKED where clause no third-party server answers. A
+  // The retained-events read is our server's: the filter it sends names SCADA
+  // fields and an ACKED where clause no third-party server answers. RETAINED
+  // adds every Condition still active although acknowledged (backlog 1117);
+  // UNACKED rides with it so a server built before it answers the
+  // unacknowledged set it always did. A
   // third-party server's initial Condition state needs ConditionRefresh (OPC
   // UA Part 9 §5.5.7 ConditionRefresh Method,
   // https://reference.opcfoundation.org/Core/Part9/v105/docs/5.5.7), which is
@@ -306,7 +341,8 @@ void EventFetcher::Update() {
       [this, cancelation = cancelation_.ref()]() mutable -> Awaitable<void> {
         auto result = co_await history_service_.HistoryReadEvents(
             scada::ServiceContext{}, scada::id::Server, {}, {},
-            scada::EventFilter{scada::EventFilter::UNACKED});
+            scada::EventFilter{scada::EventFilter::UNACKED |
+                               scada::EventFilter::RETAINED});
         if (cancelation.canceled())
           co_return;
         OnHistoryReadEventsComplete(std::move(result));

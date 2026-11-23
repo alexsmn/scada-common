@@ -8,6 +8,7 @@
 #include "base/any_executor.h"
 #include "base/boost_log.h"
 #include "base/cancelation.h"
+#include "events/condition_folder.h"
 #include "events/event_ack_queue.h"
 #include "events/node_event_provider.h"
 #include "scada/event_filter.h"
@@ -39,9 +40,11 @@ struct EventFetcherContext {
   bool foreign_server_ = false;
 };
 
-// Fetches and provides unacked events, arranged by source nodes. Pulls unacked
-// events from history and subscribes to updates via monitored item. Handles
-// multiple event acknowledgement.
+// Fetches and provides the current events — unacknowledged ones, and
+// Conditions still active although acknowledged — arranged by source nodes.
+// Pulls the retained events from history and subscribes to updates via
+// monitored item; folds each Condition's notifications into one row
+// (ConditionFolder). Handles multiple event acknowledgement.
 class EventFetcher : public NodeEventProvider, private EventFetcherContext {
  public:
   explicit EventFetcher(EventFetcherContext&& context);
@@ -55,7 +58,7 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
     return severity_min_;
   }
   virtual void SetSeverityMin(scada::EventSeverity severity) override;
-  virtual const EventContainer& unacked_events() const override;
+  virtual const EventContainer& current_events() const override;
   virtual const EventSet* GetItemUnackedEvents(
       const scada::NodeId& node_id) const override;
   virtual void AcknowledgeEvent(scada::EventId ack_id) override;
@@ -77,13 +80,16 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
   void Subscribe(scada::EventFilter::Fields fields);
   void OnEventNotification(scada::Status status, std::any event);
 
+  // Folds notifications into current events, then stores them.
   void OnSystemEvents(std::span<const scada::Event> events);
+  // Stores already-folded current events that pass the severity filter.
+  void StoreCurrentEvents(std::span<const scada::Event> events);
 
   // A third-party server's Condition notifications carry a new EventId for
-  // every state change (OPC UA Part 9 §5.5.2 ConditionType); the journal keys
-  // events by id. So every notification of one Condition is given the local id
-  // its first one had, and keeps the wire EventId bytes for its Acknowledge.
-  scada::Event CorrelateForeignCondition(scada::Event event);
+  // every state change (OPC UA Part 9 §5.5.2 ConditionType); the folder gives
+  // them one row. This keeps the wire EventId bytes for its Acknowledge and
+  // supplies the alarm state the server was not asked for.
+  scada::Event PrepareForeignCondition(scada::Event event);
   std::optional<ForeignAckTarget> ResolveForeignAckTarget(
       scada::EventId event_id) const;
   // Takes a third-party server's event out of the unacknowledged set once its
@@ -105,8 +111,10 @@ class EventFetcher : public NodeEventProvider, private EventFetcherContext {
       scada::EventFilter::Fields::kScada;
   bool received_event_ = false;
 
-  // The local event id of each third-party Condition still unacknowledged.
-  std::map<scada::NodeId, scada::EventId> condition_event_ids_;
+  // One row per Condition still retained, ours or a third-party server's.
+  ConditionFolder condition_folder_{
+      foreign_server_ ? ConditionFolder::AckScope::kCondition
+                      : ConditionFolder::AckScope::kNotification};
 
   scada::EventSeverity severity_min_ = scada::kSeverityMin;
 

@@ -297,6 +297,8 @@ const std::vector<std::vector<std::string>>* SelectFieldPaths(
       return &opcua::StandardEventFieldPaths();
     case scada::EventFilter::Fields::kStandardWithConditions:
       return &opcua::ConditionEventFieldPaths();
+    case scada::EventFilter::Fields::kScadaWithConditions:
+      return &opcua::ScadaConditionEventFieldPaths();
   }
   return nullptr;
 }
@@ -331,6 +333,8 @@ scada::EventFilter EventFilterFromJson(const boost::json::object& obj) {
       out.fields = scada::EventFilter::Fields::kStandard;
     else if (paths == opcua::ConditionEventFieldPaths())
       out.fields = scada::EventFilter::Fields::kStandardWithConditions;
+    else if (paths == opcua::ScadaConditionEventFieldPaths())
+      out.fields = scada::EventFilter::Fields::kScadaWithConditions;
   }
   out.types = static_cast<unsigned>(obj.at("types").to_number<std::uint64_t>());
   for (const auto& id : obj.at("of_type").as_array())
@@ -465,6 +469,7 @@ opcua::Event ToOpcua(const scada::Event& v, SourceNamePacking packing) {
   out.acknowledged_user_id = ToOpcua(v.acknowledged_user_id);
   out.foreign_event_id = v.foreign_event_id;
   out.condition_id = ToOpcua(v.condition_id);
+  out.active = v.active;
   return out;
 }
 scada::Event ToScada(const opcua::Event& v, SourceNamePacking packing) {
@@ -501,6 +506,7 @@ scada::Event ToScada(const opcua::Event& v, SourceNamePacking packing) {
   out.acknowledged_user_id = ToScada(v.acknowledged_user_id);
   out.foreign_event_id = v.foreign_event_id;
   out.condition_id = ToScada(v.condition_id);
+  out.active = v.active;
   return out;
 }
 

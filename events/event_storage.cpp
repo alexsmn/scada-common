@@ -2,6 +2,8 @@
 
 #include "events/event_observer.h"
 
+#include <algorithm>
+
 #if defined(SCADA_USE_CORE_MODULE)
 // Modules-pilot consumer (SCADA_CXX_MODULES=ON): base/scada names come from
 // the scada.core facade. The import sits after the textual includes because
@@ -15,23 +17,41 @@ const scada::Event* EventStorage::Add(const scada::Event& event) {
   auto [iter, inserted] = events_.try_emplace(event.event_id, event);
   scada::Event& contained_event = iter->second;
 
-  // Replace old event on update.
+  // Replace the old event on update. A Condition's current event changes its
+  // time and state as notifications arrive, so it leaves the time-ordered node
+  // set before it changes and rejoins after.
   if (!inserted) {
-    // Events arrive from a (possibly remote) server; a node-id change for an
-    // existing event id is tolerated by replacing the stored event.
+    Unindex(contained_event);
     contained_event = event;
   }
-
-  if (inserted && !event.source_node_id.is_null()) {
-    NodeEntry& entry = node_events_[event.source_node_id];
-    entry.events.insert(&contained_event);
-    NodeEventsChanged(observers_, event.source_node_id, entry.events);
-    NodeEventsChanged(entry.observers, event.source_node_id, entry.events);
-  }
-
-  UpdateAlerting();
+  Index(contained_event);
 
   return &contained_event;
+}
+
+void EventStorage::Index(const scada::Event& event) {
+  if (event.acked || event.source_node_id.is_null())
+    return;
+  NodeEntry& entry = node_events_[event.source_node_id];
+  if (!entry.events.insert(&event).second)
+    return;
+  NodeEventsChanged(observers_, event.source_node_id, entry.events);
+  NodeEventsChanged(entry.observers, event.source_node_id, entry.events);
+}
+
+void EventStorage::Unindex(const scada::Event& event) {
+  if (event.source_node_id.is_null())
+    return;
+  auto p = node_events_.find(event.source_node_id);
+  if (p == node_events_.end())
+    return;
+  NodeEntry& entry = p->second;
+  if (entry.events.erase(&event) == 0)
+    return;
+  NodeEventsChanged(observers_, event.source_node_id, entry.events);
+  NodeEventsChanged(entry.observers, event.source_node_id, entry.events);
+  if (entry.events.empty() && entry.observers.empty())
+    node_events_.erase(p);
 }
 
 EventStorage::EventContainer::node_type EventStorage::Remove(
@@ -41,32 +61,11 @@ EventStorage::EventContainer::node_type EventStorage::Remove(
     return {};
 
   scada::Event& contained_event = i->second;
+  Unindex(contained_event);
   // Update fields of contained event before notification to observers.
   contained_event = event;
 
-  if (!contained_event.source_node_id.is_null()) {
-    auto p = node_events_.find(contained_event.source_node_id);
-    if (p != node_events_.end()) {
-      NodeEntry& entry = p->second;
-
-      auto j = entry.events.find(&contained_event);
-      scada::base::Check(j != entry.events.end());
-      entry.events.erase(j);
-
-      NodeEventsChanged(observers_, contained_event.source_node_id, entry.events);
-      NodeEventsChanged(entry.observers, contained_event.source_node_id, entry.events);
-
-      if (entry.events.empty() && entry.observers.empty()) {
-        node_events_.erase(p);
-      }
-    }
-  }
-
-  auto node = events_.extract(i);
-
-  UpdateAlerting();
-
-  return node;
+  return events_.extract(i);
 }
 
 void EventStorage::NotifyAckingChanged() {
@@ -105,7 +104,7 @@ void EventStorage::Update(std::span<const scada::Event> events) {
   std::vector<const scada::Event*> notify_events;
 
   for (auto& event : events) {
-    if (event.acked) {
+    if (!scada::IsRetained(event)) {
       if (auto node = Remove(event)) {
         // Observers must be notified with updates events, having `acked` flag
         // set.
@@ -119,6 +118,8 @@ void EventStorage::Update(std::span<const scada::Event> events) {
       }
     }
   }
+
+  UpdateAlerting();
 
   // Notify observers about new events.
   if (!notify_events.empty()) {
@@ -138,7 +139,10 @@ void EventStorage::NodeEventsChanged(const ObserverSet& observers,
 }
 
 void EventStorage::UpdateAlerting() {
-  bool alerting = !events_.empty();
+  // Nothing left to acknowledge, though acknowledged Conditions may still
+  // stand.
+  bool alerting = std::ranges::any_of(
+      events_, [](const auto& entry) { return !entry.second.acked; });
 
   if (alerting_ == alerting) {
     return;

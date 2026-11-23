@@ -7,8 +7,8 @@
 class MockNodeEventProvider : public NodeEventProvider {
  public:
   MockNodeEventProvider() {
-    ON_CALL(*this, unacked_events())
-        .WillByDefault(testing::ReturnRef(unacked_events_));
+    ON_CALL(*this, current_events())
+        .WillByDefault(testing::ReturnRef(current_events_));
   }
 
   MOCK_METHOD(scada::EventSeverity, severity_min, (), (const override));
@@ -17,7 +17,7 @@ class MockNodeEventProvider : public NodeEventProvider {
               (scada::EventSeverity severity),
               (override));
 
-  MOCK_METHOD(const EventContainer&, unacked_events, (), (const override));
+  MOCK_METHOD(const EventContainer&, current_events, (), (const override));
 
   MOCK_METHOD(const EventSet*,
               GetItemUnackedEvents,
@@ -49,5 +49,5 @@ class MockNodeEventProvider : public NodeEventProvider {
               (const scada::NodeId& node_id, EventObserver& observer),
               (override));
 
-  EventContainer unacked_events_;
+  EventContainer current_events_;
 };

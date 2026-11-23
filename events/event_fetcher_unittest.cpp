@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include <any>
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -302,8 +303,9 @@ scada::Event MakeConditionEvent(scada::EventId event_id,
 
 }  // namespace
 
-// Our server keeps its own request: OfType SystemEventType, no named fields.
-TEST(EventFetcherTest, OurServerSubscriptionIsUnchanged) {
+// Our server keeps its own request: OfType SystemEventType, and its SCADA
+// field list plus the Condition fields named (backlog 1117).
+TEST(EventFetcherTest, OurServerSubscriptionAsksForConditionFields) {
   TestContext context;
   TestEventObserver observer;
   context.StartFetcher(observer);
@@ -311,7 +313,7 @@ TEST(EventFetcherTest, OurServerSubscriptionIsUnchanged) {
   const scada::EventFilter& filter = SubscribedFilter(context, 0);
   EXPECT_EQ(filter.of_type, std::vector<scada::NodeId>{
                                 scada::NodeId{scada::id::SystemEventType}});
-  EXPECT_EQ(filter.fields, scada::EventFilter::Fields::kScada);
+  EXPECT_EQ(filter.fields, scada::EventFilter::Fields::kScadaWithConditions);
 }
 
 // A third-party server's alarms are ConditionType subtypes, not
@@ -422,4 +424,114 @@ TEST(EventFetcherTest, PlainForeignEventIsAcknowledgedLocally) {
   EXPECT_TRUE(context.method_service.calls.empty());
   EXPECT_TRUE(context.event_storage.events().empty());
   EXPECT_FALSE(context.fetcher->IsAcking());
+}
+
+namespace {
+
+// A notification of our server's limit Condition: the item is the Condition
+// (backlog 1117).
+scada::Event MakeLimitNotification(scada::EventId event_id,
+                                   const scada::NodeId& item_id,
+                                   bool active,
+                                   scada::Time time) {
+  scada::Event event = MakeEvent(event_id, item_id, scada::kSeverityCritical);
+  event.time = time;
+  event.condition_id = item_id;
+  event.active = active;
+  return event;
+}
+
+scada::Event Acked(scada::Event event) {
+  event.acked = true;
+  event.acknowledged_time = event.time;
+  return event;
+}
+
+}  // namespace
+
+// ISA-18.2's acknowledged-active state: acknowledging an alarm that still
+// stands keeps it on the list, no longer flashing. Before backlog 1117 the
+// fetcher dropped every acknowledged event, so a standing alarm vanished.
+TEST(EventFetcherTest, AcknowledgedActiveConditionStaysCurrent) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer);
+  const scada::NodeId item{7, 1};
+  const scada::Time t0 = scada::Now();
+
+  const scada::Event raised = MakeLimitNotification(11, item, true, t0);
+  context.system_events_item().NotifyEvent(std::any{raised});
+  context.system_events_item().NotifyEvent(std::any{Acked(raised)});
+  Drain(context.executor);
+
+  ASSERT_EQ(context.event_storage.events().size(), 1u);
+  const scada::Event& current = context.event_storage.events().begin()->second;
+  EXPECT_TRUE(current.acked);
+  EXPECT_TRUE(current.active);
+  EXPECT_FALSE(context.fetcher->IsAlerting(item));
+  EXPECT_EQ(CountUnackedEvents(*context.fetcher), 0u);
+}
+
+// ISA-18.2's unacknowledged-returned-to-normal state: the alarm cleared before
+// anyone read it. It is one row, in its latest state, still unacknowledged;
+// acknowledging the row acknowledges both notifications, and only then does it
+// leave. Before backlog 1117 the return to normal was a second unacknowledged
+// critical event, counted as active.
+TEST(EventFetcherTest, ReturnToNormalBeforeAcknowledgementIsOneUnreadRow) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer);
+  const scada::NodeId item{7, 1};
+  const scada::Time t0 = scada::Now();
+
+  const scada::Event raised = MakeLimitNotification(11, item, true, t0);
+  const scada::Event cleared =
+      MakeLimitNotification(12, item, false, t0 + std::chrono::minutes(1));
+  context.system_events_item().NotifyEvent(std::any{raised});
+  context.system_events_item().NotifyEvent(std::any{cleared});
+  Drain(context.executor);
+
+  ASSERT_EQ(context.event_storage.events().size(), 1u);
+  const scada::Event& current = context.event_storage.events().begin()->second;
+  EXPECT_EQ(current.event_id, 11u);
+  EXPECT_FALSE(current.active);
+  EXPECT_FALSE(current.acked);
+  EXPECT_TRUE(context.fetcher->IsAlerting(item));
+
+  context.fetcher->AcknowledgeEvent(11);
+  Drain(context.executor);
+  ASSERT_EQ(context.method_service.calls.size(), 1u);
+  const std::vector<scada::EventId> expected_ids{11, 12};
+  EXPECT_EQ(context.method_service.calls[0].arguments.at(0),
+            scada::Variant{expected_ids});
+
+  context.system_events_item().NotifyEvent(std::any{Acked(raised)});
+  Drain(context.executor);
+  EXPECT_EQ(context.event_storage.events().size(), 1u);
+  context.system_events_item().NotifyEvent(std::any{Acked(cleared)});
+  Drain(context.executor);
+  EXPECT_TRUE(context.event_storage.events().empty());
+}
+
+// An acknowledged copy of an OLDER notification must not wind the row back:
+// the Condition has since returned to normal.
+TEST(EventFetcherTest, LateAcknowledgementOfAnOldStateKeepsTheLatestState) {
+  TestContext context;
+  TestEventObserver observer;
+  context.StartFetcher(observer);
+  const scada::NodeId item{7, 1};
+  const scada::Time t0 = scada::Now();
+
+  const scada::Event raised = MakeLimitNotification(11, item, true, t0);
+  const scada::Event cleared =
+      MakeLimitNotification(12, item, false, t0 + std::chrono::minutes(1));
+  context.system_events_item().NotifyEvent(std::any{raised});
+  context.system_events_item().NotifyEvent(std::any{cleared});
+  context.system_events_item().NotifyEvent(std::any{Acked(raised)});
+  Drain(context.executor);
+
+  ASSERT_EQ(context.event_storage.events().size(), 1u);
+  const scada::Event& current = context.event_storage.events().begin()->second;
+  EXPECT_FALSE(current.active);
+  EXPECT_FALSE(current.acked);
 }
