@@ -1,6 +1,7 @@
 #include "opcua_bridge/client_adapters.h"
 
 #include "metrics/trace_attribute_util.h"
+#include "opcua/metrics/trace_id.h"
 #include "opcua_bridge/vector_conversion.h"
 #include "scada/co_result.h"
 #include "scada/namespace_remapper.h"
@@ -32,6 +33,17 @@ TraceSpan StartClientSpan(Tracer& tracer,
     context = context.with_trace_id(trace_parent);
   }
   return span;
+}
+
+// The traceparent for an opcuapp call that takes it as a bare string: the
+// context's trace id, which StartClientSpan has already advanced to its own
+// span when that span exports, if it is a W3C traceparent; empty otherwise —
+// the rule ClientSession applies to calls that take a context. Passing
+// `span.traceparent()` instead drops the caller's trace whenever this hop's
+// tracer has no exporting sink, as a probe or test client's does.
+std::string WireTraceParent(const scada::ServiceContext& context) {
+  return opcua::IsW3CTraceParent(context.trace_id()) ? context.trace_id()
+                                                     : std::string{};
 }
 
 // Annotates a span with a batched request's size and (capped) node ids;
@@ -87,8 +99,8 @@ ClientViewServiceAdapter::TranslateBrowsePaths(
   SetBatchAttributes(span, inputs, [](const scada::BrowsePath& input) {
     return input.node_id.ToString();
   });
-  auto result = co_await session_->TranslateBrowsePaths(ToOpcuaVector(inputs),
-                                                        span.traceparent());
+  auto result = co_await session_->TranslateBrowsePaths(
+      ToOpcuaVector(inputs), WireTraceParent(context));
   co_return ToScada(result);
 }
 
@@ -255,8 +267,8 @@ ClientHistoryServiceAdapter::HistoryReadRaw(
   // identity, so the context goes no further than the span.
   auto span = StartClientSpan(tracer_, "opcua.client/HistoryReadRaw", context);
   span.SetAttribute("scada.node_id", details.node_id.ToString());
-  auto result =
-      co_await session_->HistoryReadRaw(ToOpcua(details), span.traceparent());
+  auto result = co_await session_->HistoryReadRaw(ToOpcua(details),
+                                                  WireTraceParent(context));
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
@@ -279,7 +291,7 @@ ClientHistoryServiceAdapter::HistoryReadEvents(scada::ServiceContext context,
       StartClientSpan(tracer_, "opcua.client/HistoryReadEvents", context);
   span.SetAttribute("scada.node_id", details.node_id.ToString());
   auto result = co_await session_->HistoryReadEvents(ToOpcua(details),
-                                                     span.traceparent());
+                                                     WireTraceParent(context));
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
@@ -293,7 +305,7 @@ ClientHistoryServiceAdapter::HistoryUpdateData(
   auto span =
       StartClientSpan(tracer_, "opcua.client/HistoryUpdateData", context);
   auto result = co_await session_->HistoryUpdateData(ToOpcua(details),
-                                                     span.traceparent());
+                                                     WireTraceParent(context));
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
@@ -307,7 +319,7 @@ ClientHistoryServiceAdapter::HistoryUpdateEvent(
   auto span =
       StartClientSpan(tracer_, "opcua.client/HistoryUpdateEvent", context);
   auto result = co_await session_->HistoryUpdateEvent(ToOpcua(details),
-                                                      span.traceparent());
+                                                      WireTraceParent(context));
   if (!result.ok()) {
     co_return ToScada(result.status());
   }
