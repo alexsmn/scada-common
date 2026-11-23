@@ -245,6 +245,13 @@ inline scada::StatusCode ToScada(opcua::StatusCode c) {
     // torn down (OPC UA Part 6 §6.7.2.4): to a caller the link is gone.
     case opcua::StatusCode::Bad_SequenceNumberInvalid:
       return scada::StatusCode::Bad_Disconnected;
+    // A reverse-connect Client refused the socket (OPC UA Part 6 §7.1.2.6
+    // ReverseHello Message, §7.1.3 Establishing a connection,
+    // https://reference.opcfoundation.org/Core/Part6/v105/docs/7.1.3): the
+    // connection never came up.
+    case opcua::StatusCode::Bad_TcpEndpointUrlInvalid:
+    case opcua::StatusCode::Bad_ServerTooBusy:
+      return scada::StatusCode::Bad_Disconnected;
   }
   // A wire code opcuapp does not name, e.g. a standard code from a third-party
   // peer. Core numbers its codes independently of the wire, so the raw value
