@@ -90,7 +90,8 @@ scada::CoStatusOr<scada::HistoryReadRawResult> VidiconSession::HistoryReadRaw(
 }
 
 scada::CoStatusOr<scada::HistoryReadEventsResult>
-VidiconSession::HistoryReadEvents(scada::NodeId node_id,
+VidiconSession::HistoryReadEvents(scada::ServiceContext /*context*/,
+                                  scada::NodeId node_id,
                                   scada::Time from,
                                   scada::Time to,
                                   scada::EventFilter filter) {

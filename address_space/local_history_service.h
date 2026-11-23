@@ -82,6 +82,7 @@ class LocalHistoryService : public HistoryService {
   CoStatusOr<HistoryReadRawResult> HistoryReadRaw(
       HistoryReadRawDetails details) override;
   CoStatusOr<HistoryReadEventsResult> HistoryReadEvents(
+      ServiceContext context,
       NodeId node_id,
       scada::Time from,
       scada::Time to,

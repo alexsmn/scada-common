@@ -41,6 +41,7 @@ class TestHistoryService final : public scada::HistoryService {
   }
 
   scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::ServiceContext /*context*/,
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,
@@ -269,9 +270,9 @@ TEST(EventFetcherBuilder, ServicesNormalizeToDataServices) {
   EXPECT_CALL(session_service, GetUserId());
   EXPECT_CALL(*monitored_item_service.default_monitored_item,
               Subscribe(VariantWith<scada::EventHandler>(_)));
-  EXPECT_CALL(history_service, HistoryReadEvents(_, _, _, _))
-      .WillOnce([&](scada::NodeId read_node_id, scada::Time from,
-                    scada::Time to, scada::EventFilter filter)
+  EXPECT_CALL(history_service, HistoryReadEvents(_, _, _, _, _))
+      .WillOnce([&](scada::ServiceContext, scada::NodeId read_node_id,
+                    scada::Time from, scada::Time to, scada::EventFilter filter)
                     -> scada::CoStatusOr<scada::HistoryReadEventsResult> {
         EXPECT_EQ(read_node_id, scada::id::Server);
         EXPECT_LE(from, to);

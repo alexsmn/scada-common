@@ -334,8 +334,13 @@ HistoryServiceAdapter::HistoryReadEvents(opcua::ServiceContext context,
   auto span =
       StartServerSpan(tracer_, "opcua.server/HistoryReadEvents", context);
   span.SetAttribute("scada.node_id", node_id.ToString());
+  // The session's caller travels with the read, so the server withholds the
+  // events it may not receive (OPC UA Part 3 §8.55 PermissionType bit 11
+  // ReceiveEvents,
+  // https://reference.opcfoundation.org/Core/Part3/v105/docs/8.55).
   auto result = co_await inner_.HistoryReadEvents(
-      ToScada(node_id), ToScada(from), ToScada(to), ToScada(filter));
+      ToScada(context), ToScada(node_id), ToScada(from), ToScada(to),
+      ToScada(filter));
   if (!result.ok()) {
     co_return ToOpcua(result.status());
   }

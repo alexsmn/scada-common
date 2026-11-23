@@ -72,6 +72,7 @@ class FakeHistoryService final : public scada::HistoryService {
   }
 
   scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::ServiceContext,
       scada::NodeId /*node_id*/,
       scada::Time /*from*/,
       scada::Time /*to*/,

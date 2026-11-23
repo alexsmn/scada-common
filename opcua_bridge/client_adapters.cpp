@@ -263,7 +263,8 @@ ClientHistoryServiceAdapter::HistoryReadRaw(
 }
 
 scada::CoStatusOr<scada::HistoryReadEventsResult>
-ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
+ClientHistoryServiceAdapter::HistoryReadEvents(scada::ServiceContext context,
+                                               scada::NodeId node_id,
                                                scada::Time from,
                                                scada::Time to,
                                                scada::EventFilter filter) {
@@ -271,8 +272,10 @@ ClientHistoryServiceAdapter::HistoryReadEvents(scada::NodeId node_id,
                                           .from = from,
                                           .to = to,
                                           .filter = std::move(filter)};
-  auto span = tracer_.StartSpan("opcua.client/HistoryReadEvents",
-                                TraceSpanKind::kClient, {});
+  // The caller's trace continues downstream. The caller's identity does not:
+  // the downstream judges this link's own session.
+  auto span =
+      StartClientSpan(tracer_, "opcua.client/HistoryReadEvents", context);
   span.SetAttribute("scada.node_id", details.node_id.ToString());
   auto result = co_await session_->HistoryReadEvents(ToOpcua(details),
                                                      span.traceparent());

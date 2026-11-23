@@ -148,6 +148,7 @@ CoStatusOr<HistoryReadRawResult> LocalHistoryService::HistoryReadRaw(
 }
 
 CoStatusOr<HistoryReadEventsResult> LocalHistoryService::HistoryReadEvents(
+    ServiceContext /*context*/,
     NodeId node_id,
     scada::Time from,
     scada::Time to,

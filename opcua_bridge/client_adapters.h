@@ -234,6 +234,7 @@ class ClientHistoryServiceAdapter : public scada::HistoryService,
   scada::CoStatusOr<scada::HistoryReadRawResult> HistoryReadRaw(
       scada::HistoryReadRawDetails details) override;
   scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::ServiceContext context,
       scada::NodeId node_id,
       scada::Time from,
       scada::Time to,

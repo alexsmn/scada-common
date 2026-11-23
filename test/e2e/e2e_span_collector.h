@@ -81,9 +81,9 @@ class SpanCollector {
 
   // Spans named `span_name`, from `service_name`, carrying `attribute_value`
   // under `attribute_key`. The fallback matcher for the two services whose
-  // spans cannot be trace-correlated: HistoryReadRaw / HistoryReadEvents carry
-  // no ServiceContext, so a proxy->historian history read starts a new trace
-  // root (scada-server-framework/docs/tracing.md, "Known gaps"). A probe with a
+  // spans cannot always be trace-correlated: HistoryReadRaw carries no
+  // ServiceContext, so a proxy->historian raw read starts a new trace root
+  // (scada-server-framework/docs/tracing.md, "Known gaps"). A probe with a
   // unique node id is still attributable through `scada.node_id`.
   std::vector<CollectedSpan> SpansByAttribute(
       std::string_view span_name,

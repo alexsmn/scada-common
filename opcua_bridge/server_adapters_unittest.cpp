@@ -713,6 +713,7 @@ class TwoLanguageHistoryService : public scada::HistoryService {
   }
 
   scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::ServiceContext,
       scada::NodeId,
       scada::Time,
       scada::Time,

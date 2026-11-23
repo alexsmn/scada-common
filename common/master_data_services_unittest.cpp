@@ -121,6 +121,7 @@ class TestCoroutineDataServices final : public scada::SessionService,
   }
 
   scada::CoStatusOr<scada::HistoryReadEventsResult> HistoryReadEvents(
+      scada::ServiceContext /*context*/,
       scada::NodeId node_id,
       scada::Time /*from*/,
       scada::Time /*to*/,
@@ -505,9 +506,9 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
             history_details.max_count);
 
   auto history_events_result = WaitAwaitable(
-      executor,
-      services.HistoryReadEvents(scada::NodeId{107}, scada::Time{},
-                                 scada::Time{}, scada::EventFilter{}));
+      executor, services.HistoryReadEvents(
+                    scada::ServiceContext{}, scada::NodeId{107}, scada::Time{},
+                    scada::Time{}, scada::EventFilter{}));
   EXPECT_TRUE(history_events_result.ok()) << history_events_result.status();
   EXPECT_EQ(direct_services->history_events_count, 1);
   EXPECT_EQ(direct_services->last_history_events_node_id, (scada::NodeId{107}));

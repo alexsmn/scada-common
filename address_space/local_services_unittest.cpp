@@ -485,8 +485,9 @@ TEST(LocalHistoryService, LoadFromJsonHonorsAcknowledgedFlag) {
   })"));
 
   auto result = WaitAwaitable(
-      executor, service.HistoryReadEvents(NodeId{}, scada::Time{}, scada::Now(),
-                                          EventFilter{}));
+      executor,
+      service.HistoryReadEvents(scada::ServiceContext{}, NodeId{},
+                                scada::Time{}, scada::Now(), EventFilter{}));
 
   ASSERT_TRUE(result.ok()) << result.status();
   ASSERT_EQ(result->events.size(), 2u);
@@ -519,8 +520,9 @@ TEST(LocalHistoryService, LoadFromJsonAcceptsANumericSeverity) {
   })"));
 
   auto result = WaitAwaitable(
-      executor, service.HistoryReadEvents(NodeId{}, scada::Time{}, scada::Now(),
-                                          EventFilter{}));
+      executor,
+      service.HistoryReadEvents(scada::ServiceContext{}, NodeId{},
+                                scada::Time{}, scada::Now(), EventFilter{}));
 
   ASSERT_TRUE(result.ok()) << result.status();
   ASSERT_EQ(result->events.size(), 4u);
@@ -545,7 +547,8 @@ TEST(LocalHistoryService, CoroutineHistoryReadEventsReturnsStoredEvents) {
 
   auto result = WaitAwaitable(
       executor, service.HistoryReadEvents(
-                    event.source_node_id, event.time - std::chrono::hours(1),
+                    scada::ServiceContext{}, event.source_node_id,
+                    event.time - std::chrono::hours(1),
                     event.time + std::chrono::hours(1), EventFilter{}));
 
   ASSERT_TRUE(result.ok()) << result.status();
@@ -657,15 +660,17 @@ TEST(LocalHistoryService, ScopesEventReadsToTheRequestedNode) {
 
   ASSERT_OK_AND_ASSIGN(
       auto device_events,
-      WaitAwaitable(executor, service.HistoryReadEvents(device, kNullTime,
-                                                        kNullTime, {})));
+      WaitAwaitable(executor,
+                    service.HistoryReadEvents(scada::ServiceContext{}, device,
+                                              kNullTime, kNullTime, {})));
   ASSERT_EQ(device_events.events.size(), 1u);
   EXPECT_EQ(device_events.events[0].message.text, u"mine");
 
   // The whole-server journal still sees everything.
   ASSERT_OK_AND_ASSIGN(
       auto all_events,
-      WaitAwaitable(executor, service.HistoryReadEvents(id::Server, kNullTime,
+      WaitAwaitable(executor, service.HistoryReadEvents(scada::ServiceContext{},
+                                                        id::Server, kNullTime,
                                                         kNullTime, {})));
   EXPECT_EQ(all_events.events.size(), 2u);
 }

@@ -305,7 +305,7 @@ void EventFetcher::Update() {
       executor_, cancelation_,
       [this, cancelation = cancelation_.ref()]() mutable -> Awaitable<void> {
         auto result = co_await history_service_.HistoryReadEvents(
-            scada::id::Server, {}, {},
+            scada::ServiceContext{}, scada::id::Server, {}, {},
             scada::EventFilter{scada::EventFilter::UNACKED});
         if (cancelation.canceled())
           co_return;

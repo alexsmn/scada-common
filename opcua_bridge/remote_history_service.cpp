@@ -140,12 +140,13 @@ RemoteHistoryService::HistoryReadRaw(scada::HistoryReadRawDetails details) {
 }
 
 scada::CoStatusOr<scada::HistoryReadEventsResult>
-RemoteHistoryService::HistoryReadEvents(scada::NodeId node_id,
+RemoteHistoryService::HistoryReadEvents(scada::ServiceContext context,
+                                        scada::NodeId node_id,
                                         scada::Time from,
                                         scada::Time to,
                                         scada::EventFilter filter) {
-  return adapter_.HistoryReadEvents(std::move(node_id), from, to,
-                                    std::move(filter));
+  return adapter_.HistoryReadEvents(std::move(context), std::move(node_id),
+                                    from, to, std::move(filter));
 }
 
 scada::CoStatusOr<std::vector<scada::StatusCode>>
