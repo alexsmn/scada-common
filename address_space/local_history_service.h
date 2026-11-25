@@ -67,6 +67,9 @@ class LocalHistoryService : public HistoryService {
   // HH:MM:SS", local time) applies SetNowOverride before timestamping. A node
   // may carry an optional `history_stddev` (absolute standard deviation of the
   // synthesized raw series); it overrides the default 5%-of-|base_value| noise.
+  // An event may carry an optional `event_type` (an NS0 numeric id),
+  // `acknowledged` (default true) and `user_id` (its actor, a scada node id
+  // string such as "USER.3").
   //
   // Pass `node_exists` when the document's `nodes` array can name nodes the
   // caller never created (the screenshot fixture, for instance, can only build

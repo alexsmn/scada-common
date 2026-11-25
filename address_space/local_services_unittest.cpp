@@ -515,6 +515,33 @@ TEST(LocalHistoryService, LoadFromJsonHonorsAcknowledgedFlag) {
   EXPECT_FALSE(scada::IsNull(result->events[1].acknowledged_time));
 }
 
+// An event may name its actor, which an audit trail needs to say who did what;
+// one that names none keeps a null user, as before.
+TEST(LocalHistoryService, LoadFromJsonReadsAnOptionalUser) {
+  TestExecutor executor;
+  LocalHistoryService service;
+  service.LoadFromJson(boost::json::parse(R"({
+    "now": "2026-04-16 15:02:00",
+    "nodes": [],
+    "events": [
+      {"id": 1, "hours_ago": 1.0, "severity": "normal", "message": "m1",
+       "node_id": "TS.105", "change_mask": 8, "user_id": "USER.3"},
+      {"id": 2, "hours_ago": 2.0, "severity": "normal", "message": "m2",
+       "node_id": "TS.105", "change_mask": 8}
+    ]
+  })"));
+
+  auto result = WaitAwaitable(
+      executor,
+      service.HistoryReadEvents(scada::ServiceContext{}, NodeId{},
+                                scada::Time{}, scada::Now(), EventFilter{}));
+
+  ASSERT_TRUE(result.ok()) << result.status();
+  ASSERT_EQ(result->events.size(), 2u);
+  EXPECT_EQ(result->events[0].user_id, NodeIdFromScadaString("USER.3"));
+  EXPECT_TRUE(result->events[1].user_id.is_null());
+}
+
 // A fixture may write `severity` as a raw OPC UA number instead of one of the
 // three band literals, which only reach three of the thousand values. Numbers
 // outside 1..1000 are clamped rather than rejected, so a typo cannot hand the

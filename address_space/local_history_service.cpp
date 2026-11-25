@@ -130,6 +130,11 @@ void LocalHistoryService::LoadFromJson(const boost::json::value& root,
           NodeId{static_cast<NumericId>(jt->to_number<std::int64_t>()),
                  NamespaceIndexes::NS0};
     }
+    // Optional `user_id`: who the event names as its actor (ClientUserId of an
+    // audit event). An audit trail without one cannot say who did what.
+    if (const auto* ju = je.as_object().if_contains("user_id")) {
+      e.user_id = NodeIdFromScadaString(std::string_view(ju->as_string()));
+    }
     // Acknowledged unless the entry says otherwise — an `"acknowledged":
     // false` event stays pending, so alarm-surface chrome (pending markers,
     // backlog summaries) has something real to render.
