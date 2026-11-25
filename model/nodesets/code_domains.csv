@@ -255,6 +255,7 @@ UserExtensionsFolderType,security
 UserExtensionsFolderType_UserExtensionPlaceholder,security
 UserType,security
 UserType_AccessRights,security
+UserType_ChangePassword,security
 UserType_Description,security
 UserType_GetProfile,security
 UserType_MultiSessions,security

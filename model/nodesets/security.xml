@@ -130,6 +130,14 @@
       <Reference ReferenceType="HasModellingRule">i=78</Reference>
     </References>
   </UAMethod>
+  <UAMethod NodeId="ns=1;i=334" BrowseName="ChangePassword" SymbolicName="UserType_ChangePassword" ParentNodeId="ns=1;i=16">
+    <DisplayName Locale="ru">Сменить пароль</DisplayName>
+    <DisplayName Locale="en">Change password</DisplayName>
+    <References>
+      <Reference ReferenceType="HasComponent" IsForward="false">ns=1;i=16</Reference>
+      <Reference ReferenceType="HasModellingRule">i=78</Reference>
+    </References>
+  </UAMethod>
   <UAMethod NodeId="ns=1;i=353" BrowseName="VerifyPassword" SymbolicName="UserType_VerifyPassword" ParentNodeId="ns=1;i=16">
     <DisplayName Locale="ru">Проверить пароль</DisplayName>
     <DisplayName Locale="en">Verify password</DisplayName>

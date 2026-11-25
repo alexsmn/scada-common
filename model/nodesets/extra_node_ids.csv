@@ -19,6 +19,5 @@ history,numeric_id,HistoricalDatabases,12,SCADA
 scada,id,HasParentReferenceType,340,SCADA
 scada,id,NextId,352,SCADA
 security,id,RootUser,234,SCADA
-security,id,UserType_ChangePassword,334,SCADA
 security,numeric_id,Configurations,362,SCADA
 security,numeric_id,Users,29,SCADA

@@ -158,6 +158,10 @@ TEST(ModelFrozenIds, NodeIdValues) {
   // number is on the wire the moment a client ships against it.
   EXPECT_EQ(security::id::UserType_GetProfile.numeric_id(), 15152u);
   EXPECT_EQ(security::id::UserExtensionType_GetProfile.numeric_id(), 15153u);
+  // The per-account password method. Clients have called it by this id since
+  // before it had a static node (it moved from extra_node_ids.csv into
+  // security.xml on 2026-11-24 so it could carry RolePermissions).
+  EXPECT_EQ(security::id::UserType_ChangePassword.numeric_id(), 334u);
   // ns=1;i=221 (HasTransmissionSource) is RETIRED but stays reserved — never
   // reallocate it (transmission alignment phase 4; the source link is the
   // SourceNode property below, like i=297 Creates before it).
