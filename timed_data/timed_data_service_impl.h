@@ -36,6 +36,16 @@ class TimedDataServiceImpl final : private TimedDataContext,
       std::string_view alias,
       const scada::AggregateFilter& aggregation);
 
+  // The node `name` names, when it is a node id rather than an alias: the
+  // self-contained OPC UA form (`{nsu=<uri>;s=…}`, `i=2258`), resolved through
+  // the connection's namespace table, or the model's `TS.1379`. A null NodeId
+  // when it is a node id that names nothing this connection can resolve;
+  // nullopt when it is not a node id at all.
+  std::optional<scada::NodeId> ResolveNodeId(std::string_view name) const;
+
+  // An expression operand with its braces dropped when it is a node id.
+  std::string_view UnbraceOperand(std::string_view name) const;
+
   TimedCache<std::pair<scada::NodeId, scada::AggregateFilter>,
              std::shared_ptr<TimedDataImpl>>
       node_id_cache_;

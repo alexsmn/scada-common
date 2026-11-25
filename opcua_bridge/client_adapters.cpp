@@ -410,6 +410,14 @@ class RemappingClientServices
     services.monitored_item_service_ = {self, &monitored_item_};
     services.history_service_ = {self, &history_};
     services.monitored_item_executor_ = inner_.monitored_item_executor_;
+    // GetOrAdd, not Find: every URI the server publishes is in the table from
+    // the connect's BuildByUri on, and one it does not publish gets a fresh
+    // index the remapper does not own, which reaches the wire as unpublished
+    // (kUnpublishedNamespaceIndex) and is refused there as an unknown node.
+    services.namespace_index_for_uri_ =
+        [self](std::string_view uri) -> std::optional<scada::NamespaceIndex> {
+      return self->local_table_.GetOrAdd(uri);
+    };
     return services;
   }
 

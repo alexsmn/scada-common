@@ -121,3 +121,62 @@ TEST(NodeIdUtil, NestedNodeId_NestedNamespaceDiffers) {
   EXPECT_EQ(kParentId, parent_id);
   EXPECT_EQ(kNestedName, nested_name);
 }
+
+namespace scada {
+namespace {
+
+// The self-contained OPC UA reference form, as stored in display bindings
+// (docs/product/foreign-node-references.md). A connection that gives a plant
+// namespace index 200 and knows nothing else.
+std::optional<NamespaceIndex> PlantIndex(std::string_view uri) {
+  if (uri == "urn:plant")
+    return NamespaceIndex{200};
+  return std::nullopt;
+}
+
+TEST(NodeIdUtil, NodeIdStringResolvesThroughTheConnection) {
+  EXPECT_EQ(
+      NodeIdFromNodeIdString("nsu=urn:plant;s=Plant.Temperature", PlantIndex),
+      NodeId(std::string{"Plant.Temperature"}, 200));
+}
+
+TEST(NodeIdUtil, NodeIdStringFallsBackToTheCanonicalTable) {
+  // A model namespace resolves without the connection: the native backend
+  // numbers it canonically and sets no lookup.
+  const NodeId expected{53, NamespaceIndexes::TS};
+  EXPECT_EQ(NodeIdFromNodeIdString(
+                "nsu=http://telecontrol.ru/opcua/data_items/DiscreteItemType;"
+                "i=53",
+                PlantIndex),
+            expected);
+  EXPECT_EQ(NodeIdFromNodeIdString(
+                "nsu=http://telecontrol.ru/opcua/data_items/DiscreteItemType;"
+                "i=53",
+                NamespaceIndexForUri{}),
+            expected);
+}
+
+TEST(NodeIdUtil, NodeIdStringInNamespaceZero) {
+  EXPECT_EQ(NodeIdFromNodeIdString("i=2258", NamespaceIndexForUri{}),
+            NodeId(2258u, 0));
+}
+
+TEST(NodeIdUtil, NodeIdStringThatNamesNothingIsNull) {
+  // The form, but unresolvable: an error for the caller, never an alias.
+  EXPECT_EQ(NodeIdFromNodeIdString("nsu=urn:other;i=1", PlantIndex),
+            std::optional<NodeId>{NodeId{}});
+  // A session's own index means nothing once stored.
+  EXPECT_EQ(NodeIdFromNodeIdString("ns=2;i=1", PlantIndex),
+            std::optional<NodeId>{NodeId{}});
+}
+
+TEST(NodeIdUtil, OtherFormsAreNotNodeIdStrings) {
+  for (std::string_view text : {"TS.53", "Alias", "MODBUS_PORTS.32!Online",
+                                "Server!PCPU", "NS38.Plant"}) {
+    SCOPED_TRACE(text);
+    EXPECT_EQ(NodeIdFromNodeIdString(text, PlantIndex), std::nullopt);
+  }
+}
+
+}  // namespace
+}  // namespace scada

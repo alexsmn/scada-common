@@ -1,3 +1,4 @@
+#include "timed_data/timed_data.h"
 #include "address_space/test/test_scada_node_states.h"
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
@@ -92,7 +93,8 @@ class TimedDataTest : public Test {
        .alias_resolver_ = alias_resolver_.AsStdFunction(),
        .node_service_ = node_service_,
        .data_services_ = MakeTimedDataServices(history_service_),
-       .node_event_provider_ = node_event_provider_}};
+       .node_event_provider_ = node_event_provider_,
+       .namespace_index_for_uri_ = PlantNamespaceIndex}};
 
   const std::shared_ptr<scada::VariableHandle> node_value_variable_ =
       std::make_shared<scada::VariableHandle>();
@@ -101,6 +103,22 @@ class TimedDataTest : public Test {
       property_change_handler_;
 
   inline static const scada::NodeId kDataItemId{1, scada::NamespaceIndexes::TS};
+
+  // A third-party server's node, in the fresh index the connection gave its
+  // namespace (docs/product/foreign-node-references.md).
+  static constexpr scada::NamespaceIndex kPlantNamespaceIndex = 200;
+  inline static const scada::NodeId kPlantNodeId{
+      std::string{"Plant.Temperature"}, kPlantNamespaceIndex};
+
+  static std::optional<scada::NamespaceIndex> PlantNamespaceIndex(
+      std::string_view uri) {
+    if (uri == "urn:plant")
+      return kPlantNamespaceIndex;
+    return std::nullopt;
+  }
+
+  const std::shared_ptr<scada::VariableHandle> plant_value_variable_ =
+      std::make_shared<scada::VariableHandle>();
   inline static const std::string_view kDataItemAlias = "Alias";
 
   inline static const scada::NodeId kTsFormatId{
@@ -126,9 +144,19 @@ TimedDataTest::TimedDataTest() {
        .references = {{.reference_type_id = scada::data_items::id::HasTsFormat,
                        .node_id = kTsFormatId}}});
 
+  node_service_.Add({.node_id = kPlantNodeId,
+                     .node_class = scada::NodeClass::Variable,
+                     .type_definition_id = scada::id::BaseVariableType});
+
   ON_CALL(monitored_item_service_,
           CreateMonitoredItem(/*read_value_id=*/_, /*params=*/_))
       .WillByDefault(Return(nullptr));
+
+  ON_CALL(monitored_item_service_,
+          CreateMonitoredItem(
+              FieldsAre(kPlantNodeId, scada::AttributeId::Value), _))
+      .WillByDefault(
+          Return(scada::CreateMonitoredVariable(plant_value_variable_)));
 
   ON_CALL(
       monitored_item_service_,
@@ -229,6 +257,67 @@ TEST_F(TimedDataTest, BracedOperandResolvesInsideAnExpression) {
   EXPECT_TRUE(spec.connected());
   EXPECT_TRUE(spec.current().qualifier.good());
   EXPECT_TRUE(spec.current().value.get_or(false));
+}
+
+// A display binding names a third-party server's node by namespace URI, since
+// the index the connection gave the namespace is its own. The alias resolver
+// is strict throughout: reaching it would mean the reference was taken for an
+// alias.
+TEST_F(TimedDataTest, NamespaceUriReferenceResolvesThroughTheConnection) {
+  plant_value_variable_->ForwardData(scada::MakeReadResult(42));
+
+  TimedDataSpec spec{service_, "{nsu=urn:plant;s=Plant.Temperature}"};
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.node_id(), kPlantNodeId);
+  EXPECT_EQ(spec.current().value, 42);
+}
+
+// A Raw cell typed by hand, without braces.
+TEST_F(TimedDataTest, UnbracedNamespaceUriReferenceIsAWholeFormula) {
+  plant_value_variable_->ForwardData(scada::MakeReadResult(42));
+
+  TimedDataSpec spec{service_, "nsu=urn:plant;s=Plant.Temperature"};
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.current().value, 42);
+}
+
+TEST_F(TimedDataTest, NamespaceUriReferenceIsAnExpressionOperand) {
+  plant_value_variable_->ForwardData(scada::MakeReadResult(42));
+
+  TimedDataSpec spec{service_, "{nsu=urn:plant;s=Plant.Temperature} + 1"};
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.current().value, 43);
+}
+
+// Our own namespaces resolve by URI too, through the canonical table, which
+// the connection's lookup does not have to answer for.
+TEST_F(TimedDataTest, CanonicalNamespaceUriReferenceResolves) {
+  node_value_variable_->ForwardData(scada::MakeReadResult(true));
+
+  TimedDataSpec spec{
+      service_,
+      "{nsu=http://telecontrol.ru/opcua/data_items/DiscreteItemType;i=1}"};
+  Drain(executor_);
+
+  EXPECT_TRUE(spec.connected());
+  EXPECT_EQ(spec.node_id(), kDataItemId);
+  EXPECT_EQ(spec.GetCurrentString(), kFormatCloseLabel);
+}
+
+// A reference this connection cannot resolve names no node; it is not an
+// alias either, so it never reaches the (strict) alias resolver.
+TEST_F(TimedDataTest, UnresolvableNodeIdReferenceIsAnError) {
+  for (std::string_view formula :
+       {"{nsu=urn:unknown;s=X}", "nsu=urn:unknown;s=X", "{ns=2;i=1}"}) {
+    SCOPED_TRACE(formula);
+    EXPECT_TRUE(service_.GetFormulaTimedData(formula, {})->IsError());
+  }
 }
 
 TEST_F(TimedDataTest, HistoryFetchUsesServiceLevelCoroutineAdapter) {

@@ -531,4 +531,29 @@ TEST(MasterDataServicesTest, DataServicesCoroutineSlotsDriveAggregateApis) {
             (scada::NodeId{108}));
 }
 
+// The connection's namespace lookup reaches through, for references stored by
+// namespace URI (docs/product/foreign-node-references.md).
+TEST(MasterDataServicesTest, NamespaceIndexForUriForwardsToTheConnection) {
+  TestExecutor executor;
+  MasterDataServices services{executor};
+  EXPECT_EQ(services.NamespaceIndexForUri("urn:plant"), std::nullopt);
+
+  DataServices data_services;
+  data_services.namespace_index_for_uri_ =
+      [](std::string_view uri) -> std::optional<scada::NamespaceIndex> {
+    if (uri == "urn:plant")
+      return scada::NamespaceIndex{200};
+    return std::nullopt;
+  };
+  services.SetServices(std::move(data_services));
+
+  EXPECT_EQ(services.NamespaceIndexForUri("urn:plant"),
+            std::optional<scada::NamespaceIndex>{200});
+  EXPECT_EQ(services.NamespaceIndexForUri("urn:other"), std::nullopt);
+
+  // A backend that does not remap leaves the lookup empty.
+  services.SetServices(DataServices{});
+  EXPECT_EQ(services.NamespaceIndexForUri("urn:plant"), std::nullopt);
+}
+
 }  // namespace

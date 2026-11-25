@@ -32,6 +32,13 @@ class MasterDataServices final : public scada::AttributeService,
 
   void SetServices(DataServices&& sevices);
 
+  // The current connection's index for a namespace URI
+  // (DataServices::namespace_index_for_uri_), or nullopt when the backend
+  // does not remap — the caller then uses the canonical table — or nothing is
+  // connected.
+  std::optional<scada::NamespaceIndex> NamespaceIndexForUri(
+      std::string_view uri) const;
+
   // scada::SessionService
   virtual Awaitable<void> Connect(scada::SessionConnectParams params) override;
   virtual scada::CoStatus ConnectStatus(

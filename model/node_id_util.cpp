@@ -3,9 +3,12 @@
 #include <algorithm>
 #include <format>
 
+#include "base/no_destructor.h"
 #include "model/data_items_node_ids.h"
+#include "model/namespace_uris.h"
 #include "model/namespaces.h"
 #include "scada/node_id_log.h"
+#include "scada/node_id_string.h"
 #include <boost/algorithm/string/predicate.hpp>
 
 #if defined(SCADA_USE_CORE_MODULE)
@@ -215,6 +218,45 @@ scada::NodeId NodeIdFromScadaString(std::string_view scada_string) {
 
   return scada::NodeId{numeric_id,
                        static_cast<scada::NamespaceIndex>(namespace_index)};
+}
+
+namespace {
+
+// The canonical index for `uri`, or nullopt: the model's own namespaces, which
+// a backend that does not remap (the native protocol) numbers the same way.
+std::optional<NamespaceIndex> CanonicalNamespaceIndex(std::string_view uri) {
+  static const base::NoDestructor<std::vector<std::string>> uris{
+      model::GetCanonicalNamespaceUris()};
+  const auto it = std::ranges::find(*uris, uri);
+  if (it == uris->end())
+    return std::nullopt;
+  return static_cast<NamespaceIndex>(it - uris->begin());
+}
+
+}  // namespace
+
+std::optional<scada::NodeId> NodeIdFromNodeIdString(
+    std::string_view text,
+    const NamespaceIndexForUri& index_for_uri) {
+  std::optional<ParsedNodeIdString> parsed = ParseNodeIdString(text);
+  if (!parsed)
+    return std::nullopt;
+  if (!parsed->namespace_uri) {
+    // The bare form is namespace 0; "ns=<n>;" with n != 0 names an index
+    // only the session that wrote it could read.
+    if (parsed->node_id.namespace_index() != 0)
+      return scada::NodeId{};
+    return std::move(parsed->node_id);
+  }
+  std::optional<NamespaceIndex> index;
+  if (index_for_uri)
+    index = index_for_uri(*parsed->namespace_uri);
+  if (!index)
+    index = CanonicalNamespaceIndex(*parsed->namespace_uri);
+  if (!index)
+    return scada::NodeId{};
+  parsed->node_id.set_namespace_index(*index);
+  return std::move(parsed->node_id);
 }
 
 void RegisterModelNamespaceResolver() {

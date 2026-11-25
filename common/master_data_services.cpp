@@ -144,6 +144,13 @@ void MasterDataServices::RefreshCoroutineServices() {
   node_management_service_ = services_.node_management_service_.get();
 }
 
+std::optional<scada::NamespaceIndex> MasterDataServices::NamespaceIndexForUri(
+    std::string_view uri) const {
+  if (!services_.namespace_index_for_uri_)
+    return std::nullopt;
+  return services_.namespace_index_for_uri_(uri);
+}
+
 void MasterDataServices::SetServices(DataServices&& services) {
   if (connected_) {
     for (auto* monitored_item : monitored_items_) {

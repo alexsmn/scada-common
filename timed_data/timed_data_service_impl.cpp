@@ -5,6 +5,7 @@
 #include "common/scada_expression.h"
 #include "model/node_id_util.h"
 #include "node_service/node_service.h"
+#include "scada/node_id_string.h"
 #include "timed_data/alias_timed_data.h"
 #include "timed_data/error_timed_data.h"
 #include "timed_data/expression_timed_data.h"
@@ -17,19 +18,6 @@ namespace {
 std::string_view Unbrace(std::string_view name) {
   if (name.size() >= 2 && name.front() == '{' && name.back() == '}')
     return name.substr(1, name.size() - 2);
-  return name;
-}
-
-// An expression operand as the Server's name resolver reads it
-// (`GetFormulaSingleNodeId`, then the alias table): braces are dropped only
-// from an identifier -- `{IEC_DEV.1!5}`, `{TS.1379}` -- and `{u35_s1}` stays
-// as written, so it is no more an alias reference here than it is there.
-std::string_view UnbraceOperand(std::string_view name) {
-  std::string_view unbraced = Unbrace(name);
-  if (unbraced.size() != name.size() &&
-      !NodeIdFromScadaString(unbraced).is_null()) {
-    return unbraced;
-  }
   return name;
 }
 
@@ -60,13 +48,54 @@ TimedDataServiceImpl::TimedDataServiceImpl(CoroutineTimedDataContext&& context)
           .node_service_ = context.node_service_,
           .data_services_ = {},
           .history_service_ = std::move(context.history_service_),
-          .node_event_provider_ = context.node_event_provider_}} {}
+          .node_event_provider_ = context.node_event_provider_,
+          .namespace_index_for_uri_ =
+              std::move(context.namespace_index_for_uri_)}} {}
 
 TimedDataServiceImpl::~TimedDataServiceImpl() {}
+
+std::optional<scada::NodeId> TimedDataServiceImpl::ResolveNodeId(
+    std::string_view name) const {
+  // The Part 6 form first: its parser is strict, so it never takes an alias
+  // or a `TS.1379`, and a reference it does take never reaches the looser
+  // `<namespace name>.<id>` reading below.
+  const auto& index_for_uri = namespace_index_for_uri_
+                                  ? namespace_index_for_uri_
+                                  : data_services_.namespace_index_for_uri_;
+  if (std::optional<scada::NodeId> node_id =
+          scada::NodeIdFromNodeIdString(name, index_for_uri)) {
+    return node_id;
+  }
+  if (scada::NodeId node_id = NodeIdFromScadaString(name); !node_id.is_null())
+    return node_id;
+  return std::nullopt;
+}
+
+// An expression operand as the Server's name resolver reads it
+// (`GetFormulaSingleNodeId`, then the alias table): braces are dropped only
+// from an identifier -- `{IEC_DEV.1!5}`, `{TS.1379}`, `{nsu=…;s=…}` -- and
+// `{u35_s1}` stays as written, so it is no more an alias reference here than
+// it is there.
+std::string_view TimedDataServiceImpl::UnbraceOperand(
+    std::string_view name) const {
+  std::string_view unbraced = Unbrace(name);
+  if (unbraced.size() != name.size() && ResolveNodeId(unbraced).has_value())
+    return unbraced;
+  return name;
+}
 
 std::shared_ptr<TimedData> TimedDataServiceImpl::GetFormulaTimedData(
     std::string_view formula,
     const scada::AggregateFilter& aggregation) {
+  // A whole formula that is one unbraced "nsu=" reference, as a Raw cell typed
+  // by hand. Only that form is taken here: no expression contains ';', while
+  // a bare `i=5` is an expression comparing `i` with 5 and must be braced.
+  if (std::optional<scada::ParsedNodeIdString> parsed =
+          scada::ParseNodeIdString(formula);
+      parsed && parsed->namespace_uri) {
+    return GetAliasTimedData(formula, aggregation);
+  }
+
   auto expression = std::make_unique<ScadaExpression>();
 
   const auto parse_status = expression->ParseStatus(formula);
@@ -124,9 +153,16 @@ std::shared_ptr<TimedData> TimedDataServiceImpl::GetNodeTimedData(
 std::shared_ptr<TimedData> TimedDataServiceImpl::GetAliasTimedData(
     std::string_view alias,
     const scada::AggregateFilter& aggregation) {
-  auto node_id = NodeIdFromScadaString(alias);
-  if (!node_id.is_null())
-    return GetNodeTimedData(node_id, aggregation);
+  if (std::optional<scada::NodeId> node_id = ResolveNodeId(alias)) {
+    // A node id this connection cannot resolve -- a namespace URI it does not
+    // know, or a session's own `ns=` index -- names no node, and is no alias.
+    if (node_id->is_null()) {
+      return std::make_shared<ErrorTimedData>(
+          std::string{alias},
+          ToString16(scada::Status{scada::StatusCode::Bad_WrongNodeId}));
+    }
+    return GetNodeTimedData(*node_id, aggregation);
+  }
 
   const auto alias_string = std::string{alias};
   const auto cache_key = std::make_pair(alias_string, aggregation);
