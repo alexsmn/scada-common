@@ -161,6 +161,12 @@ struct ClusterOptions {
   // loads: how a test adds the objects, devices and transmission rules it
   // drives.
   std::string extra_config_sql;
+  // The site CA's PEM files. When both are set the config tier hosts the
+  // site's CertificateManager (OPC UA Part 12 Pull Management, ns=35): its
+  // server.json gets the "certificateManager" block a secured deployment's
+  // config.json carries. Empty by default, so no CertificateManager runs.
+  std::string certificate_manager_ca_certificate;
+  std::string certificate_manager_ca_private_key;
 };
 
 // Owns the downstream tier processes of one cluster. Non-copyable and

@@ -289,8 +289,10 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
   config_sql += options.extra_config_sql;
   config.Launch(ServerTier::Options{
       .configure =
-          [endpoint, enforce_permissions,
-           single_owner_items](boost::json::object& json) {
+          [endpoint, enforce_permissions, single_owner_items,
+           ca_certificate = options.certificate_manager_ca_certificate,
+           ca_private_key = options.certificate_manager_ca_private_key](
+              boost::json::object& json) {
             // Owns nothing and hides nothing: the edges load their item
             // configuration by browsing this tier.
             single_owner_items(json, /*owns_unassigned=*/false,
@@ -308,6 +310,13 @@ ServerTier& ServerCluster::Impl::Reserve(ClusterTier tier,
             ConfigureTelemetry(json, TelemetryServiceName(ClusterTier::kConfig),
                                endpoint);
             ApplyPermissionEnforcement(json, enforce_permissions);
+            // The site's CertificateManager lives with the configuration, as
+            // in dev/local-cluster/configs/secure-config.json.
+            if (!ca_certificate.empty() && !ca_private_key.empty()) {
+              json["certificateManager"] =
+                  boost::json::object{{"ca_certificate", ca_certificate},
+                                      {"ca_private_key", ca_private_key}};
+            }
           },
       .iec61850_port = options.iec61850_port,
       .extra_config_sql = config_sql,
