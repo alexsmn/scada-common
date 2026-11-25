@@ -182,6 +182,18 @@ opcua::ExtensionObject ToOpcua(const scada::ExtensionObject& e) {
   // boundary ExtensionObject then carries only its data_type_id.
   return opcua::ExtensionObject{ToOpcua(e.data_type_id()), {}};
 }
+std::optional<scada::ByteString> EncodeExtensionObjectBody(
+    const scada::ExtensionObject& object) {
+  const opcua::ExtensionObject encoded = ToOpcua(object);
+  if (const opcua::ByteString* body = encoded.binary_body())
+    return scada::ByteString{body->begin(), body->end()};
+  return std::nullopt;
+}
+
+void InstallExtensionObjectEncoder() {
+  scada::SetExtensionObjectEncoder(&EncodeExtensionObjectBody);
+}
+
 scada::ExtensionObject ToScada(const opcua::ExtensionObject& e) {
   // The mirror of ToOpcua: the GENERATED codec reads the body, and each branch
   // maps the generated struct back onto its transport-neutral counterpart, so

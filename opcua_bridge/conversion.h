@@ -20,6 +20,7 @@
 #include "scada/qualifier.h"
 #include "scada/status.h"
 #include "scada/variant.h"
+#include <optional>
 
 #include "opcua/types/data_value.h"
 #include "opcua/types/expanded_node_id.h"
@@ -360,6 +361,17 @@ scada::QualifiedName ToScada(const opcua::QualifiedName&);
 
 opcua::ExtensionObject ToOpcua(const scada::ExtensionObject&);
 scada::ExtensionObject ToScada(const opcua::ExtensionObject&);
+
+// `object`'s payload in its OPC UA Binary body, encoded by the generated codec
+// exactly as ToOpcua encodes it for the wire, or nullopt for a payload ToOpcua
+// cannot carry. Bodies are canonical, so equal payloads give equal bytes.
+std::optional<scada::ByteString> EncodeExtensionObjectBody(
+    const scada::ExtensionObject& object);
+
+// Installs EncodeExtensionObjectBody as scada's ExtensionObjectEncoder, which
+// scada::ExtensionObject::operator== compares payloads with. Called once at
+// start-up by every server (InstallCommonModules) and by the client.
+void InstallExtensionObjectEncoder();
 
 opcua::Variant ToOpcua(const scada::Variant&);
 scada::Variant ToScada(const opcua::Variant&);

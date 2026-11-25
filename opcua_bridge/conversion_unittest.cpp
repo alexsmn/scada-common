@@ -694,5 +694,35 @@ TEST(VariantConversionTest, ADateTimeArrayFromAPeerBecomesNull) {
   EXPECT_TRUE(ToScada(array).is_null());
 }
 
+// With the bridge's encoder installed, equal payloads compare equal, which is
+// what makes a re-read RolePermissions array equal to the last one.
+TEST(ExtensionObjectEncoderTest, EqualRolePermissionsCompareEqual) {
+  InstallExtensionObjectEncoder();
+  const auto make = [](scada::Permission permissions) {
+    return scada::ExtensionObject{
+        scada::ExpandedNodeId{scada::NodeId{96u, 0}},
+        std::any{scada::RolePermissionType{.role_id = scada::NodeId{15680u, 0},
+                                           .permissions = permissions}}};
+  };
+  const scada::Variant a{
+      std::vector<scada::ExtensionObject>{make(scada::Permission::kRead)}};
+  const scada::Variant same{
+      std::vector<scada::ExtensionObject>{make(scada::Permission::kRead)}};
+  const scada::Variant different{
+      std::vector<scada::ExtensionObject>{make(scada::Permission::kWrite)}};
+  EXPECT_EQ(a, same);
+  EXPECT_NE(a, different);
+  scada::SetExtensionObjectEncoder(nullptr);
+}
+
+// A payload the generated codec does not carry has no body.
+TEST(ExtensionObjectEncoderTest, AnUnknownPayloadHasNoBody) {
+  struct Unknown {};
+  EXPECT_FALSE(EncodeExtensionObjectBody(
+                   scada::ExtensionObject{
+                       scada::ExpandedNodeId{scada::NodeId{1u, 2}}, Unknown{}})
+                   .has_value());
+}
+
 }  // namespace
 }  // namespace scada::opcua_bridge
