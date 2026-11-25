@@ -63,7 +63,21 @@ class VariableHandleImpl : public VariableHandle {
   static std::shared_ptr<VariableHandleImpl> Create();
 };
 
+// A monitored item on |variable|: Subscribe reports the variable's current
+// value when it has one, then every change. A variable that has never
+// received data reports nothing until it does.
 std::shared_ptr<MonitoredItem> CreateMonitoredVariable(
+    std::shared_ptr<VariableHandle> variable);
+
+// The same, for an item a client monitors: Subscribe always reports a first
+// sample, as OPC UA Part 4 §5.13.1.3 Monitoring mode requires ("the Server
+// shall report the first sample as soon as possible",
+// https://reference.opcfoundation.org/Core/Part4/v105/docs/5.13.1.3). A
+// variable that has never received data reports Bad_WaitingForInitialData
+// with no value and no source timestamp, so nothing that keeps history
+// records it. Kept apart from CreateMonitoredVariable because the device and
+// formula chains inside the server must not see a sample nobody produced.
+std::shared_ptr<MonitoredItem> CreateClientMonitoredVariable(
     std::shared_ptr<VariableHandle> variable);
 
 }  // namespace scada

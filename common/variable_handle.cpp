@@ -9,13 +9,15 @@ namespace {
 
 class VariableMonitoredItem : public MonitoredItem {
  public:
-  explicit VariableMonitoredItem(std::shared_ptr<VariableHandle> variable);
+  VariableMonitoredItem(std::shared_ptr<VariableHandle> variable,
+                        bool always_report_first_sample);
 
   // MonitoredItem
   virtual void Subscribe(MonitoredItemHandler handler) override;
 
  private:
   const std::shared_ptr<VariableHandle> variable_;
+  const bool always_report_first_sample_;
 
   DataChangeHandler data_change_handler_;
 
@@ -28,14 +30,25 @@ std::shared_ptr<MonitoredItem> CreateMonitoredVariable(
     std::shared_ptr<VariableHandle> variable) {
   if (!variable)
     return nullptr;
-  return std::make_shared<VariableMonitoredItem>(std::move(variable));
+  return std::make_shared<VariableMonitoredItem>(
+      std::move(variable), /*always_report_first_sample=*/false);
+}
+
+std::shared_ptr<MonitoredItem> CreateClientMonitoredVariable(
+    std::shared_ptr<VariableHandle> variable) {
+  if (!variable)
+    return nullptr;
+  return std::make_shared<VariableMonitoredItem>(
+      std::move(variable), /*always_report_first_sample=*/true);
 }
 
 // VariableMonitoredItem
 
 VariableMonitoredItem::VariableMonitoredItem(
-    std::shared_ptr<VariableHandle> variable)
-    : variable_(std::move(variable)) {}
+    std::shared_ptr<VariableHandle> variable,
+    bool always_report_first_sample)
+    : variable_(std::move(variable)),
+      always_report_first_sample_(always_report_first_sample) {}
 
 void VariableMonitoredItem::Subscribe(MonitoredItemHandler handler) {
   base::Check(!data_change_handler_);
@@ -45,8 +58,18 @@ void VariableMonitoredItem::Subscribe(MonitoredItemHandler handler) {
   variable_connection_ =
       variable_->data_change_signal().connect(data_change_handler_);
 
-  if (!scada::IsNull(variable_->last_value().server_timestamp))
+  if (!scada::IsNull(variable_->last_value().server_timestamp)) {
     data_change_handler_(variable_->last_value());
+  } else if (always_report_first_sample_) {
+    // Never received data. The status says so explicitly rather than leaving
+    // it to the empty Variant (core/scada/data_value.h ReportedStatusCode),
+    // and the server timestamp makes the sample differ from an empty
+    // DataValue, which a forwarding VariableHandle would drop as unchanged.
+    DataValue waiting;
+    waiting.status_code = StatusCode::Bad_WaitingForInitialData;
+    waiting.server_timestamp = scada::Now();
+    data_change_handler_(waiting);
+  }
 }
 
 // VariableHandle
