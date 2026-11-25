@@ -686,5 +686,13 @@ TEST(SessionConnectParamsConversionTest, LocaleIdsRoundTrip) {
             ToScada(ToOpcua(source)).locale_ids);
 }
 
+// scada::Variant has no DateTime array; a peer's one degrades to null. The
+// scalar get<> it used to call on the array threw in the request path.
+TEST(VariantConversionTest, ADateTimeArrayFromAPeerBecomesNull) {
+  const opcua::Variant array{
+      std::vector<opcua::DateTime>{opcua::DateTime::Now()}};
+  EXPECT_TRUE(ToScada(array).is_null());
+}
+
 }  // namespace
 }  // namespace scada::opcua_bridge

@@ -30,10 +30,9 @@ opcua::ExtensionObject EncodeGenerated(const T& value) {
   std::vector<char> body;
   opcua::binary::Encoder encoder{body};
   opcua::ua::Encode(encoder, value);
-  return opcua::ExtensionObject{
-      opcua::ExpandedNodeId{
-          opcua::NodeId{opcua::ua::BinaryEncodingId<T>::value, 0}},
-      std::any{std::move(body)}};
+  return opcua::ExtensionObject{opcua::ExpandedNodeId{opcua::NodeId{
+                                    opcua::ua::BinaryEncodingId<T>::value, 0}},
+                                std::any{std::move(body)}};
 }
 
 // The inverse: decodes `e` as T when it carries T's DefaultBinary encoding id,
@@ -206,8 +205,8 @@ scada::ExtensionObject ToScada(const opcua::ExtensionObject& e) {
             scada::NodeId{scada::kUserManagementDataTypeId, 0}},
         std::any{scada::UserManagementDataType{
             .user_name = std::string{user->user_name},
-            .user_configuration = static_cast<scada::UserConfiguration>(
-                user->user_configuration),
+            .user_configuration =
+                static_cast<scada::UserConfiguration>(user->user_configuration),
             .description = std::string{user->description}}}};
   }
 
@@ -306,6 +305,11 @@ scada::Variant ToScada(const opcua::Variant& v) {
     case V::EXTENSION_OBJECT:
       return ToScadaConv<opcua::ExtensionObject>(v);
     case V::DATE_TIME:
+      // scada::Variant has no DateTime array. A peer may still send one, and
+      // the scalar get<> on an array throws (std::bad_variant_access) in the
+      // request path; an array degrades to null, as an unknown type does.
+      if (v.is_array())
+        return {};
       return scada::Variant{ToScada(v.get<opcua::DateTime>())};
     default:
       return {};
