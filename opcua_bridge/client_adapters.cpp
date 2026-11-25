@@ -418,6 +418,15 @@ class RemappingClientServices
         [self](std::string_view uri) -> std::optional<scada::NamespaceIndex> {
       return self->local_table_.GetOrAdd(uri);
     };
+    // Find, never add: an index the table holds is one it handed out, and an
+    // index it does not hold names no namespace at all.
+    services.namespace_uri_for_index_ =
+        [self](scada::NamespaceIndex index) -> std::optional<std::string> {
+      const std::vector<std::string>& uris = self->local_table_.uris();
+      if (index >= uris.size())
+        return std::nullopt;
+      return uris[index];
+    };
     return services;
   }
 

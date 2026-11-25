@@ -2,6 +2,7 @@
 
 #include "model/data_items_node_ids.h"
 #include "model/namespaces.h"
+#include "scada/guid.h"
 #include "scada/node_id.h"
 
 #include <gmock/gmock.h>
@@ -168,6 +169,55 @@ TEST(NodeIdUtil, NodeIdStringThatNamesNothingIsNull) {
   // A session's own index means nothing once stored.
   EXPECT_EQ(NodeIdFromNodeIdString("ns=2;i=1", PlantIndex),
             std::optional<NodeId>{NodeId{}});
+}
+
+std::optional<std::string> PlantUri(NamespaceIndex index) {
+  if (index == 200)
+    return "urn:plant";
+  return std::nullopt;
+}
+
+TEST(NodeIdUtil, StoredStringKeepsTheShortNameForAModelNamespace) {
+  // Older Clients read these; the URI form would gain nothing on our Server.
+  EXPECT_EQ(NodeIdToStoredString(NodeId(53, NamespaceIndexes::TS), PlantUri),
+            "TS.53");
+  EXPECT_EQ(
+      NodeIdToStoredString(data_items::id::Statistics_ServerCPUUsage, PlantUri),
+      "Server!PCPU");
+  EXPECT_EQ(NodeIdToStoredString(NodeId(2258u, 0), PlantUri), "NS0.2258");
+}
+
+TEST(NodeIdUtil, StoredStringNamesAnyOtherNamespaceByUri) {
+  EXPECT_EQ(NodeIdToStoredString(NodeId(std::string{"Plant.Temperature"}, 200),
+                                 PlantUri),
+            "nsu=urn:plant;s=Plant.Temperature");
+  // A Guid has no `NS<n>` form at all; by URI it is storable.
+  const NodeId guid{*Guid::FromString("09087e75-8e5e-499b-954f-f2a9603db28a"),
+                    200};
+  EXPECT_TRUE(NodeIdToScadaString(guid).empty());
+  EXPECT_TRUE(
+      NodeIdToStoredString(guid, PlantUri).starts_with("nsu=urn:plant;g="));
+  EXPECT_EQ(
+      NodeIdFromStoredString(NodeIdToStoredString(guid, PlantUri), PlantIndex),
+      guid);
+}
+
+TEST(NodeIdUtil, StoredStringWithoutAUriFallsBackToTheSessionForm) {
+  EXPECT_EQ(NodeIdToStoredString(NodeId(5, 300), PlantUri), "NS300.5");
+  EXPECT_EQ(NodeIdToStoredString(NodeId(5, 200), NamespaceUriForIndex{}),
+            "NS200.5");
+}
+
+TEST(NodeIdUtil, StoredStringReadsEveryWrittenForm) {
+  EXPECT_EQ(
+      NodeIdFromStoredString("nsu=urn:plant;s=Plant.Temperature", PlantIndex),
+      NodeId(std::string{"Plant.Temperature"}, 200));
+  EXPECT_EQ(NodeIdFromStoredString("TS.53", PlantIndex),
+            NodeId(53, NamespaceIndexes::TS));
+  // A file saved before the URI form was written.
+  EXPECT_EQ(NodeIdFromStoredString("NS200.5", PlantIndex), NodeId(5, 200));
+  EXPECT_EQ(NodeIdFromStoredString("nsu=urn:other;i=1", PlantIndex), NodeId{});
+  EXPECT_EQ(NodeIdFromStoredString("Alias", PlantIndex), NodeId{});
 }
 
 TEST(NodeIdUtil, OtherFormsAreNotNodeIdStrings) {

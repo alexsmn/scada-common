@@ -62,6 +62,30 @@ std::optional<scada::NodeId> NodeIdFromNodeIdString(
     std::string_view text,
     const NamespaceIndexForUri& index_for_uri);
 
+// A connection's namespace URI for one of its indexes, or nullopt for an index
+// it has not handed out (DataServices::namespace_uri_for_index_).
+using NamespaceUriForIndex =
+    std::function<std::optional<std::string>(scada::NamespaceIndex index)>;
+
+// Writes `node_id` as text to be stored — in a saved workspace, a profile, a
+// generated formula — so that it names the same node in a later session. A
+// namespace the model has a short name for keeps the `TS.1379` form of
+// NodeIdToScadaString, which older Clients read. Any other namespace is
+// written in the OPC UA Part 6 §5.1.12 form `nsu=<uri>;<identifier>`, its URI
+// from `uri_for_index`, then from the model's canonical table: its `NS<n>`
+// form would name the index this session happened to hand out. Falls back to
+// NodeIdToScadaString when neither knows the index, and so may be empty for a
+// Guid or opaque identifier.
+std::string NodeIdToStoredString(const scada::NodeId& node_id,
+                                 const NamespaceUriForIndex& uri_for_index);
+
+// Reads text written by NodeIdToStoredString or NodeIdToScadaString: the Part
+// 6 form (NodeIdFromNodeIdString) first, then `TS.1379` and the `NS<n>` form
+// files saved before the Part 6 form was written. A null NodeId when the text
+// names nothing this connection can resolve.
+scada::NodeId NodeIdFromStoredString(std::string_view text,
+                                     const NamespaceIndexForUri& index_for_uri);
+
 // Installs the model's namespace-name table into `scada_core` so that
 // `scada::NodeIdToLogString` (used by lower layers such as the remote protocol,
 // which cannot depend on the model) renders friendly namespace prefixes like

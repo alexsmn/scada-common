@@ -15,6 +15,9 @@
 #include <boost/signals2/signal.hpp>
 
 #include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
 
 class MasterDataServices final : public scada::AttributeService,
                                  public scada::ViewService,
@@ -38,6 +41,12 @@ class MasterDataServices final : public scada::AttributeService,
   // connected.
   std::optional<scada::NamespaceIndex> NamespaceIndexForUri(
       std::string_view uri) const;
+
+  // The current connection's namespace URI for one of its indexes
+  // (DataServices::namespace_uri_for_index_), or nullopt under the same
+  // conditions as `NamespaceIndexForUri`.
+  std::optional<std::string> NamespaceUriForIndex(
+      scada::NamespaceIndex index) const;
 
   // scada::SessionService
   virtual Awaitable<void> Connect(scada::SessionConnectParams params) override;

@@ -3,6 +3,7 @@
 #include "base/test/awaitable_test.h"
 #include "base/test/test_executor.h"
 #include "common/aliases_mock.h"
+#include "common/formula_util.h"
 #include "common/history_util.h"
 #include "common/variable_handle.h"
 #include "events/node_event_provider_mock.h"
@@ -293,6 +294,33 @@ TEST_F(TimedDataTest, NamespaceUriReferenceIsAnExpressionOperand) {
 
   EXPECT_TRUE(spec.connected());
   EXPECT_EQ(spec.current().value, 43);
+}
+
+// What the Client stores for a foreign node -- a generated formula, and a
+// saved one rewritten for storage -- is what this resolves.
+TEST_F(TimedDataTest, StoredFormulaResolvesThroughTheConnection) {
+  plant_value_variable_->ForwardData(scada::MakeReadResult(42));
+  const auto plant_uri =
+      [](scada::NamespaceIndex index) -> std::optional<std::string> {
+    if (index == kPlantNamespaceIndex)
+      return "urn:plant";
+    return std::nullopt;
+  };
+
+  const std::string generated =
+      MakeStoredNodeIdFormula(kPlantNodeId, plant_uri);
+  EXPECT_EQ(generated, "{nsu=urn:plant;s=Plant.Temperature}");
+  const std::string rewritten = FormulaReferencesToStored(
+      std::format("{{{}}} + 1", NodeIdToScadaString(kPlantNodeId)), plant_uri);
+  EXPECT_EQ(rewritten, "{nsu=urn:plant;s=Plant.Temperature} + 1");
+
+  TimedDataSpec generated_spec{service_, generated};
+  TimedDataSpec rewritten_spec{service_, rewritten};
+  Drain(executor_);
+
+  EXPECT_EQ(generated_spec.node_id(), kPlantNodeId);
+  EXPECT_EQ(generated_spec.current().value, 42);
+  EXPECT_EQ(rewritten_spec.current().value, 43);
 }
 
 // Our own namespaces resolve by URI too, through the canonical table, which

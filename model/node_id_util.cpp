@@ -233,7 +233,44 @@ std::optional<NamespaceIndex> CanonicalNamespaceIndex(std::string_view uri) {
   return static_cast<NamespaceIndex>(it - uris->begin());
 }
 
+// The canonical URI for `index`, or nullopt past the end of the model's table.
+std::optional<std::string> CanonicalNamespaceUri(NamespaceIndex index) {
+  static const base::NoDestructor<std::vector<std::string>> uris{
+      model::GetCanonicalNamespaceUris()};
+  if (index >= uris->size())
+    return std::nullopt;
+  return (*uris)[index];
+}
+
 }  // namespace
+
+std::string NodeIdToStoredString(const scada::NodeId& node_id,
+                                 const NamespaceUriForIndex& uri_for_index) {
+  std::string scada_string = NodeIdToScadaString(node_id);
+  if (!scada_string.empty() &&
+      (!GetNamespaceName(node_id.namespace_index()).empty() ||
+       !NodeIdToPredefinedScadaString(node_id).empty())) {
+    return scada_string;
+  }
+  std::optional<std::string> uri;
+  if (uri_for_index)
+    uri = uri_for_index(node_id.namespace_index());
+  if (!uri)
+    uri = CanonicalNamespaceUri(node_id.namespace_index());
+  if (!uri || uri->empty())
+    return scada_string;
+  return FormatNodeIdString(node_id, *uri);
+}
+
+scada::NodeId NodeIdFromStoredString(
+    std::string_view text,
+    const NamespaceIndexForUri& index_for_uri) {
+  if (std::optional<scada::NodeId> node_id =
+          NodeIdFromNodeIdString(text, index_for_uri)) {
+    return std::move(*node_id);
+  }
+  return NodeIdFromScadaString(text);
+}
 
 std::optional<scada::NodeId> NodeIdFromNodeIdString(
     std::string_view text,

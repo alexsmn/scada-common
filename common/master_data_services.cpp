@@ -151,6 +151,13 @@ std::optional<scada::NamespaceIndex> MasterDataServices::NamespaceIndexForUri(
   return services_.namespace_index_for_uri_(uri);
 }
 
+std::optional<std::string> MasterDataServices::NamespaceUriForIndex(
+    scada::NamespaceIndex index) const {
+  if (!services_.namespace_uri_for_index_)
+    return std::nullopt;
+  return services_.namespace_uri_for_index_(index);
+}
+
 void MasterDataServices::SetServices(DataServices&& services) {
   if (connected_) {
     for (auto* monitored_item : monitored_items_) {

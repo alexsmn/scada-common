@@ -556,4 +556,27 @@ TEST(MasterDataServicesTest, NamespaceIndexForUriForwardsToTheConnection) {
   EXPECT_EQ(services.NamespaceIndexForUri("urn:plant"), std::nullopt);
 }
 
+// The reverse lookup, used to write a reference in the "nsu=" form.
+TEST(MasterDataServicesTest, NamespaceUriForIndexForwardsToTheConnection) {
+  TestExecutor executor;
+  MasterDataServices services{executor};
+  EXPECT_EQ(services.NamespaceUriForIndex(200), std::nullopt);
+
+  DataServices data_services;
+  data_services.namespace_uri_for_index_ =
+      [](scada::NamespaceIndex index) -> std::optional<std::string> {
+    if (index == 200)
+      return "urn:plant";
+    return std::nullopt;
+  };
+  services.SetServices(std::move(data_services));
+
+  EXPECT_EQ(services.NamespaceUriForIndex(200),
+            std::optional<std::string>{"urn:plant"});
+  EXPECT_EQ(services.NamespaceUriForIndex(201), std::nullopt);
+
+  services.SetServices(DataServices{});
+  EXPECT_EQ(services.NamespaceUriForIndex(200), std::nullopt);
+}
+
 }  // namespace
