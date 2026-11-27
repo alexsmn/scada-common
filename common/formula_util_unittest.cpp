@@ -88,4 +88,52 @@ TEST(FormulaUtilTest, OtherTextIsKeptAsWritten) {
   }
 }
 
+// A data item's formula on the Server names a foreign node by URI
+// (docs/product/foreign-node-references.md): braced, unbraced, or as an
+// expression's only operand.
+TEST(FormulaUtilTest, SingleNodeIdReadsTheNamespaceUriForm) {
+  const scada::NodeId expected{std::string{"Plant.Setpoint"}, kPlantIndex};
+  EXPECT_EQ(
+      GetFormulaSingleNodeId("{nsu=urn:plant;s=Plant.Setpoint}", PlantIndex),
+      expected);
+  EXPECT_EQ(GetFormulaSingleNodeId("{nsu=urn:plant;i=5}", PlantIndex),
+            (scada::NodeId{5u, kPlantIndex}));
+}
+
+// Our own namespace by URI resolves through the model's canonical table even
+// when the lookup does not know it.
+TEST(FormulaUtilTest, SingleNodeIdReadsAModelNamespaceUriWithoutALookup) {
+  constexpr std::string_view kName =
+      "nsu=http://telecontrol.ru/opcua/data_items/DiscreteItemType;i=1";
+  const std::optional<scada::NodeId> expected =
+      scada::NodeIdFromNodeIdString(kName, {});
+  ASSERT_TRUE(expected);
+  ASSERT_FALSE(expected->is_null());
+  EXPECT_EQ(
+      GetFormulaSingleNodeId("{nsu=http://telecontrol.ru/opcua/data_items/"
+                             "DiscreteItemType;i=1}",
+                             {}),
+      *expected);
+}
+
+// An unknown URI names nothing: the resolver then falls back to the alias
+// table, which holds no such name either.
+TEST(FormulaUtilTest, SingleNodeIdOfAnUnknownUriIsNull) {
+  EXPECT_TRUE(
+      GetFormulaSingleNodeId("{nsu=urn:other;s=X}", PlantIndex).is_null());
+  EXPECT_TRUE(GetFormulaSingleNodeId("{nsu=urn:plant;s=X}", {}).is_null());
+}
+
+// Every form the one-argument overload reads, it reads the same with a lookup.
+TEST(FormulaUtilTest, SingleNodeIdKeepsEveryOtherForm) {
+  for (std::string_view formula :
+       {"TS.1379", "{TS.1379}", "NS200.5", "{NS200.Plant.Temperature}", "Alias",
+        "{u35_s1}", "Server!CPU", "MODBUS_PORTS.32!Online", "", "{TS.1379} + 1",
+        "{i=2258}", "{ns=200;s=X}"}) {
+    SCOPED_TRACE(formula);
+    EXPECT_EQ(GetFormulaSingleNodeId(formula, PlantIndex),
+              GetFormulaSingleNodeId(formula));
+  }
+}
+
 }  // namespace

@@ -8,6 +8,17 @@
 
 std::string GetFormulaSingleName(std::string_view formula);
 scada::NodeId GetFormulaSingleNodeId(std::string_view formula);
+
+// GetFormulaSingleNodeId, also reading a single name in the OPC UA Part 6
+// §5.1.12 form `{nsu=<uri>;<identifier>}`
+// (https://reference.opcfoundation.org/Core/Part6/v105/docs/5.1.12): its index
+// comes from `index_for_uri`, then the model's canonical table, and the result
+// is null when neither knows the URI. Every other name -- `TS.1379`,
+// `NS<n>.…`, an alias, a bare `i=2258` -- resolves exactly as
+// GetFormulaSingleNodeId resolves it. `index_for_uri` may be empty.
+scada::NodeId GetFormulaSingleNodeId(
+    std::string_view formula,
+    const scada::NamespaceIndexForUri& index_for_uri);
 std::string MakeNodeIdFormula(const scada::NodeId& id);
 
 // A formula naming `id` that may be stored: NodeIdToStoredString's text,

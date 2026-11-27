@@ -37,6 +37,23 @@ scada::NodeId GetFormulaSingleNodeId(std::string_view formula) {
   return name.empty() ? scada::NodeId{} : NodeIdFromScadaString(name);
 }
 
+scada::NodeId GetFormulaSingleNodeId(
+    std::string_view formula,
+    const scada::NamespaceIndexForUri& index_for_uri) {
+  const std::string name = GetFormulaSingleName(formula);
+  if (name.empty())
+    return {};
+  // Only the `nsu=` form is new here: a bare `i=…` or `ns=<n>;…` keeps
+  // meaning what NodeIdFromScadaString makes of it, or an alias.
+  if (std::optional<scada::ParsedNodeIdString> parsed =
+          scada::ParseNodeIdString(name);
+      parsed && parsed->namespace_uri) {
+    return scada::NodeIdFromNodeIdString(name, index_for_uri)
+        .value_or(scada::NodeId{});
+  }
+  return NodeIdFromScadaString(name);
+}
+
 std::string MakeNodeIdFormula(const scada::NodeId& id) {
   switch (id.type()) {
     case scada::NodeIdType::Numeric:
