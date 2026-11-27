@@ -33,6 +33,8 @@ class AliasTimedData final : public TimedData {
   virtual std::string GetFormula(bool aliases) const override;
   virtual scada::LocalizedText GetTitle() const override;
   virtual NodeRef GetNode() const override;
+  virtual std::span<const std::shared_ptr<TimedData>> GetOperands()
+      const override;
   virtual bool IsAlerting() const override;
   virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;

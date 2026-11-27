@@ -19,6 +19,10 @@ class ExpressionTimedData final : public BaseTimedData,
   // TimedData
   virtual std::string GetFormula(bool aliases) const override;
   virtual scada::LocalizedText GetTitle() const override;
+  virtual std::span<const std::shared_ptr<TimedData>> GetOperands()
+      const override {
+    return operands_;
+  }
   virtual const EventSet* GetEvents() const override;
   virtual void Acknowledge() override;
 

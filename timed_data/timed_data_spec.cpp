@@ -186,6 +186,11 @@ scada::NodeId TimedDataSpec::node_id() const {
   return data_ ? data_->GetNode().node_id() : scada::NodeId{};
 }
 
+std::span<const std::shared_ptr<TimedData>> TimedDataSpec::operands() const {
+  return data_ ? data_->GetOperands()
+               : std::span<const std::shared_ptr<TimedData>>{};
+}
+
 NodeRef TimedDataSpec::node() const {
   return data_ ? data_->GetNode() : NodeRef{};
 }

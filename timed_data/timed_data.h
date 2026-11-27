@@ -8,6 +8,7 @@
 
 #include <cassert>
 #include <functional>
+#include <memory>
 #include <span>
 
 class EventSet;
@@ -31,8 +32,7 @@ class TimedData {
 
   // TODO: Describe guarantees for this method. Does it return the lower bound?
   // Returns null when there is no value at the provided time.
-  virtual const scada::DataValue* GetValueAt(
-      const scada::Time& time) const = 0;
+  virtual const scada::DataValue* GetValueAt(const scada::Time& time) const = 0;
 
   virtual void AddObserver(TimedDataObserver& observer) = 0;
   virtual void RemoveObserver(TimedDataObserver& observer) = 0;
@@ -44,6 +44,14 @@ class TimedData {
   virtual std::string GetFormula(bool aliases) const = 0;
   virtual scada::LocalizedText GetTitle() const = 0;
   virtual NodeRef GetNode() const = 0;
+
+  // The data this one is computed from: an expression's operands, in formula
+  // order. Empty for data read from a single node. Lets a caller name the
+  // inputs of a formula -- the Control dialog says which values block an
+  // interlock, not just the formula.
+  virtual std::span<const std::shared_ptr<TimedData>> GetOperands() const {
+    return {};
+  }
 
   virtual bool IsAlerting() const = 0;
   virtual const EventSet* GetEvents() const = 0;

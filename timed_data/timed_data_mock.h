@@ -67,8 +67,7 @@ class MockTimedData : public TimedData {
 
   MOCK_METHOD(void,
               AddViewObserver,
-              (TimedDataViewObserver & observer,
-               const scada::TimeRange& range),
+              (TimedDataViewObserver & observer, const scada::TimeRange& range),
               (override));
 
   MOCK_METHOD(void,
@@ -81,6 +80,12 @@ class MockTimedData : public TimedData {
   MOCK_METHOD(scada::LocalizedText, GetTitle, (), (const override));
 
   MOCK_METHOD(NodeRef, GetNode, (), (const override));
+
+  // Unstubbed it returns an empty span: a single-node datum has no operands.
+  MOCK_METHOD((std::span<const std::shared_ptr<TimedData>>),
+              GetOperands,
+              (),
+              (const override));
 
   MOCK_METHOD(bool, IsAlerting, (), (const override));
 

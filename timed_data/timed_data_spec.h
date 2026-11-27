@@ -12,6 +12,7 @@
 
 #include <functional>
 #include <memory>
+#include <span>
 #include <string>
 
 class EventSet;
@@ -43,9 +44,7 @@ class TimedDataSpec final : private TimedDataObserver,
   bool alerting() const;
   bool connected() const;
   scada::Time from() const { return range_.first; }
-  const scada::TimeRange& range() const SCADA_LIFETIME_BOUND {
-    return range_;
-  }
+  const scada::TimeRange& range() const SCADA_LIFETIME_BOUND { return range_; }
   scada::Time ready_from() const;
   bool historical() const;
   bool logical() const;
@@ -65,6 +64,9 @@ class TimedDataSpec final : private TimedDataObserver,
 
   scada::NodeId node_id() const;
   NodeRef node() const;
+  // The inputs of a formula spec (`TimedData::GetOperands`); empty for a
+  // single node or an unconnected spec.
+  std::span<const std::shared_ptr<TimedData>> operands() const;
   scada::node scada_node() const;
 
   std::u16string GetCurrentString(const ValueFormat& format = ValueFormat{
@@ -111,8 +113,7 @@ class TimedDataSpec final : private TimedDataObserver,
   std::shared_ptr<TimedData> data_;
 
   scada::AggregateFilter aggregate_filter_;
-  scada::TimeRange range_{GetTimedDataCurrentOnly(),
-                              GetTimedDataCurrentOnly()};
+  scada::TimeRange range_{GetTimedDataCurrentOnly(), GetTimedDataCurrentOnly()};
 
   // Keep it defined in the source file to void heavy includes.
   static scada::Time GetTimedDataCurrentOnly();

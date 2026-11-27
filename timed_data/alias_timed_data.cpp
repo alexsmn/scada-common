@@ -31,8 +31,7 @@ bool AliasTimedData::IsError() const {
   return is_forwarded() && forwarded().IsError();
 }
 
-const std::vector<scada::TimeRange>& AliasTimedData::GetReadyRanges()
-    const {
+const std::vector<scada::TimeRange>& AliasTimedData::GetReadyRanges() const {
   return is_forwarded() ? forwarded().GetReadyRanges() : kReadyCurrentTimeOnly;
 }
 
@@ -97,6 +96,12 @@ scada::LocalizedText AliasTimedData::GetTitle() const {
 
 NodeRef AliasTimedData::GetNode() const {
   return is_forwarded() ? forwarded().GetNode() : NodeRef{};
+}
+
+std::span<const std::shared_ptr<TimedData>> AliasTimedData::GetOperands()
+    const {
+  return is_forwarded() ? forwarded().GetOperands()
+                        : std::span<const std::shared_ptr<TimedData>>{};
 }
 
 bool AliasTimedData::IsAlerting() const {
