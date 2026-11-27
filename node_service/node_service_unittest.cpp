@@ -16,6 +16,7 @@
 
 #include <gmock/gmock.h>
 
+#include <cstring>
 #include <unordered_map>
 
 #include "base/debug_util.h"
@@ -160,8 +161,9 @@ TEST(StaticNodeServiceTest, GetReferenceFindsTheEdgeToTheRequestedTarget) {
   }
 
   // Both children are reachable, and asking for one picks that one.
-  EXPECT_EQ(node_service.GetTargets(parent_id, scada::id::Organizes, true).size(),
-            2u);
+  EXPECT_EQ(
+      node_service.GetTargets(parent_id, scada::id::Organizes, true).size(),
+      2u);
 
   const NodeRef::Reference second = node_service.GetReference(
       parent_id, scada::id::Organizes, /*forward=*/true, second_id);
@@ -218,6 +220,48 @@ TEST(V3NodeServiceScadaNodeTest, UsesContextClientServices) {
       executor, node_service.GetNode(node_id).scada_node().read_value());
 
   EXPECT_EQ(result.value().value, expected_value);
+}
+
+// A fetch completes on the executor after its request returns, which can be
+// after the owner dropped the service: ClientApplication resets its node
+// service on sign-out while views may still have fetches in flight. The
+// coroutine must then touch nothing of the service. The storage is scribbled
+// over after destruction so that touching it fails here rather than by luck;
+// the client's foreign display E2E crashed exactly so in
+// NodeServiceImpl::ProcessFetchErrors before the fix.
+TEST(V3NodeServiceLifetimeTest, AFetchCompletingAfterDestructionDoesNothing) {
+  TestExecutor executor;
+  auto address_space = std::make_shared<TestAddressSpace>();
+  NiceMock<scada::MockMonitoredItemService> monitored_item_service;
+
+  alignas(
+      v3::NodeServiceImpl) unsigned char storage[sizeof(v3::NodeServiceImpl)];
+  auto* node_service = new (
+      storage) v3::NodeServiceImpl{v3::NodeServiceImplContext{
+      .executor_ = executor,
+      .monitored_item_service_ = monitored_item_service,
+      .node_fetcher_ = std::make_shared<v3::TestNodeFetcher>(*address_space),
+      .view_events_provider_ = [](scada::ViewEvents&) {
+        return std::make_unique<IViewEventsSubscription>();
+      }}};
+  node_service->OnChannelOpened();
+  for (size_t i = 0; i < 100 && executor.GetTaskCount() != 0; ++i)
+    executor.Poll();
+
+  // One fetch of a node the server has, one of a node it lacks: the success
+  // and the error path both resume into the service.
+  node_service->GetNode(address_space->kTestNode1Id)
+      .StartFetch(NodeFetchStatus::NodeOnly);
+  node_service->GetNode(scada::NodeId{987654, 1})
+      .StartFetch(NodeFetchStatus::NodeOnly);
+  ASSERT_NE(executor.GetTaskCount(), 0u);
+
+  node_service->~NodeServiceImpl();
+  std::memset(storage, 0xA5, sizeof(storage));
+
+  for (size_t i = 0; i < 100 && executor.GetTaskCount() != 0; ++i)
+    executor.Poll();
+  EXPECT_EQ(executor.GetTaskCount(), 0u);
 }
 
 template <class NodeServiceImpl>

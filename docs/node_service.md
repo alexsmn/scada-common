@@ -1,7 +1,8 @@
 # NodeService Design
 
 Status: Living reference
-Last verified against code: 2026-10-26 (the subscription-lifetime bullet
+Last verified against code: 2026-11-27 (the fetch-lifetime bullet under
+the residency section); 2026-10-26 (the subscription-lifetime bullet
 under the residency section); 2026-08-31 (the type table's notification row and
 the class diagram only: `NodeRefObserver` was replaced by Boost.Signals2
 signals in `d85b7bb01` and no longer exists. The rest is unverified — this
@@ -66,6 +67,14 @@ Ownership rules:
   the service and every model. A model erases its own entry on destruction —
   through the shared registry, so a `NodeRef` released after service teardown
   stays safe.
+- **A fetch outlives nothing.** `SpawnFetch`'s coroutines capture the
+  service and resume on the executor when their request returns, which can be
+  after the owner dropped the service (a sign-out while views still fetch).
+  Each one checks a token the service owns (`alive_`) before touching it, and
+  otherwise only releases its pinned model, which is safe for the reason
+  above. `V3NodeServiceLifetimeTest.AFetchCompletingAfterDestructionDoesNothing`
+  pins it. It was found when the client's foreign display E2E disconnected
+  with fetches still in flight (2026-11-27).
 - **Pins are the only ownership.** A model stays alive while at least one of
   these holds it:
   - an in-flight fetch (`SpawnFetch` captures the model, so a transient

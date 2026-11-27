@@ -333,9 +333,11 @@ void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
   if (Includes(requested_status, NodeFetchStatus::NodeOnly) &&
       node_fetch_in_flight_.insert(node_id).second) {
     CoSpawn(executor_,
-            [this, fetcher = node_fetcher_, node_id,
-             pin = model]() mutable -> Awaitable<void> {
+            [this, alive = std::weak_ptr<bool>{alive_}, fetcher = node_fetcher_,
+             node_id, pin = model]() mutable -> Awaitable<void> {
               auto node_state = co_await fetcher->FetchNode(node_id);
+              if (alive.expired())
+                co_return;
               node_fetch_in_flight_.erase(node_id);
               // The pin keeps the requesting model resident for the duration of
               // the fetch; if it is gone anyway, nobody is interested.
@@ -351,19 +353,22 @@ void NodeServiceImpl::SpawnFetch(const scada::NodeId& node_id,
   if (Includes(requested_status, NodeFetchStatus::ChildrenOnly) &&
       children_fetch_in_flight_.insert(node_id).second) {
     CoSpawn(executor_,
-            [this, fetcher = node_fetcher_, node_id,
-             pin = std::move(model)]() mutable -> Awaitable<void> {
+            [this, alive = std::weak_ptr<bool>{alive_}, fetcher = node_fetcher_,
+             node_id, pin = std::move(model)]() mutable -> Awaitable<void> {
               auto references = co_await fetcher->FetchChildren(node_id);
+              if (alive.expired())
+                co_return;
               // Do NOT release children_fetch_in_flight_ here. A successful
               // fetch hands the references to OnChildrenFetched, which spawns a
-              // long async tail that fetches each child (and its reference type)
-              // before it applies the ChildrenOnly status bit. Clearing the
-              // guard now — before that bit is set — lets a view that re-reads
-              // on the tail's own child-fetch notifications re-request and
-              // re-spawn the children fetch, which livelocks (the tail never
-              // gets to settle). The guard is cleared by ChildrenFetchSettled
-              // once the tail applies the status (or immediately below on the
-              // no-model / error paths, where no tail runs).
+              // long async tail that fetches each child (and its reference
+              // type) before it applies the ChildrenOnly status bit. Clearing
+              // the guard now — before that bit is set — lets a view that
+              // re-reads on the tail's own child-fetch notifications re-request
+              // and re-spawn the children fetch, which livelocks (the tail
+              // never gets to settle). The guard is cleared by
+              // ChildrenFetchSettled once the tail applies the status (or
+              // immediately below on the no-model / error paths, where no tail
+              // runs).
               if (!pin) {
                 children_fetch_in_flight_.erase(node_id);
                 co_return;

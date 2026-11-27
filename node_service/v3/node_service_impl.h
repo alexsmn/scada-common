@@ -236,6 +236,13 @@ class NodeServiceImpl : private NodeServiceImplContext,
 
   std::unique_ptr<IViewEventsSubscription> view_events_subscription_;
 
+  // Expires with this service. A fetch coroutine captures `this` and resumes
+  // on the executor after its request completes, which can be after the
+  // owner dropped the service -- a sign-out while a fetch is in flight -- so
+  // it checks this first. Not weak_from_this(): tests own the service on the
+  // stack.
+  const std::shared_ptr<bool> alive_ = std::make_shared<bool>(true);
+
   friend class NodeModelImpl;
 };
 
