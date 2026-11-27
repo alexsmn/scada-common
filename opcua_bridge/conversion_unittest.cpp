@@ -237,6 +237,8 @@ TEST(ConversionTest, StatusCodeMapsToStandardOpcUaWireValue) {
             0x80E60000u);  // BadSecurityModeInsufficient
   EXPECT_EQ(wire(scada::StatusCode::Bad_IdentityChangeNotSupported),
             0x80C60000u);  // BadIdentityChangeNotSupported
+  EXPECT_EQ(wire(scada::StatusCode::Bad_BrowseNameDuplicated),
+            0x80610000u);  // BadBrowseNameDuplicated
   EXPECT_EQ(wire(scada::StatusCode::Bad_Disconnected),
             0x80310000u);  // BadNoCommunication
   EXPECT_EQ(wire(scada::StatusCode::Bad_SessionForcedLogoff),
