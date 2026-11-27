@@ -22,7 +22,8 @@ opcua::ServiceContext ToOpcua(const scada::ServiceContext& c) {
       .with_request_id(c.request_id())
       .with_trace_id(c.trace_id())
       .with_peer(c.peer())
-      .with_locale_ids(c.locale_ids());
+      .with_locale_ids(c.locale_ids())
+      .with_on_behalf_of(ToOpcua(c.on_behalf_of()));
 }
 scada::ServiceContext ToScada(const opcua::ServiceContext& c) {
   return scada::ServiceContext{}
@@ -31,7 +32,8 @@ scada::ServiceContext ToScada(const opcua::ServiceContext& c) {
       .with_request_id(c.request_id())
       .with_trace_id(c.trace_id())
       .with_peer(c.peer())
-      .with_locale_ids(c.locale_ids());
+      .with_locale_ids(c.locale_ids())
+      .with_on_behalf_of(ToScada(c.on_behalf_of()));
 }
 
 opcua::ReadValueId ToOpcua(const scada::ReadValueId& v) {
